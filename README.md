@@ -7,9 +7,11 @@ FBR Integration
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
 ```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app fbr_integration
+cd ~/frappe-bench
+bench get-app https://github.com/ERPNEXT-PAKISTAN/FBR_Integration.git --branch main
+bench --site erpnext.local install-app fbr_integration
+bench migrate
+bench restart
 ```
 
 ### Contributing
