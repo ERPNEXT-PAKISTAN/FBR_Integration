@@ -1,0 +1,17 @@
+[
+ {
+  "_assign": null,
+  "_comments": null,
+  "_liked_by": null,
+  "_user_tags": null,
+  "app_name": "fbr_integration",
+  "custom": 0,
+  "docstatus": 0,
+  "doctype": "Module Def",
+  "modified": "2026-02-23 11:39:25.102891",
+  "module_name": "FBR Integration",
+  "name": "FBR Integration",
+  "package": null,
+  "restrict_to_domain": null
+ }
+]

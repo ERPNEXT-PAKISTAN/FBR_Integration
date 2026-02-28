@@ -1,0 +1,32 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-02-25 01:39:08.107321",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": null,
+ "modified": "2026-02-25 01:39:08.107321",
+ "modified_by": "Administrator",
+ "module": "FBR Integration",
+ "name": "FBR Sales Summary",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "query": "SELECT\r\n  si.name AS \"Sales Invoice:Link/Sales Invoice:160\",\r\n  si.posting_date AS \"Date:Date:90\",\r\n  si.customer AS \"Customer:Link/Customer:180\",\r\n  si.grand_total AS \"Grand Total:Currency:120\",\r\n  si.custom_fbr_invoice_no AS \"FBR Invoice No:Data:220\"\r\nFROM `tabSales Invoice` si\r\nWHERE si.docstatus = 1\r\n  AND IFNULL(si.custom_fbr_invoice_no, '') != ''\r\nORDER BY si.posting_date DESC;",
+ "ref_doctype": "Sales Invoice",
+ "report_name": "FBR Sales Summary",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  }
+ ],
+ "timeout": 0
+}

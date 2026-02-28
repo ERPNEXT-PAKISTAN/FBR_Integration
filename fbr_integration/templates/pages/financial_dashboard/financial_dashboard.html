@@ -1,0 +1,385 @@
+<!-- Toolbar: Period, View, Company, Refresh -->
+<div class="financial-dashboard-toolbar mb-3">
+    <div class="d-flex justify-content-end flex-wrap gap-2 align-items-center">
+        <div class="btn-group btn-group-sm" role="group" title="Apply to entire dashboard">
+            <button type="button" class="btn btn-default dashboard-period-type" data-period-type="monthly" title="Monthly view">Monthly</button>
+            <button type="button" class="btn btn-default dashboard-period-type" data-period-type="quarterly" title="Quarterly view">Quarterly</button>
+            <button type="button" class="btn btn-default dashboard-period-type active" data-period-type="yearly" title="Yearly view">Yearly</button>
+        </div>
+        <div class="dropdown">
+            <a class="btn btn-default dropdown-toggle" href="#" id="periodDropdown" role="button" data-toggle="dropdown">
+                <i class="fa fa-calendar me-1"></i>
+                <span id="currentPeriod">This Year</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item period-option" href="#" data-period="today">Today</a></li>
+                <li><a class="dropdown-item period-option" href="#" data-period="this_week">This Week</a></li>
+                <li><a class="dropdown-item period-option" href="#" data-period="this_month">This Month</a></li>
+                <li><a class="dropdown-item period-option" href="#" data-period="this_quarter">This Quarter</a></li>
+                <li><a class="dropdown-item period-option" href="#" data-period="this_year">This Year</a></li>
+                <li><a class="dropdown-item period-option" href="#" data-period="last_year">Last Year</a></li>
+                <li class="dropdown-divider"></li>
+                <li><a class="dropdown-item custom-range-btn" href="#">Custom Date Range</a></li>
+            </ul>
+        </div>
+        <div class="dropdown">
+            <a class="btn btn-default dropdown-toggle" href="#" id="companyDropdown" role="button" data-toggle="dropdown">
+                <i class="fa fa-building me-1"></i>
+                <span id="currentCompany">--</span>
+            </a>
+            <ul class="dropdown-menu" id="companyList"></ul>
+        </div>
+        <button type="button" class="btn btn-default" id="dashboardRefreshBtn" title="Refresh all data">
+            <i class="fa fa-refresh"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="financial-dashboard container-fluid">
+    <!-- KPI Cards Row -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Total Revenue</h6>
+                            <h3 class="mb-0" id="totalRevenue">0</h3>
+                            <small class="change-positive">
+                                <i class="fa fa-arrow-up"></i>
+                                <span id="revenueChange">+0%</span>
+                            </small>
+                        </div>
+                        <div class="kpi-icon">
+                            <i class="fa fa-dollar fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Total Expenses</h6>
+                            <h3 class="mb-0" id="totalExpenses">0</h3>
+                            <small class="change-positive">
+                                <i class="fa fa-arrow-down"></i>
+                                <span id="expenseChange">-0%</span>
+                            </small>
+                        </div>
+                        <div class="kpi-icon">
+                            <i class="fa fa-pie-chart fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Net Profit</h6>
+                            <h3 class="mb-0" id="netProfit">0</h3>
+                            <small class="change-positive">
+                                <i class="fa fa-arrow-up"></i>
+                                <span id="profitChange">+0%</span>
+                            </small>
+                        </div>
+                        <div class="kpi-icon">
+                            <i class="fa fa-line-chart fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card kpi-card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Profit Margin</h6>
+                            <h3 class="mb-0" id="profitMargin">0%</h3>
+                            <small class="change-positive">
+                                <i class="fa fa-arrow-up"></i>
+                                <span id="marginChange">+0%</span>
+                            </small>
+                        </div>
+                        <div class="kpi-icon">
+                            <i class="fa fa-percent fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-3">
+            <div class="card chart-card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                    <h5 class="card-title mb-0">Revenue & Expense Trend</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-default trend-view active" data-view="monthly">Monthly</button>
+                        <button type="button" class="btn btn-default trend-view" data-view="quarterly">Quarterly</button>
+                        <button type="button" class="btn btn-default trend-view" data-view="yearly">Yearly</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="trendChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Expense Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <div id="expenseChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-3">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Cash Flow Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div id="cashFlowChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-3">
+            <div class="card chart-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Top Revenue Sources</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Account</th>
+                                    <th class="text-right">Amount</th>
+                                    <th class="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody id="revenueSources"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Statements (unified: statements + analytics) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card financial-statements-card">
+                <div class="card-header financial-statements-header">
+                    <h5 class="card-title mb-0"><i class="fa fa-file-text-o me-2"></i>Financial Statements &amp; Analytics</h5>
+                    <ul class="nav nav-tabs card-header-tabs financial-statement-tabs" role="tablist">
+                        <li class="nav-item"><a class="nav-link active" href="javascript:void(0)" data-tab="profitLossTab">P&amp;L</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="profitLossMonthlyTab">P&amp;L Monthly</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="balanceSheetTab">Balance Sheet</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="balanceSheetMonthlyTab">BS Monthly</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="cashFlowTab">Cash Flow</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="trialBalanceTab">Trial Balance</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="agingReceivablesTab">Aging Rec.</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="agingPayablesTab">Aging Pay.</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="salesSummaryTab">Sales</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="purchasesSummaryTab">Purchases</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="expensesSummaryTab">Expenses</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="verticalAnalysisTab">Vertical</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="horizontalAnalysisTab">Horizontal</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" data-tab="ratioAnalysisTab">Ratios</a></li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="profitLossTab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered financial-statement">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Account</th>
+                                            <th class="text-right">Current</th>
+                                            <th class="text-right">Previous</th>
+                                            <th class="text-right">Change %</th>
+                                            <th class="text-right">Monthly Chg %</th>
+                                            <th class="text-right">Quarterly Chg %</th>
+                                            <th class="text-right">Yearly Chg %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="profitLossData"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="profitLossMonthlyTab">
+                            <p class="text-muted small mb-2">Profit &amp; Loss by month (Jan, Feb, Mar …)</p>
+                            <div class="table-responsive">
+                                <table class="table table-bordered financial-statement" id="profitLossMonthlyTable">
+                                    <thead class="table-light">
+                                        <tr id="profitLossMonthlyThead">
+                                            <th>Account</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="profitLossMonthlyData"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="balanceSheetTab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered financial-statement">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Account</th>
+                                            <th class="text-right">Current</th>
+                                            <th class="text-right">Previous</th>
+                                            <th class="text-right">Change %</th>
+                                            <th class="text-right">Monthly Chg %</th>
+                                            <th class="text-right">Quarterly Chg %</th>
+                                            <th class="text-right">Yearly Chg %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="balanceSheetData"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="balanceSheetMonthlyTab">
+                            <p class="text-muted small mb-2">Balance Sheet as of end of each month (Jan, Feb, Mar …)</p>
+                            <div class="table-responsive">
+                                <table class="table table-bordered financial-statement" id="balanceSheetMonthlyTable">
+                                    <thead class="table-light">
+                                        <tr id="balanceSheetMonthlyThead">
+                                            <th>Account</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="balanceSheetMonthlyData"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="cashFlowTab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered financial-statement">
+                                    <thead class="table-light">
+                                        <tr><th>Activity</th><th class="text-right">Amount</th></tr>
+                                    </thead>
+                                    <tbody id="cashFlowData"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="trialBalanceTab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered financial-statement">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Account</th>
+                                            <th class="text-right">Debit</th>
+                                            <th class="text-right">Credit</th>
+                                            <th class="text-right">Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="trialBalanceData"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="agingReceivablesTab">
+                            <p class="text-muted small mb-2">Outstanding receivables as of period end</p>
+                            <div id="agingReceivablesSummary" class="mb-2"></div>
+                            <div class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Range</th><th class="text-right">Amount</th></tr></thead><tbody id="agingReceivablesData"></tbody></table></div>
+                        </div>
+                        <div class="tab-pane fade" id="agingPayablesTab">
+                            <p class="text-muted small mb-2">Outstanding payables as of period end</p>
+                            <div id="agingPayablesSummary" class="mb-2"></div>
+                            <div class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Range</th><th class="text-right">Amount</th></tr></thead><tbody id="agingPayablesData"></tbody></table></div>
+                        </div>
+                        <div class="tab-pane fade" id="salesSummaryTab">
+                            <div class="btn-group btn-group-sm mb-2" role="group">
+                                <button type="button" class="btn btn-default analytics-period active" data-group="monthly">Monthly</button>
+                                <button type="button" class="btn btn-default analytics-period" data-group="quarterly">Quarterly</button>
+                                <button type="button" class="btn btn-default analytics-period" data-group="yearly">Yearly</button>
+                            </div>
+                            <div id="salesMonthlyChart" class="mb-3" style="height: 220px;"></div>
+                            <div class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Period</th><th class="text-right">Amount</th><th class="text-right">Previous</th><th class="text-right">Change %</th><th class="text-right">Monthly Chg %</th><th class="text-right">Quarterly Chg %</th><th class="text-right">Yearly Chg %</th></tr></thead><tbody id="salesSummaryData"></tbody></table></div>
+                        </div>
+                        <div class="tab-pane fade" id="purchasesSummaryTab">
+                            <div class="btn-group btn-group-sm mb-2" role="group">
+                                <button type="button" class="btn btn-default analytics-period-purchases active" data-group="monthly">Monthly</button>
+                                <button type="button" class="btn btn-default analytics-period-purchases" data-group="quarterly">Quarterly</button>
+                                <button type="button" class="btn btn-default analytics-period-purchases" data-group="yearly">Yearly</button>
+                            </div>
+                            <div id="purchasesMonthlyChart" class="mb-3" style="height: 220px;"></div>
+                            <div class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Period</th><th class="text-right">Amount</th><th class="text-right">Previous</th><th class="text-right">Change %</th><th class="text-right">Monthly Chg %</th><th class="text-right">Quarterly Chg %</th><th class="text-right">Yearly Chg %</th></tr></thead><tbody id="purchasesSummaryData"></tbody></table></div>
+                        </div>
+                        <div class="tab-pane fade" id="expensesSummaryTab">
+                            <div class="btn-group btn-group-sm mb-2" role="group">
+                                <button type="button" class="btn btn-default analytics-period-expenses" data-group="monthly">Monthly</button>
+                                <button type="button" class="btn btn-default analytics-period-expenses" data-group="quarterly">Quarterly</button>
+                                <button type="button" class="btn btn-default analytics-period-expenses" data-group="yearly">Yearly</button>
+                            </div>
+                            <div id="expensesBarChart" class="mb-3" style="height: 220px;"></div>
+                            <div class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Period</th><th class="text-right">Amount</th><th class="text-right">Previous</th><th class="text-right">Change %</th><th class="text-right">Monthly Chg %</th><th class="text-right">Quarterly Chg %</th><th class="text-right">Yearly Chg %</th></tr></thead><tbody id="expensesSummaryData"></tbody></table></div>
+                        </div>
+                        <div class="tab-pane fade" id="verticalAnalysisTab">
+                            <p class="text-muted small mb-2">Each line as % of revenue</p>
+                            <div class="btn-group btn-group-sm mb-2" role="group">
+                                <button type="button" class="btn btn-default analytics-vertical-view active" data-view="period">Period</button>
+                                <button type="button" class="btn btn-default analytics-vertical-view" data-view="monthly">Monthly</button>
+                            </div>
+                            <div id="verticalAnalysisPeriodView" class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Account</th><th class="text-right">Amount</th><th class="text-right">% of Revenue</th></tr></thead><tbody id="verticalAnalysisData"></tbody></table></div>
+                            <div id="verticalAnalysisMonthlyView" class="table-responsive" style="display:none;"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Account</th></tr></thead><tbody id="verticalAnalysisMonthlyData"></tbody></table></div>
+                        </div>
+                        <div class="tab-pane fade" id="horizontalAnalysisTab">
+                            <p class="text-muted small mb-2">Period-over-period comparison</p>
+                            <div class="btn-group btn-group-sm mb-2" role="group">
+                                <button type="button" class="btn btn-default analytics-horizontal-view active" data-view="period">Period</button>
+                                <button type="button" class="btn btn-default analytics-horizontal-view" data-view="monthly">Monthly</button>
+                            </div>
+                            <div id="horizontalAnalysisPeriodView" class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Account</th><th class="text-right">Current</th><th class="text-right">Previous</th><th class="text-right">Change %</th></tr></thead><tbody id="horizontalAnalysisData"></tbody></table></div>
+                            <div id="horizontalAnalysisMonthlyView" class="table-responsive" style="display:none;"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Account</th></tr></thead><tbody id="horizontalAnalysisMonthlyData"></tbody></table></div>
+                        </div>
+                        <div class="tab-pane fade" id="ratioAnalysisTab">
+                            <p class="text-muted small mb-2">Liquidity, Profitability, Solvency, Efficiency</p>
+                            <div class="table-responsive"><table class="table table-bordered financial-statement"><thead class="table-light"><tr><th>Ratio</th><th class="text-right">Value</th><th>Description</th></tr></thead><tbody id="ratioAnalysisData"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Date Range Modal -->
+<div class="modal fade" id="customDateModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Custom Date Range</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="customFromDate">From Date</label>
+                    <input type="date" class="form-control" id="customFromDate">
+                </div>
+                <div class="form-group">
+                    <label for="customToDate">To Date</label>
+                    <input type="date" class="form-control" id="customToDate">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyCustomRange">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
