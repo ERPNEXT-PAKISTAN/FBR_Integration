@@ -1,0 +1,12 @@
+<h2>FBR QR Verification</h2>
+
+{% if valid %}
+  <div style="padding:10px;border:1px solid #2ecc71;">
+    <b>Status:</b> VALID ?
+  </div>
+  <pre style="white-space:pre-wrap;">{{ payload | tojson }}</pre>
+{% else %}
+  <div style="padding:10px;border:1px solid #e74c3c;">
+    <b>Status:</b> INVALID ?
+  </div>
+{% endif %}

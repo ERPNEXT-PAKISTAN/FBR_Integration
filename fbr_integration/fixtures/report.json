@@ -1,0 +1,65 @@
+[
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-02-25 01:39:08.107321",
+  "module": "FBR Integration",
+  "name": "FBR Sales Summary",
+  "prepared_report": 0,
+  "query": "SELECT\r\n  si.name AS \"Sales Invoice:Link/Sales Invoice:160\",\r\n  si.posting_date AS \"Date:Date:90\",\r\n  si.customer AS \"Customer:Link/Customer:180\",\r\n  si.grand_total AS \"Grand Total:Currency:120\",\r\n  si.custom_fbr_invoice_no AS \"FBR Invoice No:Data:220\"\r\nFROM `tabSales Invoice` si\r\nWHERE si.docstatus = 1\r\n  AND IFNULL(si.custom_fbr_invoice_no, '') != ''\r\nORDER BY si.posting_date DESC;",
+  "ref_doctype": "Sales Invoice",
+  "reference_report": null,
+  "report_name": "FBR Sales Summary",
+  "report_script": null,
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "parent": "FBR Sales Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Accounts Manager"
+   },
+   {
+    "parent": "FBR Sales Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Accounts User"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-02-25 01:40:05.808699",
+  "module": "FBR Integration",
+  "name": "FBR Item Wise",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "Sales Invoice",
+  "reference_report": null,
+  "report_name": "FBR Item Wise",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [],
+  "timeout": 0
+ }
+]
