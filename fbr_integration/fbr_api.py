@@ -22,6 +22,18 @@ def safe_str(val):
 	return str(val)
 
 
+def safe_fbr_text(val):
+	"""Normalize text for strict third-party parsers.
+
+	FBR endpoint can reject payloads when descriptive text contains control
+	characters or escaped quotes. Keep values plain and compact.
+	"""
+	text = safe_str(val)
+	text = text.replace("\r", " ").replace("\n", " ").replace("\t", " ")
+	text = text.replace("\\", "/").replace('"', "")
+	return " ".join(text.split())
+
+
 def extra_tax_value(val, sale_type_str):
 	reduced_types = ("goodsatreducedrate", "reducedrate", "rr")
 	if sale_type_str in reduced_types:
@@ -102,9 +114,9 @@ def send_invoice_to_fbr(doc, method=None):
 		items_list.append(
 			{
 				"hsCode": safe_str(item.custom_hs_code),
-				"productDescription": safe_str(item.item_name),
+				"productDescription": safe_fbr_text(item.item_name),
 				"rate": rate_val,
-				"uoM": safe_str(item.custom_fbr_uom),
+				"uoM": safe_fbr_text(item.custom_fbr_uom),
 				"quantity": safe_float(item.qty),
 				"totalValues": safe_float(item.custom_tax_inclusive_amount),
 				"valueSalesExcludingST": safe_float(item.amount),
@@ -113,28 +125,28 @@ def send_invoice_to_fbr(doc, method=None):
 				"salesTaxWithheldAtSource": 0,
 				"extraTax": extra_tax,
 				"furtherTax": safe_float(item.custom_further_tax),
-				"sroScheduleNo": safe_str(item.custom_sro_schedule_no),
+				"sroScheduleNo": safe_fbr_text(item.custom_sro_schedule_no),
 				"fedPayable": 0,
 				"discount": safe_float(item.discount_amount),
-				"saleType": safe_str(item.custom_sale_type),
-				"sroItemSerialNo": safe_str(item.custom_sro_item_sno),
+				"saleType": safe_fbr_text(item.custom_sale_type),
+				"sroItemSerialNo": safe_fbr_text(item.custom_sro_item_sno),
 			}
 		)
 
 	payload = {
-		"invoiceType": safe_str(doc.custom_invoice_type),
+		"invoiceType": safe_fbr_text(doc.custom_invoice_type),
 		"invoiceDate": str(doc.posting_date),
 		"sellerNTNCNIC": safe_str(doc.company_tax_id),
-		"sellerBusinessName": safe_str(doc.company),
-		"sellerAddress": seller_address,
-		"sellerProvince": seller_province,
+		"sellerBusinessName": safe_fbr_text(doc.company),
+		"sellerAddress": safe_fbr_text(seller_address),
+		"sellerProvince": safe_fbr_text(seller_province),
 		"buyerNTNCNIC": safe_str(doc.tax_id),
-		"buyerBusinessName": safe_str(doc.customer),
-		"buyerAddress": buyer_address,
-		"buyerProvince": buyer_province,
+		"buyerBusinessName": safe_fbr_text(doc.customer),
+		"buyerAddress": safe_fbr_text(buyer_address),
+		"buyerProvince": safe_fbr_text(buyer_province),
 		"invoiceRefNo": safe_str(doc.name),
 		"scenarioId": safe_str(doc.custom_scenario_id),
-		"buyerRegistrationType": safe_str(doc.custom_tax_payer_type),
+		"buyerRegistrationType": safe_fbr_text(doc.custom_tax_payer_type),
 		"items": items_list,
 	}
 

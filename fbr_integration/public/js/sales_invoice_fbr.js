@@ -333,7 +333,7 @@ function render_qr_preview(frm) {
         frm.set_df_property(
             "custom_qr_code",
             "options",
-            "<div class='text-muted'>QR will appear after FBR Invoice No is generated.</div>"
+            '<div class="text-muted">QR will appear after FBR Invoice No is generated.</div>'
         );
         return;
     }
