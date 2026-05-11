@@ -160,14 +160,17 @@ def send_invoice_to_fbr(doc, method=None):
 
 	# Items
 	items_list = []
+	is_exempt_scenario = safe_str(doc.custom_scenario_id).strip().upper() == "SN006"
 	for item in doc.items:
 		sale_type_str = str(item.custom_sale_type or "").lower().replace(" ", "")
 		extra_tax = extra_tax_value(item.custom_extra_tax, sale_type_str)
 
-		if doc.custom_scenario_id == "SN006":
+		if is_exempt_scenario:
 			rate_val = "Exempt"
+			sale_type_val = "Exempt goods"
 		else:
 			rate_val = f"{safe_float(item.custom_sales_tax_rate):.2f}%"
+			sale_type_val = safe_str(item.custom_sale_type)
 
 		items_list.append(
 			{
@@ -186,7 +189,7 @@ def send_invoice_to_fbr(doc, method=None):
 				"sroScheduleNo": safe_fbr_item_text(item.custom_sro_schedule_no),
 				"fedPayable": 0,
 				"discount": safe_float(item.discount_amount),
-				"saleType": safe_str(item.custom_sale_type),
+				"saleType": sale_type_val,
 				"sroItemSerialNo": safe_fbr_item_text(item.custom_sro_item_sno),
 			}
 		)
