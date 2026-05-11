@@ -32,6 +32,53 @@ function get_effective_fbr_scenario(frm, row) {
         .trim();
 }
 
+function is_return_checked(doc) {
+    return Number((doc && doc.is_return) || 0) === 1;
+}
+
+async function ensure_return_credit_note(frm, options = {}) {
+    if (!frm || !frm.doc) return;
+
+    if (!is_return_checked(frm.doc)) return;
+
+    const currentType = (frm.doc.custom_invoice_type || "").toString().trim();
+    if (currentType === "Credit Note") return;
+
+    await frm.set_value("custom_invoice_type", "Credit Note");
+
+    if (options.notify === true) {
+        frappe.show_alert({
+            message: __(
+                "Invoice Type was set to Credit Note because this is a return invoice."
+            ),
+            indicator: "blue",
+        });
+    }
+}
+
+async function sync_return_source_invoice_no(frm) {
+    if (!frm || !frm.doc) return;
+    if (!is_return_checked(frm.doc)) return;
+
+    const linkedInvoice = (frm.doc.return_against || "").toString().trim();
+    if (!linkedInvoice) return;
+
+    if ((frm.doc.custom_fbr_source_invoice_no || "").toString().trim()) return;
+
+    const r = await frappe.db.get_value(
+        "Sales Invoice",
+        linkedInvoice,
+        "custom_fbr_invoice_no"
+    );
+
+    const sourceFbrNo = (((r || {}).message || {}).custom_fbr_invoice_no || "")
+        .toString()
+        .trim();
+    if (sourceFbrNo) {
+        await frm.set_value("custom_fbr_source_invoice_no", sourceFbrNo);
+    }
+}
+
 function build_missing_template_message(row, scenario) {
     const label = row.item_code || row.idx || __("row");
     return __(
@@ -530,6 +577,42 @@ async function show_success_popup_with_qr_barcode(frm) {
 }
 
 frappe.ui.form.on("Sales Invoice", {
+    async setup(frm) {
+        if (frm.is_new()) {
+            await ensure_return_credit_note(frm);
+            await sync_return_source_invoice_no(frm);
+        }
+    },
+
+    async is_return(frm) {
+        await ensure_return_credit_note(frm, { notify: true });
+        await sync_return_source_invoice_no(frm);
+    },
+
+    async return_against(frm) {
+        await sync_return_source_invoice_no(frm);
+    },
+
+    async custom_invoice_type(frm) {
+        await ensure_return_credit_note(frm, { notify: true });
+    },
+
+    async validate(frm) {
+        await ensure_return_credit_note(frm);
+
+        if (
+            is_return_checked(frm.doc) &&
+            (frm.doc.custom_invoice_type || "").toString().trim() !==
+                "Credit Note"
+        ) {
+            frappe.throw(
+                __(
+                    "When Is Return is checked, Invoice Type must be Credit Note."
+                )
+            );
+        }
+    },
+
     async custom_fbr_scenario(frm) {
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
     },

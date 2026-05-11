@@ -193,6 +193,16 @@ def get_manual_source_invoice_no_for_return(doc):
 	return parsed_source
 
 
+def enforce_return_invoice_type(doc, method=None):
+	"""Ensure return invoices always use Credit Note type."""
+	if cint(getattr(doc, "is_return", 0)) != 1:
+		return
+
+	invoice_type = safe_str(getattr(doc, "custom_invoice_type", "")).strip().lower()
+	if invoice_type != "credit note" and hasattr(doc, "custom_invoice_type"):
+		doc.custom_invoice_type = "Credit Note"
+
+
 def get_return_reason(doc):
 	"""Resolve reason for return payload (debit note requirement)."""
 	if hasattr(doc, "custom_fbr_reason"):
