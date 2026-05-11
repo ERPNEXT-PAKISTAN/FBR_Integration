@@ -97,6 +97,11 @@ async function show_success_popup_with_qr_barcode(frm) {
 
     const data = r.message || {};
     const fbrNo = (frm.doc.custom_fbr_invoice_no || "").trim();
+    const qrSrc =
+        data.qr_data_url ||
+        `https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(
+            fbrNo || frm.doc.name
+        )}`;
 
     const print_url = get_print_url(frm);
     const pdf_url = get_pdf_url(frm);
@@ -104,89 +109,59 @@ async function show_success_popup_with_qr_barcode(frm) {
     frappe.msgprint({
         title: __("Invoice Sent"),
         message: `
-      <div style="font-size:13px; line-height:1.7; color:#333;">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid #0f5132;">
-          <img
-            src="${FBR_LOGO_URL}"
-            alt="FBR Digital Invoicing"
-            style="height:42px; width:auto; display:block; object-fit:contain;"
-            onerror="this.style.display='none'"
-          />
-          <div style="font-weight:700; color:#0f5132; font-size:15px;">FBR Digital Invoicing</div>
-        </div>
+            <div style="font-size:13px; line-height:1.5; color:#1f2937; background:#edf7f2; padding:14px; border-radius:10px;">
+                <div style="display:flex; align-items:center; gap:8px; color:#218653; font-weight:700; font-size:15px; margin-bottom:12px;">
+                    <span style="display:inline-flex; width:20px; height:20px; border-radius:50%; background:#218653; color:#fff; align-items:center; justify-content:center; font-size:12px;">✓</span>
+                    <span>Invoice Successfully Reported</span>
+                </div>
 
-        <div style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:14px;">
-          <p style="margin:0 0 6px 0; font-weight:600; color:#0f5132; font-size:14px;">✓ Successfully Submitted to FBR</p>
-          <p style="margin:0; font-size:13px; color:#555;">
-          Your Sales Invoice <b>${esc(
-              frm.doc.name
-          )}</b> has been successfully transmitted to the IRIS Portal - FBR.
-          </p>
-        </div>
+                <div style="display:flex; justify-content:center; margin-bottom:12px;">
+                    <div style="display:flex; gap:8px; padding:8px; border:2px solid #38a169; border-radius:10px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                        <div style="width:128px; height:128px; border:1px solid #e5e7eb; border-radius:6px; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden;">
+                            <img src="${FBR_LOGO_URL}" alt="FBR Digital Invoicing" style="max-width:100%; max-height:100%; object-fit:contain;" onerror="this.style.display='none'" />
+                        </div>
+                        <div style="width:128px; height:128px; border:1px solid #e5e7eb; border-radius:6px; display:flex; align-items:center; justify-content:center; background:#fff; overflow:hidden;">
+                            <img src="${qrSrc}" alt="FBR QR" style="width:120px; height:120px; object-fit:contain; display:block;" />
+                        </div>
+                    </div>
+                </div>
 
-        <div style="background:#e8f5e9; padding:10px; border-radius:6px; border-left:4px solid #0f5132; margin-bottom:14px;">
-          <p style="margin:0; font-size:12px; color:#1b5e20;"><strong>FBR Invoice No:</strong> ${esc(
-              fbrNo
-          )}</p>
-        </div>
+                <div style="background:#2ea86d; color:#fff; border-radius:999px; padding:10px 14px; font-weight:700; text-align:center; letter-spacing:.2px; margin-bottom:12px;">
+                    FBR INVOICE NUMBER: ${esc(fbrNo || "N/A")}
+                </div>
 
-        <div style="background:#fff3cd; padding:10px; border-radius:6px; margin-bottom:14px; border-left:4px solid #ff9800;">
-          <p style="margin:0; font-size:12px; color:#654321;">Thank you for staying compliant and digital with Tech Craft Pvt Ltd ERP-Pakistan!</p>
-        </div>
+                <div style="background:#0f766e; color:#fff; border-radius:999px; padding:9px 14px; font-weight:700; text-align:center; letter-spacing:.2px; margin:-4px 0 12px 0;">
+                    ERP INVOICE NUMBER: ${esc(frm.doc.name || "N/A")}
+                </div>
 
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-          <a class="btn btn-sm" href="${print_url}" target="_blank" style="background:#0f5132; color:#fff; border:none; padding:8px 14px; border-radius:4px; text-decoration:none; font-weight:500; cursor:pointer;">
-            🖨️ Print
-          </a>
-          <a class="btn btn-sm" href="${pdf_url}" target="_blank" style="background:#2196F3; color:#fff; border:none; padding:8px 14px; border-radius:4px; text-decoration:none; font-weight:500; cursor:pointer;">
-            📥 Download PDF
-          </a>
-          <button class="btn btn-sm" id="btn_open_invoice" style="background:#607D8B; color:#fff; border:none; padding:8px 14px; border-radius:4px; font-weight:500; cursor:pointer;">
-            📋 View Invoice
-          </button>
-        </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:10px;">
+                    <a class="btn btn-sm" href="${print_url}" target="_blank" style="background:#166534; color:#fff; border:none; padding:7px 12px; border-radius:6px; text-decoration:none; font-weight:600;">
+                        Print
+                    </a>
+                    <a class="btn btn-sm" href="${pdf_url}" target="_blank" style="background:#2563eb; color:#fff; border:none; padding:7px 12px; border-radius:6px; text-decoration:none; font-weight:600;">
+                        Download PDF
+                    </a>
+                    <button class="btn btn-sm" id="btn_open_invoice" style="background:#475569; color:#fff; border:none; padding:7px 12px; border-radius:6px; font-weight:600;">
+                        Open Invoice
+                    </button>
+                </div>
 
-        <hr style="border:none; border-top:1px solid #ddd; margin:14px 0;"/>
-
-        <div style="display:flex; gap:20px; margin-top:14px; font-size:12px; color:#666;">
-          <div><span style="font-weight:600; color:#333;">Sales Invoice:</span> ${esc(
-              frm.doc.name
-          )}</div>
-          <div><span style="font-weight:600; color:#333;">FBR Invoice No:</span> ${esc(
-              fbrNo
-          )}</div>
-        </div>
-
-        ${
-            data.ok
-                ? `
-        <div style="display:flex; gap:20px; align-items:flex-start; margin-top:16px; padding-top:16px; border-top:1px solid #ddd;">
-          <div style="min-width:160px;">
-            <div style="font-weight:700; margin-bottom:8px; color:#333; font-size:13px;">QR Code</div>
-            <div style="border:2px solid #0f5132; padding:8px; border-radius:6px; background:#f9f9f9; display:inline-block;">
-            <img src="${
-                data.qr_data_url
-            }" style="width:140px;height:140px; display:block;" />
+                ${
+                    data.ok && data.barcode_data_url
+                        ? `
+                <div style="margin-top:8px; background:#fff; border:1px solid #d1fae5; border-radius:8px; padding:8px 10px;">
+                    <img src="${
+                        data.barcode_data_url
+                    }" style="max-width:100%; width:100%; height:52px; object-fit:contain; object-position:center; display:block;" />
+                    <div style="margin-top:4px; font-size:10px; letter-spacing:0.8px; color:#374151; text-align:center; word-break:break-all; font-weight:600;">
+                        ${esc(data.value || fbrNo)}
+                    </div>
+                </div>
+                `
+                        : ""
+                }
             </div>
-          </div>
-
-          <div style="flex:1;">
-            <div style="font-weight:700; margin-bottom:8px; color:#333; font-size:13px;">Barcode</div>
-            <div style="border:2px solid #0f5132; padding:10px; border-radius:6px; background:#f9f9f9;">
-              <img src="${
-                  data.barcode_data_url
-              }" style="max-width:100%; width:100%; height:60px; object-fit:contain; object-position:center; display:block; background:#fff; margin-bottom:6px;" />
-              <div style="margin-top:6px; font-size:10px; letter-spacing:1px; color:#333; text-align:center; word-break:break-all; font-weight:600;">
-                ${esc(data.value)}
-              </div>
-            </div>
-          </div>
-        </div>
-        `
-                : `<div style="margin-top:14px; padding:12px; background:#ffebee; border-radius:6px; color:#c62828; font-size:12px; border-left:4px solid #c62828;">⚠️ QR/Barcode could not be generated.</div>`
-        }
-      </div>
-    `,
+        `,
         indicator: "green",
     });
 
