@@ -45,30 +45,6 @@ def safe_fbr_item_text(val):
 	return " ".join(text.split())
 
 
-def normalize_sale_type_for_fbr(val):
-	"""Map ERP sale type labels to FBR canonical values."""
-	text = safe_fbr_text(val)
-	normalized = " ".join(text.lower().split())
-
-	mapping = {
-		"goods at standard rate (default)": "Goods at standard rate",
-		"goods at standard rate default": "Goods at standard rate",
-		"goods at standard rate": "Goods at standard rate",
-		"goods at reduced rate": "Goods at Reduced Rate",
-		"goods at zero-rate": "Goods at zero-rate",
-		"goods at zero rate": "Goods at zero-rate",
-		"exempt goods": "Exempt goods",
-		"services": "Services",
-		"processing/conversion of goods": "Processing/Conversion of Goods",
-		"toll manufacturing": "Toll Manufacturing",
-		"mobile phones": "Mobile Phones",
-		"potassium chlorate": "Potassium Chlorate",
-		"cotton ginners": "Cotton ginners",
-	}
-
-	return mapping.get(normalized, text)
-
-
 def extra_tax_value(val, sale_type_str):
 	reduced_types = ("goodsatreducedrate", "reducedrate", "rr")
 	if sale_type_str in reduced_types:
@@ -163,7 +139,7 @@ def send_invoice_to_fbr(doc, method=None):
 				"sroScheduleNo": safe_fbr_item_text(item.custom_sro_schedule_no),
 				"fedPayable": 0,
 				"discount": safe_float(item.discount_amount),
-				"saleType": normalize_sale_type_for_fbr(item.custom_sale_type),
+				"saleType": safe_str(item.custom_sale_type),
 				"sroItemSerialNo": safe_fbr_item_text(item.custom_sro_item_sno),
 			}
 		)
