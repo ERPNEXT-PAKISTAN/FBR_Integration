@@ -106,25 +106,27 @@ async function show_success_popup_with_qr_barcode(frm) {
     const print_url = get_print_url(frm);
     const pdf_url = get_pdf_url(frm);
 
-    const taxRate =
-        frm.doc.taxes && frm.doc.taxes.length
-            ? frm.doc.taxes[0].rate + "%"
-            : frm.doc.custom_sales_tax_rate
-            ? frm.doc.custom_sales_tax_rate + "%"
-            : "N/A";
+    const stripHtml = (val) =>
+        (val || "")
+            .toString()
+            .replace(/<[^>]*>/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+    const asCurrencyText = (val) => {
+        if (val == null) return "N/A";
+        return stripHtml(frappe.format(val, { fieldtype: "Currency" }));
+    };
+
     const taxAmount =
         frm.doc.total_taxes_and_charges != null
-            ? frappe.format(frm.doc.total_taxes_and_charges, {
-                  fieldtype: "Currency",
-              })
+            ? asCurrencyText(frm.doc.total_taxes_and_charges)
             : "N/A";
     const totalAmount =
-        frm.doc.total != null
-            ? frappe.format(frm.doc.total, { fieldtype: "Currency" })
-            : "N/A";
+        frm.doc.total != null ? asCurrencyText(frm.doc.total) : "N/A";
     const grandTotal =
         frm.doc.grand_total != null
-            ? frappe.format(frm.doc.grand_total, { fieldtype: "Currency" })
+            ? asCurrencyText(frm.doc.grand_total)
             : "N/A";
 
     frappe.msgprint({
@@ -173,12 +175,6 @@ async function show_success_popup_with_qr_barcode(frm) {
                             <td style="padding:4px 6px; color:#6b7280;">💰 Total Amount</td>
                             <td style="padding:4px 6px; font-weight:600; text-align:right;">${esc(
                                 totalAmount
-                            )}</td>
-                        </tr>
-                        <tr style="border-bottom:1px solid #e5e7eb;">
-                            <td style="padding:4px 6px; color:#6b7280;">📊 Tax Rate</td>
-                            <td style="padding:4px 6px; font-weight:600; text-align:right;">${esc(
-                                taxRate
                             )}</td>
                         </tr>
                         <tr style="border-bottom:1px solid #e5e7eb;">
