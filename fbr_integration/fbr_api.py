@@ -1,4 +1,5 @@
 import json
+import re
 
 import frappe
 import requests
@@ -31,6 +32,16 @@ def safe_fbr_text(val):
 	text = safe_str(val)
 	text = text.replace("\r", " ").replace("\n", " ").replace("\t", " ")
 	text = text.replace("\\", "/").replace('"', "")
+	return " ".join(text.split())
+
+
+def safe_fbr_item_text(val):
+	"""Sanitize item-facing text fields for strict FBR validation.
+
+	Keeps only basic characters commonly accepted by strict parsers.
+	"""
+	text = safe_fbr_text(val).replace(",", " ")
+	text = re.sub(r"[^A-Za-z0-9./\- ]+", " ", text)
 	return " ".join(text.split())
 
 
@@ -114,9 +125,9 @@ def send_invoice_to_fbr(doc, method=None):
 		items_list.append(
 			{
 				"hsCode": safe_str(item.custom_hs_code),
-				"productDescription": safe_fbr_text(item.item_name),
+				"productDescription": safe_fbr_item_text(item.item_name),
 				"rate": rate_val,
-				"uoM": safe_fbr_text(item.custom_fbr_uom),
+				"uoM": safe_fbr_item_text(item.custom_fbr_uom),
 				"quantity": safe_float(item.qty),
 				"totalValues": safe_float(item.custom_tax_inclusive_amount),
 				"valueSalesExcludingST": safe_float(item.amount),
@@ -125,11 +136,11 @@ def send_invoice_to_fbr(doc, method=None):
 				"salesTaxWithheldAtSource": 0,
 				"extraTax": extra_tax,
 				"furtherTax": safe_float(item.custom_further_tax),
-				"sroScheduleNo": safe_fbr_text(item.custom_sro_schedule_no),
+				"sroScheduleNo": safe_fbr_item_text(item.custom_sro_schedule_no),
 				"fedPayable": 0,
 				"discount": safe_float(item.discount_amount),
-				"saleType": safe_fbr_text(item.custom_sale_type),
-				"sroItemSerialNo": safe_fbr_text(item.custom_sro_item_sno),
+				"saleType": safe_fbr_item_text(item.custom_sale_type),
+				"sroItemSerialNo": safe_fbr_item_text(item.custom_sro_item_sno),
 			}
 		)
 
