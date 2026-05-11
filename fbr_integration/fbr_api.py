@@ -15,6 +15,13 @@ def safe_float(val):
 		return 0
 
 
+def safe_str(val):
+	"""Return string value, converting None/falsy to empty string."""
+	if val is None:
+		return ""
+	return str(val)
+
+
 def extra_tax_value(val, sale_type_str):
 	reduced_types = ("goodsatreducedrate", "reducedrate", "rr")
 	if sale_type_str in reduced_types:
@@ -94,10 +101,10 @@ def send_invoice_to_fbr(doc, method=None):
 
 		items_list.append(
 			{
-				"hsCode": item.custom_hs_code,
-				"productDescription": item.item_name,
+				"hsCode": safe_str(item.custom_hs_code),
+				"productDescription": safe_str(item.item_name),
 				"rate": rate_val,
-				"uoM": item.custom_fbr_uom,
+				"uoM": safe_str(item.custom_fbr_uom),
 				"quantity": safe_float(item.qty),
 				"totalValues": safe_float(item.custom_tax_inclusive_amount),
 				"valueSalesExcludingST": safe_float(item.amount),
@@ -106,30 +113,36 @@ def send_invoice_to_fbr(doc, method=None):
 				"salesTaxWithheldAtSource": 0,
 				"extraTax": extra_tax,
 				"furtherTax": safe_float(item.custom_further_tax),
-				"sroScheduleNo": item.custom_sro_schedule_no,
+				"sroScheduleNo": safe_str(item.custom_sro_schedule_no),
 				"fedPayable": 0,
 				"discount": safe_float(item.discount_amount),
-				"saleType": item.custom_sale_type,
-				"sroItemSerialNo": item.custom_sro_item_sno,
+				"saleType": safe_str(item.custom_sale_type),
+				"sroItemSerialNo": safe_str(item.custom_sro_item_sno),
 			}
 		)
 
 	payload = {
-		"invoiceType": doc.custom_invoice_type,
+		"invoiceType": safe_str(doc.custom_invoice_type),
 		"invoiceDate": str(doc.posting_date),
-		"sellerNTNCNIC": doc.company_tax_id,
-		"sellerBusinessName": doc.company,
+		"sellerNTNCNIC": safe_str(doc.company_tax_id),
+		"sellerBusinessName": safe_str(doc.company),
 		"sellerAddress": seller_address,
 		"sellerProvince": seller_province,
-		"buyerNTNCNIC": doc.tax_id,
-		"buyerBusinessName": doc.customer,
+		"buyerNTNCNIC": safe_str(doc.tax_id),
+		"buyerBusinessName": safe_str(doc.customer),
 		"buyerAddress": buyer_address,
 		"buyerProvince": buyer_province,
-		"invoiceRefNo": doc.name,
-		"scenarioId": doc.custom_scenario_id,
-		"buyerRegistrationType": doc.custom_tax_payer_type,
+		"invoiceRefNo": safe_str(doc.name),
+		"scenarioId": safe_str(doc.custom_scenario_id),
+		"buyerRegistrationType": safe_str(doc.custom_tax_payer_type),
 		"items": items_list,
 	}
+
+	# Debug log — visible in bench logs to help diagnose FBR rejections
+	frappe.log_error(
+		title="FBR Outgoing Payload",
+		message=json.dumps(payload, indent=2, ensure_ascii=False),
+	)
 
 	headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
