@@ -4,6 +4,305 @@ function esc(s) {
 
 const FBR_PRINT_FORMAT = "FBR Sales Invoice";
 const FBR_LOGO_URL = "/assets/fbr_integration/images/fbr/DI_invoicing.png";
+const FBR_DEFAULT_SCENARIO = "Pakistan Tax";
+const FBR_SCENARIO_OPTIONS = [
+    "All Taxes",
+    "Pakistan Tax",
+    "Zero Rated",
+    "Exempt",
+    "Cement Per Qty",
+];
+
+const fbrScenarioTemplateCache = new Map();
+
+function normalize_fbr_text(value) {
+    return (value || "")
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function get_effective_fbr_scenario(frm, row) {
+    const rowScenario = (row && row.custom_fbr_item_scenario) || "";
+    const invoiceScenario = frm.doc.custom_fbr_scenario || "";
+    return (rowScenario || invoiceScenario || FBR_DEFAULT_SCENARIO)
+        .toString()
+        .trim();
+}
+
+function build_missing_template_message(row, scenario) {
+    const label = row.item_code || row.idx || __("row");
+    return __(
+        "No Item Tax Template found for {0} using scenario {1}. The Item Tax Template field was left empty.",
+        [label, scenario]
+    );
+}
+
+async function resolve_fbr_item_tax_template(scenario) {
+    const key = normalize_fbr_text(scenario || FBR_DEFAULT_SCENARIO);
+
+    if (!key) {
+        return "";
+    }
+
+    if (!fbrScenarioTemplateCache.has(key)) {
+        fbrScenarioTemplateCache.set(
+            key,
+            frappe
+                .call({
+                    method: "fbr_integration.api.resolve_item_tax_template_name",
+                    args: { scenario },
+                })
+                .then((r) => (r.message || "").toString().trim())
+        );
+    }
+
+    return await fbrScenarioTemplateCache.get(key);
+}
+
+async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
+    const localTable = (cdt && locals[cdt]) || {};
+    const explicitRow = options.row || null;
+    const row =
+        explicitRow ||
+        localTable[cdn] ||
+        (frm.doc.items || []).find((d) => d.name === cdn);
+    if (!row) return "";
+
+    const notify = options.notify === true;
+    const scenario = get_effective_fbr_scenario(frm, row);
+    const templateName = await resolve_fbr_item_tax_template(scenario);
+
+    if (templateName) {
+        if ((row.item_tax_template || "").toString().trim() !== templateName) {
+            await frappe.model.set_value(
+                cdt,
+                cdn,
+                "item_tax_template",
+                templateName
+            );
+        }
+        return templateName;
+    }
+
+    if ((row.item_tax_template || "").toString().trim()) {
+        await frappe.model.set_value(cdt, cdn, "item_tax_template", "");
+    }
+
+    if (notify) {
+        frappe.show_alert({
+            message: build_missing_template_message(row, scenario),
+            indicator: "orange",
+        });
+    }
+
+    return "";
+}
+
+async function sync_fbr_item_tax_templates(frm, options = {}) {
+    const targets = (frm.doc.items || [])
+        .map((row) => ({
+            cdt: row.doctype || "Sales Invoice Item",
+            cdn: row.name,
+            row,
+        }))
+        .filter((d) => d.cdn);
+
+    const notify = options.notify === true;
+    const missing = [];
+    const changedTargets = [];
+
+    for (const target of targets) {
+        const scenario = get_effective_fbr_scenario(frm, target.row);
+        const templateName = await resolve_fbr_item_tax_template(scenario);
+
+        const currentTemplate = (target.row.item_tax_template || "")
+            .toString()
+            .trim();
+        const nextTemplate = (templateName || "").toString().trim();
+
+        if (currentTemplate !== nextTemplate) {
+            target.row.item_tax_template = nextTemplate;
+            changedTargets.push(target);
+        }
+
+        if (!templateName) {
+            missing.push(build_missing_template_message(target.row, scenario));
+        }
+    }
+
+    if (changedTargets.length) {
+        frm.dirty();
+        frm.refresh_field("items");
+
+        for (const target of changedTargets) {
+            recalc_fbr_item_row(frm, target.cdt, target.cdn);
+        }
+    }
+
+    if (notify && missing.length) {
+        frappe.show_alert({
+            message: missing.slice(0, 3).join("<br>"),
+            indicator: "orange",
+        });
+    }
+}
+
+async function apply_invoice_scenario_to_all_items(frm, options = {}) {
+    const notify = options.notify === true;
+    const rows = [...(frm.doc.items || [])];
+    if (!rows.length) return;
+
+    const scenario = (frm.doc.custom_fbr_scenario || FBR_DEFAULT_SCENARIO)
+        .toString()
+        .trim();
+    const templateName = await resolve_fbr_item_tax_template(scenario);
+    const targetTemplate = (templateName || "").toString().trim();
+    const changedTargets = [];
+
+    frm.__fbr_bulk_updating = true;
+    try {
+        for (const row of rows) {
+            const cdt = row.doctype || "Sales Invoice Item";
+            const cdn = row.name;
+            const current = (row.item_tax_template || "").toString().trim();
+            const currentItemScenario = (row.custom_fbr_item_scenario || "")
+                .toString()
+                .trim();
+            const scenarioChanged = currentItemScenario !== scenario;
+
+            if (scenarioChanged) {
+                await frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "custom_fbr_item_scenario",
+                    scenario
+                );
+            }
+
+            if (current !== targetTemplate) {
+                await frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "item_tax_template",
+                    targetTemplate
+                );
+                changedTargets.push({ cdt, cdn });
+            } else if (scenarioChanged) {
+                changedTargets.push({ cdt, cdn });
+            }
+        }
+    } finally {
+        frm.__fbr_bulk_updating = false;
+    }
+
+    if (changedTargets.length) {
+        frm.refresh_field("items");
+        for (const target of changedTargets) {
+            recalc_fbr_item_row(frm, target.cdt, target.cdn);
+        }
+    }
+
+    if (notify && !targetTemplate) {
+        frappe.show_alert({
+            message: __(
+                "No Item Tax Template found for scenario {0}. Item Tax Template was cleared on all rows.",
+                [scenario]
+            ),
+            indicator: "orange",
+        });
+    }
+}
+
+function setv(cdt, cdn, field, value) {
+    frappe.model.set_value(cdt, cdn, field, value || 0);
+}
+
+function matches(tt, keys) {
+    return keys.some((k) => tt.includes(k));
+}
+
+function recalc_fbr_item_row(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    const qty = parseFloat(row.qty) || 0;
+    const rate = parseFloat(row.rate) || 0;
+    const amount = qty * rate;
+
+    setv(cdt, cdn, "amount", amount);
+
+    setv(cdt, cdn, "custom_sales_tax_rate", 0);
+    setv(cdt, cdn, "custom_further_tax_rate", 0);
+    setv(cdt, cdn, "custom_extra_tax_rate", 0);
+
+    setv(cdt, cdn, "custom_sales_tax", 0);
+    setv(cdt, cdn, "custom_further_tax", 0);
+    setv(cdt, cdn, "custom_extra_tax", 0);
+
+    setv(cdt, cdn, "custom_total_tax_amount", 0);
+    setv(cdt, cdn, "custom_tax_inclusive_amount", amount);
+
+    if (!row.item_tax_template) {
+        frm.refresh_field("items");
+        return;
+    }
+
+    frappe.call({
+        method: "fbr_integration.api.get_item_tax_template_rates",
+        args: { template_name: row.item_tax_template },
+        callback: function (r) {
+            const res = r.message || [];
+            if (!res.length) {
+                frm.refresh_field("items");
+                return;
+            }
+
+            let salesRate = 0,
+                furtherRate = 0,
+                extraRate = 0;
+
+            res.forEach((tax) => {
+                const tt = (tax.tax_type || "").toLowerCase();
+                const rr = tax.tax_rate || 0;
+
+                if (
+                    matches(tt, [
+                        "general sales tax",
+                        "sales tax",
+                        "gst",
+                        "output tax",
+                        "vat",
+                    ])
+                )
+                    salesRate = rr;
+                else if (matches(tt, ["further tax"])) furtherRate = rr;
+                else if (matches(tt, ["extra tax"])) extraRate = rr;
+            });
+
+            if (res.length === 1 && salesRate === 0)
+                salesRate = res[0].tax_rate || 0;
+
+            const sales = (amount * salesRate) / 100;
+            const further = (amount * furtherRate) / 100;
+            const extra = (amount * extraRate) / 100;
+
+            setv(cdt, cdn, "custom_sales_tax_rate", salesRate);
+            setv(cdt, cdn, "custom_further_tax_rate", furtherRate);
+            setv(cdt, cdn, "custom_extra_tax_rate", extraRate);
+
+            setv(cdt, cdn, "custom_sales_tax", sales);
+            setv(cdt, cdn, "custom_further_tax", further);
+            setv(cdt, cdn, "custom_extra_tax", extra);
+
+            const totalTax = sales + further + extra;
+            setv(cdt, cdn, "custom_total_tax_amount", totalTax);
+            setv(cdt, cdn, "custom_tax_inclusive_amount", amount + totalTax);
+
+            frm.refresh_field("items");
+        },
+    });
+}
 
 function sync_qr_field_on_form(frm) {
     const fbrNo = (frm.doc.custom_fbr_invoice_no || "").trim();
@@ -234,9 +533,14 @@ async function show_success_popup_with_qr_barcode(frm) {
 }
 
 frappe.ui.form.on("Sales Invoice", {
+    async custom_fbr_scenario(frm) {
+        await apply_invoice_scenario_to_all_items(frm, { notify: true });
+    },
+
     refresh(frm) {
         sync_qr_field_on_form(frm);
         render_qr_preview(frm);
+        sync_fbr_item_tax_templates(frm, { notify: false });
 
         frm.add_custom_button(__("FBR"), async function () {
             if ((frm.doc.custom_fbr_invoice_no || "").trim()) {
@@ -286,5 +590,28 @@ frappe.ui.form.on("Sales Invoice", {
         } catch (e) {
             // ignore style application errors
         }
+    },
+});
+
+frappe.ui.form.on("Sales Invoice Item", {
+    qty(frm, cdt, cdn) {
+        recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    rate(frm, cdt, cdn) {
+        recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    item_tax_template(frm, cdt, cdn) {
+        if (frm.__fbr_bulk_updating) return;
+        recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    custom_fbr_item_scenario(frm, cdt, cdn) {
+        apply_fbr_item_tax_template(frm, cdt, cdn, { notify: true });
+    },
+
+    item_code(frm, cdt, cdn) {
+        apply_fbr_item_tax_template(frm, cdt, cdn, { notify: false });
     },
 });

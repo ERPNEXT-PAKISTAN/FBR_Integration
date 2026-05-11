@@ -1,83 +1,149 @@
 import frappe
 
+DEFAULT_FBR_SCENARIO = "Pakistan Tax"
+
+SCENARIO_TEMPLATE_ALIASES = {
+	"all taxes": ["all taxes", "taxable"],
+	"pakistan tax": ["pakistan tax", "taxable"],
+	"zero rated": ["zero rated", "zero-rated", "zero rated goods"],
+	"exempt": ["exempt"],
+	"cement per qty": ["cement per qty", "cement /qty", "cement qty"],
+}
+
 SALES_TAX_KEYS = ("general sales tax", "sales tax", "gst", "output tax", "vat")
 FURTHER_TAX_KEYS = ("further tax",)
 EXTRA_TAX_KEYS = ("extra tax",)
 
+
+def _normalize_text(value):
+	return " ".join((value or "").lower().replace("/", " ").replace("-", " ").replace("_", " ").split())
+
+
+def _scenario_aliases(scenario: str):
+	normalized = _normalize_text(scenario or DEFAULT_FBR_SCENARIO)
+	return SCENARIO_TEMPLATE_ALIASES.get(normalized, SCENARIO_TEMPLATE_ALIASES["pakistan tax"])
+
+
+def resolve_item_tax_template_name(scenario: str | None = None):
+	aliases = _scenario_aliases(scenario)
+	templates = (
+		frappe.get_all(
+			"Item Tax Template",
+			fields=["name"],
+			order_by="name asc",
+			ignore_permissions=True,
+		)
+		or []
+	)
+
+	normalized_templates = [(template["name"], _normalize_text(template["name"])) for template in templates]
+
+	for alias in aliases:
+		alias_norm = _normalize_text(alias)
+		exact_matches = [name for name, normalized in normalized_templates if normalized == alias_norm]
+		if exact_matches:
+			return exact_matches[0]
+
+		partial_matches = [
+			name for name, normalized in normalized_templates if alias_norm and alias_norm in normalized
+		]
+		if partial_matches:
+			return partial_matches[0]
+
+	return ""
+
+
 def _matches(tax_type, keys):
-    t = (tax_type or "").lower()
-    return any(k in t for k in keys)
+	t = (tax_type or "").lower()
+	return any(k in t for k in keys)
+
 
 def _get_item_tax_template_rows(template_name: str):
-    # Read child table rows directly (most reliable)
-    return frappe.get_all(
-        "Item Tax Template Detail",
-        filters={"parent": template_name, "parenttype": "Item Tax Template"},
-        fields=["tax_type", "tax_rate"],
-        order_by="idx asc",
-        ignore_permissions=True,
-    ) or []
+	# Read child table rows directly (most reliable)
+	return (
+		frappe.get_all(
+			"Item Tax Template Detail",
+			filters={"parent": template_name, "parenttype": "Item Tax Template"},
+			fields=["tax_type", "tax_rate"],
+			order_by="idx asc",
+			ignore_permissions=True,
+		)
+		or []
+	)
+
 
 def calculate_fbr_tax(doc, method=None):
-    for item in doc.items:
-        qty = float(item.qty or 0)
-        rate = float(item.rate or 0)
+	for item in doc.items:
+		scenario = (
+			getattr(item, "custom_fbr_item_scenario", None)
+			or getattr(doc, "custom_fbr_scenario", None)
+			or DEFAULT_FBR_SCENARIO
+		)
+		template_name = resolve_item_tax_template_name(scenario)
 
-        if not item.amount:
-            item.amount = qty * rate
+		if template_name:
+			item.item_tax_template = template_name
+		else:
+			item.item_tax_template = ""
 
-        amount = float(item.amount or 0)
+		qty = float(item.qty or 0)
+		rate = float(item.rate or 0)
 
-        # Reset
-        item.custom_sales_tax_rate = 0
-        item.custom_further_tax_rate = 0
-        item.custom_extra_tax_rate = 0
+		if not item.amount:
+			item.amount = qty * rate
 
-        item.custom_sales_tax = 0
-        item.custom_further_tax = 0
-        item.custom_extra_tax = 0
+		amount = float(item.amount or 0)
 
-        item.custom_total_tax_amount = 0
-        item.custom_tax_inclusive_amount = amount
+		# Reset
+		item.custom_sales_tax_rate = 0
+		item.custom_further_tax_rate = 0
+		item.custom_extra_tax_rate = 0
 
-        if not item.item_tax_template:
-            continue
+		item.custom_sales_tax = 0
+		item.custom_further_tax = 0
+		item.custom_extra_tax = 0
 
-        tax_rows = _get_item_tax_template_rows(item.item_tax_template)
+		item.custom_total_tax_amount = 0
+		item.custom_tax_inclusive_amount = amount
 
-        if not tax_rows:
-            # Helpful debug (you can remove later)
-            frappe.log_error(
-                title="FBR Tax Calc: No tax rows found",
-                message=f"Template: {item.item_tax_template} | Item: {item.item_code} | SI: {doc.name}"
-            )
-            continue
+		if not item.item_tax_template:
+			continue
 
-        # Determine rates
-        for tr in tax_rows:
-            tax_type = (tr.get("tax_type") or "")
-            tax_rate = float(tr.get("tax_rate") or 0)
+		tax_rows = _get_item_tax_template_rows(item.item_tax_template)
 
-            if _matches(tax_type, SALES_TAX_KEYS):
-                item.custom_sales_tax_rate = tax_rate
-            elif _matches(tax_type, FURTHER_TAX_KEYS):
-                item.custom_further_tax_rate = tax_rate
-            elif _matches(tax_type, EXTRA_TAX_KEYS):
-                item.custom_extra_tax_rate = tax_rate
+		if not tax_rows:
+			# Helpful debug (you can remove later)
+			frappe.log_error(
+				title="FBR Tax Calc: No tax rows found",
+				message=f"Template: {item.item_tax_template} | Item: {item.item_code} | SI: {doc.name}",
+			)
+			continue
 
-        # fallback: only one row
-        if len(tax_rows) == 1 and float(item.custom_sales_tax_rate or 0) == 0:
-            item.custom_sales_tax_rate = float(tax_rows[0].get("tax_rate") or 0)
+		# Determine rates
+		for tr in tax_rows:
+			tax_type = tr.get("tax_type") or ""
+			tax_rate = float(tr.get("tax_rate") or 0)
 
-        # Calculate amounts
-        item.custom_sales_tax = (amount * float(item.custom_sales_tax_rate or 0)) / 100
-        item.custom_further_tax = (amount * float(item.custom_further_tax_rate or 0)) / 100
-        item.custom_extra_tax = (amount * float(item.custom_extra_tax_rate or 0)) / 100
+			if _matches(tax_type, SALES_TAX_KEYS):
+				item.custom_sales_tax_rate = tax_rate
+			elif _matches(tax_type, FURTHER_TAX_KEYS):
+				item.custom_further_tax_rate = tax_rate
+			elif _matches(tax_type, EXTRA_TAX_KEYS):
+				item.custom_extra_tax_rate = tax_rate
 
-        item.custom_total_tax_amount = (
-            float(item.custom_sales_tax or 0)
-            + float(item.custom_further_tax or 0)
-            + float(item.custom_extra_tax or 0)
-        )
+		# fallback: only one row
+		if len(tax_rows) == 1 and float(item.custom_sales_tax_rate or 0) == 0:
+			item.custom_sales_tax_rate = float(tax_rows[0].get("tax_rate") or 0)
 
-        item.custom_tax_inclusive_amount = amount + float(item.custom_total_tax_amount or 0)
+		# Calculate amounts
+		item.custom_sales_tax = (amount * float(item.custom_sales_tax_rate or 0)) / 100
+		item.custom_further_tax = (amount * float(item.custom_further_tax_rate or 0)) / 100
+		item.custom_extra_tax = (amount * float(item.custom_extra_tax_rate or 0)) / 100
+
+		item.custom_total_tax_amount = (
+			float(item.custom_sales_tax or 0)
+			+ float(item.custom_further_tax or 0)
+			+ float(item.custom_extra_tax or 0)
+		)
+
+		item.custom_tax_inclusive_amount = amount + float(item.custom_total_tax_amount or 0)
