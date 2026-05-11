@@ -168,9 +168,16 @@ def send_invoice_to_fbr(doc, method=None):
 		if is_exempt_scenario:
 			rate_val = "Exempt"
 			sale_type_val = "Exempt goods"
+			sales_tax_applicable = 0
+			further_tax = 0
+			extra_tax = 0
+			total_values = safe_float(item.amount)
 		else:
 			rate_val = f"{safe_float(item.custom_sales_tax_rate):.2f}%"
 			sale_type_val = safe_str(item.custom_sale_type)
+			sales_tax_applicable = safe_float(item.custom_sales_tax)
+			further_tax = safe_float(item.custom_further_tax)
+			total_values = safe_float(item.custom_tax_inclusive_amount)
 
 		items_list.append(
 			{
@@ -179,13 +186,13 @@ def send_invoice_to_fbr(doc, method=None):
 				"rate": rate_val,
 				"uoM": safe_fbr_item_text(item.custom_fbr_uom),
 				"quantity": safe_float(item.qty),
-				"totalValues": safe_float(item.custom_tax_inclusive_amount),
+				"totalValues": total_values,
 				"valueSalesExcludingST": safe_float(item.amount),
 				"fixedNotifiedValueOrRetailPrice": safe_float(item.rate),
-				"salesTaxApplicable": safe_float(item.custom_sales_tax),
+				"salesTaxApplicable": sales_tax_applicable,
 				"salesTaxWithheldAtSource": 0,
 				"extraTax": extra_tax,
-				"furtherTax": safe_float(item.custom_further_tax),
+				"furtherTax": further_tax,
 				"sroScheduleNo": safe_fbr_item_text(item.custom_sro_schedule_no),
 				"fedPayable": 0,
 				"discount": safe_float(item.discount_amount),
