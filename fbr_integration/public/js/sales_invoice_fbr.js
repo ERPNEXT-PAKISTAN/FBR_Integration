@@ -12,6 +12,7 @@ const FBR_SCENARIO_OPTIONS = [
     "Exempt",
     "Cement Per Qty",
 ];
+const FBR_SCENARIO_APPLY_MODE_FILL = "Fill Empty Items";
 const FBR_SCENARIO_APPLY_MODE_FORCE = "Update All Items";
 
 const fbrScenarioTemplateCache = new Map();
@@ -37,6 +38,17 @@ function should_force_apply_scenario(frm, options = {}) {
         .toString()
         .trim();
     return mode === FBR_SCENARIO_APPLY_MODE_FORCE;
+}
+
+function should_auto_apply_scenario(frm, options = {}) {
+    if (options.forceApply === true) return true;
+    const mode = ((frm.doc && frm.doc.custom_fbr_scenario_apply_mode) || "")
+        .toString()
+        .trim();
+    return (
+        mode === FBR_SCENARIO_APPLY_MODE_FILL ||
+        mode === FBR_SCENARIO_APPLY_MODE_FORCE
+    );
 }
 
 function is_return_checked(doc) {
@@ -148,10 +160,15 @@ async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
     if (!row) return "";
 
     const notify = options.notify === true;
+    const autoApply = should_auto_apply_scenario(frm, options);
     const forceApply = should_force_apply_scenario(frm, options);
     const scenario = get_effective_fbr_scenario(frm, row);
     const templateName = await resolve_fbr_item_tax_template(scenario);
     const currentTemplate = (row.item_tax_template || "").toString().trim();
+
+    if (!autoApply) {
+        return currentTemplate;
+    }
 
     if (templateName) {
         if (forceApply || !currentTemplate) {
@@ -191,9 +208,14 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
         .filter((d) => d.cdn);
 
     const notify = options.notify === true;
+    const autoApply = should_auto_apply_scenario(frm, options);
     const forceApply = should_force_apply_scenario(frm, options);
     const missing = [];
     const changedTargets = [];
+
+    if (!autoApply) {
+        return;
+    }
 
     for (const target of targets) {
         const scenario = get_effective_fbr_scenario(frm, target.row);
@@ -238,6 +260,7 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
 
 async function apply_invoice_scenario_to_all_items(frm, options = {}) {
     const notify = options.notify === true;
+    const autoApply = should_auto_apply_scenario(frm, options);
     const forceApply = should_force_apply_scenario(frm, options);
     const rows = [...(frm.doc.items || [])];
     if (!rows.length) return;
@@ -246,6 +269,10 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
     const templateName = await resolve_fbr_item_tax_template(scenario);
     const targetTemplate = (templateName || "").toString().trim();
     const changedTargets = [];
+
+    if (!autoApply) {
+        return;
+    }
 
     frm.__fbr_bulk_updating = true;
     try {
