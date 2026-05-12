@@ -12,6 +12,7 @@ const FBR_SCENARIO_OPTIONS = [
     "Exempt",
     "Cement Per Qty",
 ];
+const FBR_SCENARIO_APPLY_MODE_FORCE = "Update All Items";
 
 const fbrScenarioTemplateCache = new Map();
 
@@ -28,6 +29,14 @@ function get_effective_fbr_scenario(frm, row) {
     const rowScenario = (row && row.custom_fbr_item_scenario) || "";
     const invoiceScenario = frm.doc.custom_fbr_scenario || "";
     return (rowScenario || invoiceScenario).toString().trim();
+}
+
+function should_force_apply_scenario(frm, options = {}) {
+    if (options.forceApply === true) return true;
+    const mode = ((frm.doc && frm.doc.custom_fbr_scenario_apply_mode) || "")
+        .toString()
+        .trim();
+    return mode === FBR_SCENARIO_APPLY_MODE_FORCE;
 }
 
 function is_return_checked(doc) {
@@ -139,12 +148,13 @@ async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
     if (!row) return "";
 
     const notify = options.notify === true;
+    const forceApply = should_force_apply_scenario(frm, options);
     const scenario = get_effective_fbr_scenario(frm, row);
     const templateName = await resolve_fbr_item_tax_template(scenario);
     const currentTemplate = (row.item_tax_template || "").toString().trim();
 
     if (templateName) {
-        if (!currentTemplate) {
+        if (forceApply || !currentTemplate) {
             await frappe.model.set_value(
                 cdt,
                 cdn,
@@ -181,6 +191,7 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
         .filter((d) => d.cdn);
 
     const notify = options.notify === true;
+    const forceApply = should_force_apply_scenario(frm, options);
     const missing = [];
     const changedTargets = [];
 
@@ -202,7 +213,7 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
             continue;
         }
 
-        if (!currentTemplate) {
+        if (forceApply || !currentTemplate) {
             target.row.item_tax_template = nextTemplate;
             changedTargets.push(target);
         }
@@ -227,6 +238,7 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
 
 async function apply_invoice_scenario_to_all_items(frm, options = {}) {
     const notify = options.notify === true;
+    const forceApply = should_force_apply_scenario(frm, options);
     const rows = [...(frm.doc.items || [])];
     if (!rows.length) return;
 
@@ -262,7 +274,7 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
                 continue;
             }
 
-            if (!current) {
+            if (forceApply ? current !== targetTemplate : !current) {
                 await frappe.model.set_value(
                     cdt,
                     cdn,
@@ -654,6 +666,11 @@ frappe.ui.form.on("Sales Invoice", {
     },
 
     async custom_fbr_scenario(frm) {
+        await apply_invoice_scenario_to_all_items(frm, { notify: true });
+    },
+
+    async custom_fbr_scenario_apply_mode(frm) {
+        if (!(frm.doc.custom_fbr_scenario || "").toString().trim()) return;
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
     },
 
