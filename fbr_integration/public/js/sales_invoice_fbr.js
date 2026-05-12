@@ -27,9 +27,7 @@ function normalize_fbr_text(value) {
 function get_effective_fbr_scenario(frm, row) {
     const rowScenario = (row && row.custom_fbr_item_scenario) || "";
     const invoiceScenario = frm.doc.custom_fbr_scenario || "";
-    return (rowScenario || invoiceScenario || FBR_DEFAULT_SCENARIO)
-        .toString()
-        .trim();
+    return (rowScenario || invoiceScenario).toString().trim();
 }
 
 function is_return_checked(doc) {
@@ -110,7 +108,7 @@ function build_missing_template_message(row, scenario) {
 }
 
 async function resolve_fbr_item_tax_template(scenario) {
-    const key = normalize_fbr_text(scenario || FBR_DEFAULT_SCENARIO);
+    const key = normalize_fbr_text(scenario);
 
     if (!key) {
         return "";
@@ -143,21 +141,24 @@ async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
     const notify = options.notify === true;
     const scenario = get_effective_fbr_scenario(frm, row);
     const templateName = await resolve_fbr_item_tax_template(scenario);
+    const currentTemplate = (row.item_tax_template || "").toString().trim();
 
     if (templateName) {
-        if ((row.item_tax_template || "").toString().trim() !== templateName) {
+        if (!currentTemplate) {
             await frappe.model.set_value(
                 cdt,
                 cdn,
                 "item_tax_template",
                 templateName
             );
+            return templateName;
         }
-        return templateName;
+        return currentTemplate;
     }
 
-    if ((row.item_tax_template || "").toString().trim()) {
-        await frappe.model.set_value(cdt, cdn, "item_tax_template", "");
+    // Keep manual template selection when no scenario mapping exists.
+    if (currentTemplate) {
+        return currentTemplate;
     }
 
     if (notify) {
@@ -192,13 +193,18 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
             .trim();
         const nextTemplate = (templateName || "").toString().trim();
 
-        if (currentTemplate !== nextTemplate) {
-            target.row.item_tax_template = nextTemplate;
-            changedTargets.push(target);
+        if (!nextTemplate) {
+            if (!currentTemplate) {
+                missing.push(
+                    build_missing_template_message(target.row, scenario)
+                );
+            }
+            continue;
         }
 
-        if (!templateName) {
-            missing.push(build_missing_template_message(target.row, scenario));
+        if (!currentTemplate) {
+            target.row.item_tax_template = nextTemplate;
+            changedTargets.push(target);
         }
     }
 
@@ -224,9 +230,7 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
     const rows = [...(frm.doc.items || [])];
     if (!rows.length) return;
 
-    const scenario = (frm.doc.custom_fbr_scenario || FBR_DEFAULT_SCENARIO)
-        .toString()
-        .trim();
+    const scenario = (frm.doc.custom_fbr_scenario || "").toString().trim();
     const templateName = await resolve_fbr_item_tax_template(scenario);
     const targetTemplate = (templateName || "").toString().trim();
     const changedTargets = [];
@@ -251,7 +255,14 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
                 );
             }
 
-            if (current !== targetTemplate) {
+            if (!targetTemplate) {
+                if (scenarioChanged) {
+                    changedTargets.push({ cdt, cdn });
+                }
+                continue;
+            }
+
+            if (!current) {
                 await frappe.model.set_value(
                     cdt,
                     cdn,
@@ -277,7 +288,7 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
     if (notify && !targetTemplate) {
         frappe.show_alert({
             message: __(
-                "No Item Tax Template found for scenario {0}. Item Tax Template was cleared on all rows.",
+                "No Item Tax Template found for scenario {0}. Existing manual Item Tax Template values were kept.",
                 [scenario]
             ),
             indicator: "orange",

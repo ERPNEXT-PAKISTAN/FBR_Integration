@@ -14,18 +14,24 @@ SALES_TAX_KEYS = ("general sales tax", "sales tax", "gst", "output tax", "vat")
 FURTHER_TAX_KEYS = ("further tax",)
 EXTRA_TAX_KEYS = ("extra tax",)
 
+MANUAL_SCENARIO_KEYS = {"", "manual", "manual item wise", "none", "no scenario"}
+
 
 def _normalize_text(value):
 	return " ".join((value or "").lower().replace("/", " ").replace("-", " ").replace("_", " ").split())
 
 
 def _scenario_aliases(scenario: str):
-	normalized = _normalize_text(scenario or DEFAULT_FBR_SCENARIO)
-	return SCENARIO_TEMPLATE_ALIASES.get(normalized, SCENARIO_TEMPLATE_ALIASES["pakistan tax"])
+	normalized = _normalize_text(scenario)
+	if normalized in MANUAL_SCENARIO_KEYS:
+		return []
+	return SCENARIO_TEMPLATE_ALIASES.get(normalized, [])
 
 
 def resolve_item_tax_template_name(scenario: str | None = None):
 	aliases = _scenario_aliases(scenario)
+	if not aliases:
+		return ""
 	templates = (
 		frappe.get_all(
 			"Item Tax Template",
@@ -74,11 +80,9 @@ def _get_item_tax_template_rows(template_name: str):
 
 def calculate_fbr_tax(doc, method=None):
 	for item in doc.items:
-		scenario = (
-			getattr(item, "custom_fbr_item_scenario", None)
-			or getattr(doc, "custom_fbr_scenario", None)
-			or DEFAULT_FBR_SCENARIO
-		)
+		item_scenario = (getattr(item, "custom_fbr_item_scenario", None) or "").strip()
+		doc_scenario = (getattr(doc, "custom_fbr_scenario", None) or "").strip()
+		scenario = item_scenario or doc_scenario
 		template_name = resolve_item_tax_template_name(scenario)
 
 		if template_name:
