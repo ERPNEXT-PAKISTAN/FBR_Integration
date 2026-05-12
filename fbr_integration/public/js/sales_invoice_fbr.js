@@ -50,20 +50,59 @@ function show_scenario_details(scenario_id) {
 }
 
 let fbrScenarioIndexCache = null;
+let fbrScenarioIndexError = null;
+
+function clear_fbr_scenario_cache() {
+    fbrScenarioIndexCache = null;
+    fbrScenarioIndexError = null;
+    console.log("[FBR] Scenario index cache cleared");
+}
 
 function load_scenario_index() {
     if (Array.isArray(fbrScenarioIndexCache)) {
         return Promise.resolve(fbrScenarioIndexCache);
     }
 
+    if (fbrScenarioIndexError) {
+        return Promise.reject(fbrScenarioIndexError);
+    }
+
+    console.log(
+        "[FBR] Loading scenario index from /assets/fbr_integration/scenario_docs/index.json"
+    );
+
     return fetch("/assets/fbr_integration/scenario_docs/index.json")
         .then(function (r) {
-            if (!r.ok) throw new Error("Failed to load scenario index");
+            if (!r.ok) {
+                const err = new Error(
+                    `Failed to load scenario index: HTTP ${r.status} ${r.statusText}`
+                );
+                console.error("[FBR]", err.message);
+                fbrScenarioIndexError = err;
+                throw err;
+            }
             return r.json();
         })
         .then(function (rows) {
-            fbrScenarioIndexCache = Array.isArray(rows) ? rows : [];
+            if (!Array.isArray(rows)) {
+                const err = new Error(
+                    "Scenario index is not an array: " + typeof rows
+                );
+                console.error("[FBR]", err.message);
+                fbrScenarioIndexError = err;
+                throw err;
+            }
+            fbrScenarioIndexCache = rows;
+            console.log(`[FBR] Loaded ${rows.length} scenarios from index`);
             return fbrScenarioIndexCache;
+        })
+        .catch(function (err) {
+            fbrScenarioIndexError = err;
+            console.error(
+                "[FBR] Scenario index load failed:",
+                err.message || err
+            );
+            throw err;
         });
 }
 
@@ -161,13 +200,25 @@ function show_scenario_browser(frm) {
                 render_rows($(this).val());
             });
         })
-        .catch(function () {
+        .catch(function (err) {
+            const errMsg = (err && err.message) || "Unknown error";
+            console.error("[FBR] Scenario browser failed:", errMsg);
             frappe.msgprint({
                 title: __("Scenario Index Not Available"),
-                indicator: "orange",
-                message: __(
-                    "Could not load the scenario catalog. Rebuild scenario docs with <b>fbr-build-scenarios</b> and run bench build."
-                ),
+                indicator: "red",
+                message: `
+<div style="font-size:13px;line-height:1.6;">
+  <p><b>Could not load the FBR scenario catalog.</b></p>
+  <p style="margin-top:8px;color:#666;font-size:12px;">${esc(errMsg)}</p>
+  <p style="margin-top:12px;color:#333;">To resolve this issue:</p>
+  <ol style="margin:8px 0;padding-left:20px;font-size:12px;">
+    <li>Run: <code>fbr-build-scenarios</code></li>
+    <li>Run: <code>bench build --app fbr_integration</code></li>
+    <li>Run: <code>bench --site site1.local clear-cache</code></li>
+    <li>Reload the page (Ctrl+Shift+R for hard refresh)</li>
+  </ol>
+  <p style="margin-top:8px;font-size:11px;color:#777;"><b>Debug:</b> Check browser console (F12) for logs with <code>[FBR]</code> prefix</p>
+</div>`,
             });
         });
 }

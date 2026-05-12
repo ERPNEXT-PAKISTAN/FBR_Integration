@@ -91,14 +91,37 @@ def write_scenarios(scenarios):
 
 def main():
 	try:
+		print(f"Building FBR scenario catalog from {SOURCE_TEXT_FILE}...")
+
+		if not SOURCE_TEXT_FILE.exists():
+			raise FileNotFoundError(f"Source file not found: {SOURCE_TEXT_FILE}")
+
 		raw_text = SOURCE_TEXT_FILE.read_text(encoding="utf-8")
+		print(f"Source file size: {len(raw_text)} bytes")
+
 		scenarios = parse_scenarios(raw_text)
+		print(f"✓ Parsed {len(scenarios)} scenarios")
+
 		write_scenarios(scenarios)
-		print(f"Built {len(scenarios)} scenario document files in {OUTPUT_DIR}")
-		print(f"Index catalog written to {OUTPUT_DIR / 'index.json'}")
+		print(f"✓ Wrote {len(scenarios)} scenario documents to {OUTPUT_DIR}")
+		print(f"✓ Generated index catalog at {OUTPUT_DIR / 'index.json'}")
+
+		print(f"\nBuild successful: {len(scenarios)} FBR scenarios ready for deployment")
 		return 0
+	except FileNotFoundError as e:
+		print(f"FILE ERROR: {e}", file=__import__("sys").stderr)
+		return 1
+	except json.JSONDecodeError as e:
+		print(
+			f"JSON PARSE ERROR: {e}\nCheck scenario source file for invalid JSON.",
+			file=__import__("sys").stderr,
+		)
+		return 1
+	except ValueError as e:
+		print(f"VALIDATION ERROR: {e}\nSee above for details.", file=__import__("sys").stderr)
+		return 1
 	except Exception as e:
-		print(f"ERROR: {e}", file=__import__("sys").stderr)
+		print(f"UNEXPECTED ERROR: {e}", file=__import__("sys").stderr)
 		return 1
 
 
