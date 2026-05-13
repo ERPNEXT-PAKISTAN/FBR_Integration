@@ -12,27 +12,140 @@ function show_scenario_details(scenario_id) {
             return r.json();
         })
         .then(function (data) {
-            const sample_html = `<pre style="background:#f4f4f4;border:1px solid #ddd;border-radius:4px;padding:10px;font-size:11px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-all;">${esc(
-                JSON.stringify(data.sample || {}, null, 2)
-            )}</pre>`;
+            const s = data.sample || {};
+            const items = Array.isArray(s.items) ? s.items : [];
+
+            // Header summary fields
+            const header_fields = [
+                ["Scenario ID", s.scenarioId || data.id || sid],
+                ["Invoice Type", s.invoiceType || ""],
+                ["Invoice Date", s.invoiceDate || ""],
+                ["Buyer Registration Type", s.buyerRegistrationType || ""],
+                ["Buyer Name", s.buyerBusinessName || ""],
+                ["Buyer Province", s.buyerProvince || ""],
+                ["Buyer NTN/CNIC", s.buyerNTNCNIC || ""],
+                ["Seller Name", s.sellerBusinessName || ""],
+                ["Seller Province", s.sellerProvince || ""],
+            ];
+
+            const header_rows = header_fields
+                .map(function (pair) {
+                    if (!pair[1]) return "";
+                    return `<div style="display:flex;gap:4px;padding:5px 8px;border-bottom:1px solid #f1f5f9;">
+  <div style="min-width:170px;font-size:12px;color:#64748b;font-weight:500;">${esc(
+      pair[0]
+  )}</div>
+  <div style="font-size:12px;color:#0f172a;font-weight:600;">${esc(
+      (pair[1] || "").toString()
+  )}</div>
+</div>`;
+                })
+                .join("");
+
+            // Item blocks
+            const item_blocks = items
+                .map(function (item, idx) {
+                    const item_fields = [
+                        ["HS Code", item.hsCode || ""],
+                        ["Product Description", item.productDescription || ""],
+                        ["Sale Type", item.saleType || ""],
+                        ["Rate", item.rate || ""],
+                        ["UoM", item.uoM || ""],
+                        [
+                            "Quantity",
+                            item.quantity != null ? item.quantity : "",
+                        ],
+                        [
+                            "Value Excl. ST",
+                            item.valueSalesExcludingST != null
+                                ? item.valueSalesExcludingST
+                                : "",
+                        ],
+                        [
+                            "Sales Tax Applicable",
+                            item.salesTaxApplicable != null
+                                ? item.salesTaxApplicable
+                                : "",
+                        ],
+                        ["Extra Tax", item.extraTax || ""],
+                        [
+                            "Further Tax",
+                            item.furtherTax != null ? item.furtherTax : "",
+                        ],
+                        ["SRO Schedule No", item.sroScheduleNo || ""],
+                        ["SRO Item Serial No", item.sroItemSerialNo || ""],
+                        [
+                            "Discount",
+                            item.discount != null ? item.discount : "",
+                        ],
+                        [
+                            "FED Payable",
+                            item.fedPayable != null ? item.fedPayable : "",
+                        ],
+                        [
+                            "Retail Price",
+                            item.fixedNotifiedValueOrRetailPrice != null
+                                ? item.fixedNotifiedValueOrRetailPrice
+                                : "",
+                        ],
+                    ];
+                    const rows = item_fields
+                        .map(function (pair) {
+                            const val = (pair[1] || "").toString();
+                            if (!val || val === "0") return "";
+                            return `<div style="display:flex;gap:4px;padding:4px 8px;border-bottom:1px solid #eff6ff;">
+  <div style="min-width:160px;font-size:12px;color:#6366f1;font-weight:500;">${esc(
+      pair[0]
+  )}</div>
+  <div style="font-size:12px;color:#0f172a;font-weight:600;">${esc(val)}</div>
+</div>`;
+                        })
+                        .join("");
+                    return `<div style="margin-top:10px;border:1px solid #c7d2fe;border-radius:10px;overflow:hidden;">
+  <div style="background:#4f46e5;color:#fff;font-size:12px;font-weight:700;padding:7px 12px;">Item ${
+      idx + 1
+  }${item.productDescription ? " — " + esc(item.productDescription) : ""}</div>
+  ${
+      rows ||
+      "<div style='padding:8px 12px;font-size:12px;color:#94a3b8;'>No fields</div>"
+  }
+</div>`;
+                })
+                .join("");
+
             const html = `
 <div style="font-family:inherit;line-height:1.6;">
-  <div style="margin-bottom:10px;">
-    <span style="background:#e8f5e9;color:#2e7d32;font-weight:600;padding:3px 10px;border-radius:12px;font-size:13px;">${esc(
+
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:linear-gradient(135deg,#1f4e79,#2b6da8);border-radius:10px;">
+    <span style="background:#fff;color:#1f4e79;font-weight:700;padding:3px 10px;border-radius:999px;font-size:13px;">${esc(
         data.id
     )}</span>
-    <span style="font-size:16px;font-weight:600;margin-left:8px;">${esc(
+    <span style="font-size:15px;font-weight:700;color:#fff;">${esc(
         data.title
     )}</span>
   </div>
-  <p style="color:#555;margin-bottom:12px;font-size:13px;">${esc(
-      data.description
+  <p style="color:#475569;margin-bottom:12px;font-size:13px;line-height:1.5;">${esc(
+      data.description || ""
   )}</p>
-  <div style="font-size:12px;font-weight:600;color:#333;margin-bottom:4px;">Sample Payload</div>
-  ${sample_html}
+
+  <div style="border:1px solid #bbf7d0;border-radius:10px;overflow:hidden;margin-bottom:14px;">
+    <div style="background:#16a34a;color:#fff;font-size:12px;font-weight:700;padding:7px 12px;">Invoice Header</div>
+    ${
+        header_rows ||
+        "<div style='padding:8px 12px;font-size:12px;color:#94a3b8;'>No header data</div>"
+    }
+  </div>
+
+  ${
+      items.length
+          ? `<div style="font-size:13px;font-weight:700;color:#312e81;margin-bottom:6px;">Items (${items.length})</div>${item_blocks}`
+          : ""
+  }
+
 </div>`;
+
             frappe.msgprint({
-                title: __("Scenario Detail: {0}", [esc(data.id)]),
+                title: __("{0} — {1}", [esc(data.id), esc(data.title)]),
                 indicator: "green",
                 message: html,
                 wide: true,
@@ -43,6 +156,116 @@ function show_scenario_details(scenario_id) {
                 title: __("Scenario Not Found"),
                 indicator: "orange",
                 message: __("Could not load details for scenario <b>{0}</b>.", [
+                    esc(sid),
+                ]),
+            });
+        });
+}
+
+function show_scenario_tree(scenario_id) {
+    const sid = (scenario_id || "").toString().trim().toUpperCase();
+    if (!sid) return;
+
+    const url = `/assets/fbr_integration/scenario_docs/${sid}.json`;
+    fetch(url)
+        .then(function (r) {
+            if (!r.ok) throw new Error("Not found: " + sid);
+            return r.json();
+        })
+        .then(function (data) {
+            const sample = data.sample || {};
+            const items = Array.isArray(sample.items) ? sample.items : [];
+            const buyerRegistrationType = sample.buyerRegistrationType || "";
+
+            const item_nodes = items.length
+                ? items
+                      .map(function (item, idx) {
+                          return `
+<div style="margin-left:24px;margin-top:10px;padding:10px;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;">
+    <div style="font-size:12px;font-weight:700;color:#312e81;margin-bottom:8px;">Item ${
+        idx + 1
+    }</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+        <div style="background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:8px;">
+            <div style="font-size:11px;color:#475569;">HS Code</div>
+            <div style="font-size:12px;font-weight:600;color:#0f172a;">${esc(
+                item.hsCode || ""
+            )}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:8px;">
+            <div style="font-size:11px;color:#475569;">Rate</div>
+            <div style="font-size:12px;font-weight:600;color:#0f172a;">${esc(
+                item.rate || ""
+            )}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:8px;">
+            <div style="font-size:11px;color:#475569;">UoM</div>
+            <div style="font-size:12px;font-weight:600;color:#0f172a;">${esc(
+                item.uoM || ""
+            )}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:8px;">
+            <div style="font-size:11px;color:#475569;">Sale Type</div>
+            <div style="font-size:12px;font-weight:600;color:#0f172a;">${esc(
+                item.saleType || ""
+            )}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:8px;">
+            <div style="font-size:11px;color:#475569;">SRO Schedule No</div>
+            <div style="font-size:12px;font-weight:600;color:#0f172a;">${esc(
+                item.sroScheduleNo || ""
+            )}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #dbeafe;border-radius:8px;padding:8px;">
+            <div style="font-size:11px;color:#475569;">SRO Item Serial No</div>
+            <div style="font-size:12px;font-weight:600;color:#0f172a;">${esc(
+                item.sroItemSerialNo || ""
+            )}</div>
+        </div>
+    </div>
+</div>`;
+                      })
+                      .join("")
+                : `<div style="margin-left:24px;margin-top:10px;padding:10px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;font-size:12px;color:#64748b;">No item data found in sample payload.</div>`;
+
+            const tree_html = `
+<div style="font-family:inherit;line-height:1.5;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:linear-gradient(135deg,#1f4e79,#2b6da8);border-radius:10px;">
+        <span style="background:#fff;color:#1f4e79;font-weight:700;padding:3px 10px;border-radius:999px;font-size:13px;">${esc(
+            data.id
+        )}</span>
+        <span style="font-size:14px;font-weight:700;color:#fff;">${esc(
+            data.title || ""
+        )}</span>
+    </div>
+
+    <div style="padding:10px 14px;border:1px solid #bbf7d0;border-radius:10px;background:#f0fdf4;">
+        <div style="font-size:11px;color:#166534;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Scenario</div>
+        <div style="font-size:13px;color:#14532d;"><b>Scenario ID:</b> ${esc(
+            sample.scenarioId || data.id || sid
+        )}</div>
+        <div style="margin-top:4px;font-size:13px;color:#14532d;"><b>Buyer Registration Type:</b> ${esc(
+            buyerRegistrationType
+        )}</div>
+    </div>
+
+    <div style="margin:8px 0 0 12px;font-size:14px;color:#334155;">|</div>
+    <div style="margin-left:12px;font-size:13px;color:#334155;">+-- <b>Items</b></div>
+    ${item_nodes}
+</div>`;
+
+            frappe.msgprint({
+                title: __("Scenario Tree: {0}", [esc(sid)]),
+                indicator: "blue",
+                message: tree_html,
+                wide: true,
+            });
+        })
+        .catch(function (err) {
+            frappe.msgprint({
+                title: __("Scenario Tree Not Available"),
+                indicator: "orange",
+                message: __("Could not load tree for scenario <b>{0}</b>.", [
                     esc(sid),
                 ]),
             });
@@ -154,6 +377,9 @@ function show_scenario_browser(frm) {
       <button class="btn btn-default btn-sm btn-view" data-sid="${esc(
           row.id
       )}">${__("View")}</button>
+      <button class="btn btn-default btn-sm btn-tree" data-sid="${esc(
+          row.id
+      )}">${__("Tree")}</button>
       <button class="btn btn-primary btn-sm btn-use" data-sid="${esc(
           row.id
       )}">${__("Use")}</button>
@@ -177,6 +403,13 @@ function show_scenario_browser(frm) {
                         .toString()
                         .trim();
                     if (sid) show_scenario_details(sid);
+                });
+
+                container.find(".btn-tree").on("click", function () {
+                    const sid = ($(this).attr("data-sid") || "")
+                        .toString()
+                        .trim();
+                    if (sid) show_scenario_tree(sid);
                 });
 
                 container.find(".btn-use").on("click", function () {
