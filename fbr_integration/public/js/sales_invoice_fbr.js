@@ -2,6 +2,57 @@ function esc(s) {
     return frappe.utils.escape_html((s || "").toString());
 }
 
+function json_to_html(obj, indent) {
+    indent = indent || 0;
+    const pad = "  ".repeat(indent);
+    const pad1 = "  ".repeat(indent + 1);
+    if (obj === null)
+        return `<span style="color:#f87171;font-weight:600;">null</span>`;
+    if (typeof obj === "boolean")
+        return `<span style="color:#c084fc;font-weight:600;">${obj}</span>`;
+    if (typeof obj === "number")
+        return `<span style="color:#fb923c;font-weight:600;">${obj}</span>`;
+    if (typeof obj === "string")
+        return `<span style="color:#4ade80;">"${frappe.utils.escape_html(
+            obj
+        )}"</span>`;
+    if (Array.isArray(obj)) {
+        if (obj.length === 0) return `<span style="color:#94a3b8;">[]</span>`;
+        const items = obj
+            .map(
+                (v, i) =>
+                    `${pad1}${json_to_html(v, indent + 1)}${
+                        i < obj.length - 1
+                            ? '<span style="color:#94a3b8;">,</span>'
+                            : ""
+                    }`
+            )
+            .join("\n");
+        return `<span style="color:#94a3b8;">[</span>\n${items}\n${pad}<span style="color:#94a3b8;">]</span>`;
+    }
+    if (typeof obj === "object") {
+        const keys = Object.keys(obj);
+        if (keys.length === 0) return `<span style="color:#94a3b8;">{}</span>`;
+        const rows = keys
+            .map(
+                (k, i) =>
+                    `${pad1}<span style="color:#7dd3fc;font-weight:600;">"${frappe.utils.escape_html(
+                        k
+                    )}"</span><span style="color:#94a3b8;">: </span>${json_to_html(
+                        obj[k],
+                        indent + 1
+                    )}${
+                        i < keys.length - 1
+                            ? '<span style="color:#94a3b8;">,</span>'
+                            : ""
+                    }`
+            )
+            .join("\n");
+        return `<span style="color:#94a3b8;">{</span>\n${rows}\n${pad}<span style="color:#94a3b8;">}</span>`;
+    }
+    return frappe.utils.escape_html(String(obj));
+}
+
 function show_scenario_details(scenario_id) {
     const sid = (scenario_id || "").toString().trim().toUpperCase();
     if (!sid) return;
@@ -12,146 +63,44 @@ function show_scenario_details(scenario_id) {
             return r.json();
         })
         .then(function (data) {
-            const s = data.sample || {};
-            const items = Array.isArray(s.items) ? s.items : [];
-
-            // Header summary fields
-            const header_fields = [
-                ["Scenario ID", s.scenarioId || data.id || sid],
-                ["Invoice Type", s.invoiceType || ""],
-                ["Invoice Date", s.invoiceDate || ""],
-                ["Buyer Registration Type", s.buyerRegistrationType || ""],
-                ["Buyer Name", s.buyerBusinessName || ""],
-                ["Buyer Province", s.buyerProvince || ""],
-                ["Buyer NTN/CNIC", s.buyerNTNCNIC || ""],
-                ["Seller Name", s.sellerBusinessName || ""],
-                ["Seller Province", s.sellerProvince || ""],
-            ];
-
-            const header_rows = header_fields
-                .map(function (pair) {
-                    if (!pair[1]) return "";
-                    return `<div style="display:flex;gap:4px;padding:5px 8px;border-bottom:1px solid #f1f5f9;">
-  <div style="min-width:170px;font-size:12px;color:#64748b;font-weight:500;">${esc(
-      pair[0]
-  )}</div>
-  <div style="font-size:12px;color:#0f172a;font-weight:600;">${esc(
-      (pair[1] || "").toString()
-  )}</div>
-</div>`;
-                })
-                .join("");
-
-            // Item blocks
-            const item_blocks = items
-                .map(function (item, idx) {
-                    const item_fields = [
-                        ["HS Code", item.hsCode || ""],
-                        ["Product Description", item.productDescription || ""],
-                        ["Sale Type", item.saleType || ""],
-                        ["Rate", item.rate || ""],
-                        ["UoM", item.uoM || ""],
-                        [
-                            "Quantity",
-                            item.quantity != null ? item.quantity : "",
-                        ],
-                        [
-                            "Value Excl. ST",
-                            item.valueSalesExcludingST != null
-                                ? item.valueSalesExcludingST
-                                : "",
-                        ],
-                        [
-                            "Sales Tax Applicable",
-                            item.salesTaxApplicable != null
-                                ? item.salesTaxApplicable
-                                : "",
-                        ],
-                        ["Extra Tax", item.extraTax || ""],
-                        [
-                            "Further Tax",
-                            item.furtherTax != null ? item.furtherTax : "",
-                        ],
-                        ["SRO Schedule No", item.sroScheduleNo || ""],
-                        ["SRO Item Serial No", item.sroItemSerialNo || ""],
-                        [
-                            "Discount",
-                            item.discount != null ? item.discount : "",
-                        ],
-                        [
-                            "FED Payable",
-                            item.fedPayable != null ? item.fedPayable : "",
-                        ],
-                        [
-                            "Retail Price",
-                            item.fixedNotifiedValueOrRetailPrice != null
-                                ? item.fixedNotifiedValueOrRetailPrice
-                                : "",
-                        ],
-                    ];
-                    const rows = item_fields
-                        .map(function (pair) {
-                            const val = (pair[1] || "").toString();
-                            if (!val || val === "0") return "";
-                            return `<div style="display:flex;gap:4px;padding:4px 8px;border-bottom:1px solid #eff6ff;">
-  <div style="min-width:160px;font-size:12px;color:#6366f1;font-weight:500;">${esc(
-      pair[0]
-  )}</div>
-  <div style="font-size:12px;color:#0f172a;font-weight:600;">${esc(val)}</div>
-</div>`;
-                        })
-                        .join("");
-                    return `<div style="margin-top:10px;border:1px solid #c7d2fe;border-radius:10px;overflow:hidden;">
-  <div style="background:#4f46e5;color:#fff;font-size:12px;font-weight:700;padding:7px 12px;">Item ${
-      idx + 1
-  }${item.productDescription ? " — " + esc(item.productDescription) : ""}</div>
-  ${
-      rows ||
-      "<div style='padding:8px 12px;font-size:12px;color:#94a3b8;'>No fields</div>"
-  }
-</div>`;
-                })
-                .join("");
-
+            const json_html = json_to_html(data, 0);
+            const copy_id = "json-copy-" + sid;
+            const raw_json = JSON.stringify(data, null, 2);
             const html = `
-<div style="font-family:inherit;line-height:1.6;">
-
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:linear-gradient(135deg,#1f4e79,#2b6da8);border-radius:10px;">
-    <span style="background:#fff;color:#1f4e79;font-weight:700;padding:3px 10px;border-radius:999px;font-size:13px;">${esc(
-        data.id
+<div style="font-family:inherit;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;
+    background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:10px;">
+    <span style="background:#38bdf8;color:#0f172a;font-weight:700;padding:3px 10px;
+      border-radius:999px;font-size:13px;">${esc(data.id || sid)}</span>
+    <span style="font-size:15px;font-weight:700;color:#f1f5f9;">${esc(
+        data.title || ""
     )}</span>
-    <span style="font-size:15px;font-weight:700;color:#fff;">${esc(
-        data.title
-    )}</span>
+    <button id="${copy_id}" onclick="
+      navigator.clipboard.writeText(${JSON.stringify(raw_json)});
+      this.textContent='Copied!';setTimeout(()=>this.textContent='Copy JSON',1500);
+    " style="margin-left:auto;padding:4px 12px;background:#334155;color:#e2e8f0;
+      border:1px solid #475569;border-radius:6px;cursor:pointer;font-size:12px;">Copy JSON</button>
   </div>
-  <p style="color:#475569;margin-bottom:12px;font-size:13px;line-height:1.5;">${esc(
+  <p style="color:#475569;margin-bottom:10px;font-size:13px;">${esc(
       data.description || ""
   )}</p>
-
-  <div style="border:1px solid #bbf7d0;border-radius:10px;overflow:hidden;margin-bottom:14px;">
-    <div style="background:#16a34a;color:#fff;font-size:12px;font-weight:700;padding:7px 12px;">Invoice Header</div>
-    ${
-        header_rows ||
-        "<div style='padding:8px 12px;font-size:12px;color:#94a3b8;'>No header data</div>"
-    }
+  <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;
+    padding:16px 18px;overflow-x:auto;max-height:55vh;overflow-y:auto;">
+    <pre style="margin:0;font-family:'Fira Code','Cascadia Code','Consolas',monospace;
+      font-size:12.5px;line-height:1.7;white-space:pre;">${json_html}</pre>
   </div>
-
-  ${
-      items.length
-          ? `<div style="font-size:13px;font-weight:700;color:#312e81;margin-bottom:6px;">Items (${items.length})</div>${item_blocks}`
-          : ""
-  }
-
 </div>`;
-
             frappe.msgprint({
-                title: __("{0} — {1}", [esc(data.id), esc(data.title)]),
-                indicator: "green",
+                title: __("{0} — {1}", [
+                    esc(data.id || sid),
+                    esc(data.title || ""),
+                ]),
+                indicator: "blue",
                 message: html,
                 wide: true,
             });
         })
-        .catch(function (err) {
+        .catch(function () {
             frappe.msgprint({
                 title: __("Scenario Not Found"),
                 indicator: "orange",
