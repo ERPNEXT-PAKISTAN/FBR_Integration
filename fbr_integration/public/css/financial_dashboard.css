@@ -602,15 +602,15 @@
     box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
 }
 
-/* Increased bottom area size as requested */
 .financial-dashboard.fdash-pro .financial-statements-card .card-body {
-    min-height: 760px;
+    min-height: auto;
     padding: 16px;
 }
 
 .financial-dashboard.fdash-pro .financial-statements-card .table-responsive {
-    max-height: 62vh;
-    min-height: 420px;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
 }
 
 .financial-dashboard.fdash-pro .statement-row-section_header td {
@@ -636,12 +636,9 @@
         padding: 12px 10px 18px;
     }
 
-    .financial-dashboard.fdash-pro .financial-statements-card .card-body {
-        min-height: 620px;
-    }
-
     .financial-dashboard.fdash-pro .financial-statements-card .table-responsive {
-        min-height: 340px;
-        max-height: 56vh;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
     }
 }
