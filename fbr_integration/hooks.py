@@ -33,6 +33,10 @@ doctype_js = {
 # Purple button CSS (you already have fbr.css)
 app_include_css = ["/assets/fbr_integration/css/fbr.css"]
 
+after_migrate = [
+	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
+]
+
 # Fixtures: ship custom fields + print formats + reports + workspace/dashboard (recommended)
 fixtures = [
 	{"dt": "Module Def", "filters": [["module_name", "=", "FBR Integration"]]},

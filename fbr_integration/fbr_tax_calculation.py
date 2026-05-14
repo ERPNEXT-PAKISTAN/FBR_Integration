@@ -49,14 +49,15 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 			frappe.db.get_value(
 				"Item",
 				item.item_code,
-				["custom_hs_code", "custom_fbr_uom"],
+				["custom_hs_code_no", "custom_hs_code", "custom_fbr_uom"],
 				as_dict=True,
 			)
 			or {}
 		)
+		hs_code_value = item_defaults.get("custom_hs_code_no") or item_defaults.get("custom_hs_code")
 
 		if not getattr(item, "custom_hs_code", None):
-			item.custom_hs_code = item_defaults.get("custom_hs_code")
+			item.custom_hs_code = hs_code_value
 
 		if not getattr(item, "custom_fbr_uom", None):
 			item.custom_fbr_uom = item_defaults.get("custom_fbr_uom")

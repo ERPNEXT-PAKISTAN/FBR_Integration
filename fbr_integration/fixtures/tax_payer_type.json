@@ -6,37 +6,17 @@
  },
  {
   "doctype": "Tax Payer Type",
-  "tax_payer_type": "Un-Registered",
-  "name": "Un-Registered"
+    "tax_payer_type": "Unregistered",
+    "name": "Unregistered"
  },
  {
   "doctype": "Tax Payer Type",
-  "tax_payer_type": "AOP",
-  "name": "AOP"
+    "tax_payer_type": "Unregistered Distributor",
+    "name": "Unregistered Distributor"
  },
  {
   "doctype": "Tax Payer Type",
-  "tax_payer_type": "Company",
-  "name": "Company"
- },
- {
-  "doctype": "Tax Payer Type",
-  "tax_payer_type": "Individual",
-  "name": "Individual"
- },
- {
-  "doctype": "Tax Payer Type",
-  "tax_payer_type": "Government",
-  "name": "Government"
- },
- {
-  "doctype": "Tax Payer Type",
-  "tax_payer_type": "Foreign Buyer",
-  "name": "Foreign Buyer"
- },
- {
-  "doctype": "Tax Payer Type",
-  "tax_payer_type": "Final Consumer",
-  "name": "Final Consumer"
+    "tax_payer_type": "Retail Consumer",
+    "name": "Retail Consumer"
  }
 ]
