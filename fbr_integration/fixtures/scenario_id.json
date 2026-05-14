@@ -1,0 +1,142 @@
+[
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN001",
+  "scenario_detail": "Goods at Standard Rate (Registered Buyer)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN002",
+  "scenario_detail": "Goods at Standard Rate (Un-Registered Buyer)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN003",
+  "scenario_detail": "Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Registered)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN004",
+  "scenario_detail": "Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Un-Registered)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN005",
+  "scenario_detail": "Goods at Standard Rate (Third Schedule)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN006",
+  "scenario_detail": "Exempt Goods"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN007",
+  "scenario_detail": "Zero-Rated Goods"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN008",
+  "scenario_detail": "Fixed or Notified Value or Retail Price"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN009",
+  "scenario_detail": "Goods at Reduced Rate"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN010",
+  "scenario_detail": "Further Tax"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN011",
+  "scenario_detail": "Services at Standard Rate"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN012",
+  "scenario_detail": "Debit Note"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN013",
+  "scenario_detail": "Credit Note (Return of Goods with Invoice No)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN014",
+  "scenario_detail": "Credit Note (Return of Goods without Invoice No)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN015",
+  "scenario_detail": "Sales through Withholding Agent"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN016",
+  "scenario_detail": "Advance Income Tax (Section 236A)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN017",
+  "scenario_detail": "Advance Income Tax (Section 236G)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN018",
+  "scenario_detail": "Advance Income Tax (Section 236H)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN019",
+  "scenario_detail": "Goods with SRO"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN020",
+  "scenario_detail": "Services with SRO"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN021",
+  "scenario_detail": "Goods - Combination of Taxable and Exempt"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN022",
+  "scenario_detail": "Services - Combination of Taxable and Exempt"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN023",
+  "scenario_detail": "Goods with Provincial Sales Tax"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN024",
+  "scenario_detail": "Services with Provincial Sales Tax"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN025",
+  "scenario_detail": "Goods - Federal Excise Duty (FED)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN026",
+  "scenario_detail": "Services - Federal Excise Duty (FED)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN027",
+  "scenario_detail": "Goods - Sales to Foreign Buyer (Export)"
+ },
+ {
+  "doctype": "Scenario ID",
+  "scenario_id": "SN028",
+  "scenario_detail": "Services - Sales to Foreign Buyer (Export)"
+ }
+]

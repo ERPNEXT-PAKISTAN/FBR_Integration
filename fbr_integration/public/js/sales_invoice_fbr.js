@@ -1129,54 +1129,80 @@ frappe.ui.form.on("Sales Invoice", {
         // Determine if invoice is already submitted to FBR
         const is_sent_to_fbr = (frm.doc.custom_fbr_invoice_no || "").trim();
 
-        // Single "Send to FBR" button with dynamic styling
-        const button_text = is_sent_to_fbr
-            ? __("✓ Sent to FBR")
-            : __("Send to FBR");
+        // Fetch integration type to decide when to show the Send button
+        frappe.call({
+            method: "frappe.client.get_value",
+            args: {
+                doctype: "FBR Invoice Settings",
+                fieldname: "integration_type",
+            },
+            callback: function (r) {
+                const integration_type = (
+                    (r.message || {}).integration_type || ""
+                ).trim();
+                const is_sandbox = integration_type === "Sandbox";
+                const is_submitted = frm.doc.docstatus === 1;
 
-        const btn = frm.add_custom_button(button_text, async function () {
-            // If already sent -> show success popup with QR/barcode
-            if (is_sent_to_fbr) {
-                await show_success_popup_with_qr_barcode(frm);
-                return;
-            }
+                // Sandbox: show on Draft + Submitted; Production: Submitted only
+                if (!is_sandbox && !is_submitted) return;
 
-            // If not sent -> send to FBR
-            frappe.call({
-                method: "fbr_integration.handler.send_to_fbr_si",
-                args: { name: frm.doc.name },
-                freeze: true,
-                callback: function (r) {
-                    const resp = r.message || {};
-                    if (resp.already_sent) {
-                        frm.reload_doc();
-                        return;
-                    }
+                // Single "Send to FBR" button with dynamic styling
+                const button_text = is_sent_to_fbr
+                    ? __("✓ Sent to FBR")
+                    : is_sandbox && !is_submitted
+                    ? __("Send to FBR (Sandbox Test)")
+                    : __("Send to FBR");
 
-                    frm.reload_doc().then(() => {
-                        setTimeout(async () => {
+                const btn = frm.add_custom_button(
+                    button_text,
+                    async function () {
+                        // If already sent -> show success popup with QR/barcode
+                        if (is_sent_to_fbr) {
                             await show_success_popup_with_qr_barcode(frm);
-                        }, 400);
-                    });
-                },
-            });
-        });
+                            return;
+                        }
 
-        try {
-            if (is_sent_to_fbr) {
-                // Green styling for submitted invoices
-                btn.removeClass(
-                    "btn-default btn-primary btn-danger btn-purple"
-                ).addClass("btn-success");
-            } else {
-                // Purple styling for pending invoices
-                btn.removeClass(
-                    "btn-default btn-primary btn-danger btn-success"
-                ).addClass("btn-purple");
-            }
-        } catch (e) {
-            // ignore style application errors
-        }
+                        // If not sent -> send to FBR
+                        frappe.call({
+                            method: "fbr_integration.handler.send_to_fbr_si",
+                            args: { name: frm.doc.name },
+                            freeze: true,
+                            callback: function (r) {
+                                const resp = r.message || {};
+                                if (resp.already_sent) {
+                                    frm.reload_doc();
+                                    return;
+                                }
+
+                                frm.reload_doc().then(() => {
+                                    setTimeout(async () => {
+                                        await show_success_popup_with_qr_barcode(
+                                            frm
+                                        );
+                                    }, 400);
+                                });
+                            },
+                        });
+                    }
+                );
+
+                try {
+                    if (is_sent_to_fbr) {
+                        // Green styling for submitted invoices
+                        btn.removeClass(
+                            "btn-default btn-primary btn-danger btn-purple"
+                        ).addClass("btn-success");
+                    } else {
+                        // Purple styling for pending invoices
+                        btn.removeClass(
+                            "btn-default btn-primary btn-danger btn-success"
+                        ).addClass("btn-purple");
+                    }
+                } catch (e) {
+                    // ignore style application errors
+                }
+            },
+        });
     },
 });
 

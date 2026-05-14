@@ -284,6 +284,15 @@ def get_return_reason(doc):
 def send_to_fbr_si(name: str):
 	doc = frappe.get_doc("Sales Invoice", name)
 
+	# Enforce submission requirement in Production mode
+	settings = frappe.get_single("FBR Invoice Settings")
+	is_sandbox = (settings.integration_type or "").strip() == "Sandbox"
+	if not is_sandbox and doc.docstatus != 1:
+		frappe.throw(
+			"Invoice must be submitted before sending to FBR in Production mode.",
+			title="Not Submitted",
+		)
+
 	# Prevent duplicate submission
 	if (doc.custom_fbr_invoice_no or "").strip():
 		return {"success": False, "already_sent": True, "invoice_no": doc.custom_fbr_invoice_no}

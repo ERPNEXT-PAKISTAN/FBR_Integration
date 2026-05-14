@@ -1,0 +1,30 @@
+[
+ {
+  "doctype": "Sale Type",
+  "sale_type": "Goods at Standard Rate"
+ },
+ {
+  "doctype": "Sale Type",
+  "sale_type": "Goods at Reduced Rate"
+ },
+ {
+  "doctype": "Sale Type",
+  "sale_type": "Exempt"
+ },
+ {
+  "doctype": "Sale Type",
+  "sale_type": "Zero-Rated"
+ },
+ {
+  "doctype": "Sale Type",
+  "sale_type": "Fixed or Notified Value or Retail Price"
+ },
+ {
+  "doctype": "Sale Type",
+  "sale_type": "Services at Standard Rate"
+ },
+ {
+  "doctype": "Sale Type",
+  "sale_type": "Further Tax"
+ }
+]

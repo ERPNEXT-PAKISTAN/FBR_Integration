@@ -1,0 +1,34 @@
+[
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "Registered"
+ },
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "Un-Registered"
+ },
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "AOP"
+ },
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "Company"
+ },
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "Individual"
+ },
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "Government"
+ },
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "Foreign Buyer"
+ },
+ {
+  "doctype": "Tax Payer Type",
+  "tax_payer_type": "Final Consumer"
+ }
+]

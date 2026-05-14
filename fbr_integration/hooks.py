@@ -41,4 +41,14 @@ fixtures = [
 	{"dt": "Print Format", "filters": [["module", "=", "FBR Integration"]]},
 	{"dt": "Workspace", "filters": [["name", "in", ["FBR Pakistan"]]]},
 	{"dt": "Dashboard", "filters": [["module", "=", "FBR Integration"]]},
+	# Master / seed data — auto-imported on bench migrate
+	{"dt": "Buyer Province", "filters": [["name", "!=", ""]]},
+	{"dt": "FBR UOM", "filters": [["name", "!=", ""]]},
+	{"dt": "Invoice Type", "filters": [["name", "!=", ""]]},
+	{"dt": "Sale Type", "filters": [["name", "!=", ""]]},
+	{"dt": "Tax Payer Type", "filters": [["name", "!=", ""]]},
+	{"dt": "Scenario ID", "filters": [["name", "!=", ""]]},
+	{"dt": "SRO Schedule No", "filters": [["name", "!=", ""]]},
+	{"dt": "SRO Item SNO", "filters": [["name", "!=", ""]]},
+	{"dt": "HS Code", "filters": [["name", "!=", ""]]},
 ]

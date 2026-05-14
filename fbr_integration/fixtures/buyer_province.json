@@ -1,0 +1,34 @@
+[
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "Punjab"
+ },
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "Sindh"
+ },
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "Khyber Pakhtunkhwa"
+ },
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "Balochistan"
+ },
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "Islamabad Capital Territory"
+ },
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "Azad Jammu & Kashmir"
+ },
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "Gilgit-Baltistan"
+ },
+ {
+  "doctype": "Buyer Province",
+  "buyer_province": "FATA"
+ }
+]

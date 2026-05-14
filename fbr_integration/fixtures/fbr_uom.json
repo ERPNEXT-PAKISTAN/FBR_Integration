@@ -1,0 +1,78 @@
+[
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "KGS"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "MTR"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "NOS"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "LTR"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "SQM"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "MTQ"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "TNE"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "DZN"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "SET"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "PRJ"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "BOX"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "PKT"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "BAG"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "ROL"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "CYL"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "CRT"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "PCS"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "GRM"
+ },
+ {
+  "doctype": "FBR UOM",
+  "fbr_uom": "MGM"
+ }
+]
