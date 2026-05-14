@@ -1,14 +1,17 @@
 [
  {
   "doctype": "Invoice Type",
-  "invoice_type": "General Invoice"
+  "invoice_type": "General Invoice",
+  "name": "General Invoice"
  },
  {
   "doctype": "Invoice Type",
-  "invoice_type": "Credit Note"
+  "invoice_type": "Credit Note",
+  "name": "Credit Note"
  },
  {
   "doctype": "Invoice Type",
-  "invoice_type": "Debit Note"
+  "invoice_type": "Debit Note",
+  "name": "Debit Note"
  }
 ]

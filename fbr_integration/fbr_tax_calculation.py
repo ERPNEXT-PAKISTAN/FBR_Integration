@@ -19,6 +19,49 @@ SCENARIO_APPLY_MODE_FILL = "Fill Empty Items"
 SCENARIO_APPLY_MODE_FORCE = "Update All Items"
 
 
+def sync_sales_invoice_master_defaults(doc, method=None):
+	"""Fill FBR fields from Customer/Item masters when invoice/item values are empty."""
+	if doc.doctype != "Sales Invoice":
+		return
+
+	if doc.customer:
+		customer_defaults = (
+			frappe.db.get_value(
+				"Customer",
+				doc.customer,
+				["custom_tax_payer_type", "custom_buyer_province"],
+				as_dict=True,
+			)
+			or {}
+		)
+
+		if not getattr(doc, "custom_tax_payer_type", None):
+			doc.custom_tax_payer_type = customer_defaults.get("custom_tax_payer_type")
+
+		if not getattr(doc, "custom_buyer_province", None):
+			doc.custom_buyer_province = customer_defaults.get("custom_buyer_province")
+
+	for item in doc.get("items") or []:
+		if not item.item_code:
+			continue
+
+		item_defaults = (
+			frappe.db.get_value(
+				"Item",
+				item.item_code,
+				["custom_hs_code", "custom_fbr_uom"],
+				as_dict=True,
+			)
+			or {}
+		)
+
+		if not getattr(item, "custom_hs_code", None):
+			item.custom_hs_code = item_defaults.get("custom_hs_code")
+
+		if not getattr(item, "custom_fbr_uom", None):
+			item.custom_fbr_uom = item_defaults.get("custom_fbr_uom")
+
+
 def _normalize_text(value):
 	return " ".join((value or "").lower().replace("/", " ").replace("-", " ").replace("_", " ").split())
 

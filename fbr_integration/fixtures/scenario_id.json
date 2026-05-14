@@ -2,141 +2,169 @@
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN001",
-  "scenario_detail": "Goods at Standard Rate (Registered Buyer)"
+  "scenario_detail": "Goods at Standard Rate (Registered Buyer)",
+  "name": "SN001 - Goods at Standard Rate (Registered Buyer)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN002",
-  "scenario_detail": "Goods at Standard Rate (Un-Registered Buyer)"
+  "scenario_detail": "Goods at Standard Rate (Un-Registered Buyer)",
+  "name": "SN002 - Goods at Standard Rate (Un-Registered Buyer)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN003",
-  "scenario_detail": "Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Registered)"
+  "scenario_detail": "Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Registered)",
+  "name": "SN003 - Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Registered)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN004",
-  "scenario_detail": "Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Un-Registered)"
+  "scenario_detail": "Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Un-Registered)",
+  "name": "SN004 - Goods at Standard Rate - Exempt S.No. 1-8 Table-1 3rd Schedule (Un-Registered)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN005",
-  "scenario_detail": "Goods at Standard Rate (Third Schedule)"
+  "scenario_detail": "Goods at Standard Rate (Third Schedule)",
+  "name": "SN005 - Goods at Standard Rate (Third Schedule)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN006",
-  "scenario_detail": "Exempt Goods"
+  "scenario_detail": "Exempt Goods",
+  "name": "SN006 - Exempt Goods"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN007",
-  "scenario_detail": "Zero-Rated Goods"
+  "scenario_detail": "Zero-Rated Goods",
+  "name": "SN007 - Zero-Rated Goods"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN008",
-  "scenario_detail": "Fixed or Notified Value or Retail Price"
+  "scenario_detail": "Fixed or Notified Value or Retail Price",
+  "name": "SN008 - Fixed or Notified Value or Retail Price"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN009",
-  "scenario_detail": "Goods at Reduced Rate"
+  "scenario_detail": "Goods at Reduced Rate",
+  "name": "SN009 - Goods at Reduced Rate"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN010",
-  "scenario_detail": "Further Tax"
+  "scenario_detail": "Further Tax",
+  "name": "SN010 - Further Tax"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN011",
-  "scenario_detail": "Services at Standard Rate"
+  "scenario_detail": "Services at Standard Rate",
+  "name": "SN011 - Services at Standard Rate"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN012",
-  "scenario_detail": "Debit Note"
+  "scenario_detail": "Debit Note",
+  "name": "SN012 - Debit Note"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN013",
-  "scenario_detail": "Credit Note (Return of Goods with Invoice No)"
+  "scenario_detail": "Credit Note (Return of Goods with Invoice No)",
+  "name": "SN013 - Credit Note (Return of Goods with Invoice No)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN014",
-  "scenario_detail": "Credit Note (Return of Goods without Invoice No)"
+  "scenario_detail": "Credit Note (Return of Goods without Invoice No)",
+  "name": "SN014 - Credit Note (Return of Goods without Invoice No)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN015",
-  "scenario_detail": "Sales through Withholding Agent"
+  "scenario_detail": "Sales through Withholding Agent",
+  "name": "SN015 - Sales through Withholding Agent"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN016",
-  "scenario_detail": "Advance Income Tax (Section 236A)"
+  "scenario_detail": "Advance Income Tax (Section 236A)",
+  "name": "SN016 - Advance Income Tax (Section 236A)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN017",
-  "scenario_detail": "Advance Income Tax (Section 236G)"
+  "scenario_detail": "Advance Income Tax (Section 236G)",
+  "name": "SN017 - Advance Income Tax (Section 236G)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN018",
-  "scenario_detail": "Advance Income Tax (Section 236H)"
+  "scenario_detail": "Advance Income Tax (Section 236H)",
+  "name": "SN018 - Advance Income Tax (Section 236H)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN019",
-  "scenario_detail": "Goods with SRO"
+  "scenario_detail": "Goods with SRO",
+  "name": "SN019 - Goods with SRO"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN020",
-  "scenario_detail": "Services with SRO"
+  "scenario_detail": "Services with SRO",
+  "name": "SN020 - Services with SRO"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN021",
-  "scenario_detail": "Goods - Combination of Taxable and Exempt"
+  "scenario_detail": "Goods - Combination of Taxable and Exempt",
+  "name": "SN021 - Goods - Combination of Taxable and Exempt"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN022",
-  "scenario_detail": "Services - Combination of Taxable and Exempt"
+  "scenario_detail": "Services - Combination of Taxable and Exempt",
+  "name": "SN022 - Services - Combination of Taxable and Exempt"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN023",
-  "scenario_detail": "Goods with Provincial Sales Tax"
+  "scenario_detail": "Goods with Provincial Sales Tax",
+  "name": "SN023 - Goods with Provincial Sales Tax"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN024",
-  "scenario_detail": "Services with Provincial Sales Tax"
+  "scenario_detail": "Services with Provincial Sales Tax",
+  "name": "SN024 - Services with Provincial Sales Tax"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN025",
-  "scenario_detail": "Goods - Federal Excise Duty (FED)"
+  "scenario_detail": "Goods - Federal Excise Duty (FED)",
+  "name": "SN025 - Goods - Federal Excise Duty (FED)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN026",
-  "scenario_detail": "Services - Federal Excise Duty (FED)"
+  "scenario_detail": "Services - Federal Excise Duty (FED)",
+  "name": "SN026 - Services - Federal Excise Duty (FED)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN027",
-  "scenario_detail": "Goods - Sales to Foreign Buyer (Export)"
+  "scenario_detail": "Goods - Sales to Foreign Buyer (Export)",
+  "name": "SN027 - Goods - Sales to Foreign Buyer (Export)"
  },
  {
   "doctype": "Scenario ID",
   "scenario_id": "SN028",
-  "scenario_detail": "Services - Sales to Foreign Buyer (Export)"
+  "scenario_detail": "Services - Sales to Foreign Buyer (Export)",
+  "name": "SN028 - Services - Sales to Foreign Buyer (Export)"
  }
 ]

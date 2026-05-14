@@ -2,341 +2,409 @@
  {
   "doctype": "HS Code",
   "hs_code": "0101",
-  "hs_code_detail": "Live Horses, Asses, Mules and Hinnies"
+  "hs_code_detail": "Live Horses, Asses, Mules and Hinnies",
+  "name": "0101"
  },
  {
   "doctype": "HS Code",
   "hs_code": "0201",
-  "hs_code_detail": "Meat of Bovine Animals, Fresh or Chilled"
+  "hs_code_detail": "Meat of Bovine Animals, Fresh or Chilled",
+  "name": "0201"
  },
  {
   "doctype": "HS Code",
   "hs_code": "0207",
-  "hs_code_detail": "Meat and Edible Offal of Poultry"
+  "hs_code_detail": "Meat and Edible Offal of Poultry",
+  "name": "0207"
  },
  {
   "doctype": "HS Code",
   "hs_code": "0301",
-  "hs_code_detail": "Live Fish"
+  "hs_code_detail": "Live Fish",
+  "name": "0301"
  },
  {
   "doctype": "HS Code",
   "hs_code": "0401",
-  "hs_code_detail": "Milk and Cream, Not Concentrated"
+  "hs_code_detail": "Milk and Cream, Not Concentrated",
+  "name": "0401"
  },
  {
   "doctype": "HS Code",
   "hs_code": "0702",
-  "hs_code_detail": "Tomatoes, Fresh or Chilled"
+  "hs_code_detail": "Tomatoes, Fresh or Chilled",
+  "name": "0702"
  },
  {
   "doctype": "HS Code",
   "hs_code": "0803",
-  "hs_code_detail": "Bananas, Including Plantains, Fresh"
+  "hs_code_detail": "Bananas, Including Plantains, Fresh",
+  "name": "0803"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1001",
-  "hs_code_detail": "Wheat and Meslin"
+  "hs_code_detail": "Wheat and Meslin",
+  "name": "1001"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1006",
-  "hs_code_detail": "Rice"
+  "hs_code_detail": "Rice",
+  "name": "1006"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1101",
-  "hs_code_detail": "Wheat or Meslin Flour"
+  "hs_code_detail": "Wheat or Meslin Flour",
+  "name": "1101"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1507",
-  "hs_code_detail": "Soya-Bean Oil and Its Fractions"
+  "hs_code_detail": "Soya-Bean Oil and Its Fractions",
+  "name": "1507"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1511",
-  "hs_code_detail": "Palm Oil and Its Fractions"
+  "hs_code_detail": "Palm Oil and Its Fractions",
+  "name": "1511"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1512",
-  "hs_code_detail": "Sunflower-Seed, Safflower or Cotton-Seed Oil"
+  "hs_code_detail": "Sunflower-Seed, Safflower or Cotton-Seed Oil",
+  "name": "1512"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1516",
-  "hs_code_detail": "Animal or Vegetable Fats and Oils, Hydrogenated"
+  "hs_code_detail": "Animal or Vegetable Fats and Oils, Hydrogenated",
+  "name": "1516"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1601",
-  "hs_code_detail": "Sausages and Similar Products"
+  "hs_code_detail": "Sausages and Similar Products",
+  "name": "1601"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1701",
-  "hs_code_detail": "Cane or Beet Sugar and Chemically Pure Sucrose"
+  "hs_code_detail": "Cane or Beet Sugar and Chemically Pure Sucrose",
+  "name": "1701"
  },
  {
   "doctype": "HS Code",
   "hs_code": "1901",
-  "hs_code_detail": "Malt Extract; Food Preparations"
+  "hs_code_detail": "Malt Extract; Food Preparations",
+  "name": "1901"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2101",
-  "hs_code_detail": "Extracts, Essences and Concentrates of Coffee"
+  "hs_code_detail": "Extracts, Essences and Concentrates of Coffee",
+  "name": "2101"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2201",
-  "hs_code_detail": "Waters, Including Natural or Artificial Mineral Waters"
+  "hs_code_detail": "Waters, Including Natural or Artificial Mineral Waters",
+  "name": "2201"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2202",
-  "hs_code_detail": "Waters, Flavoured or Sweetened"
+  "hs_code_detail": "Waters, Flavoured or Sweetened",
+  "name": "2202"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2203",
-  "hs_code_detail": "Beer Made from Malt"
+  "hs_code_detail": "Beer Made from Malt",
+  "name": "2203"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2402",
-  "hs_code_detail": "Cigars, Cheroots, Cigarillos and Cigarettes"
+  "hs_code_detail": "Cigars, Cheroots, Cigarillos and Cigarettes",
+  "name": "2402"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2701",
-  "hs_code_detail": "Coal; Briquettes, Ovoids and Similar Solid Fuels"
+  "hs_code_detail": "Coal; Briquettes, Ovoids and Similar Solid Fuels",
+  "name": "2701"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2709",
-  "hs_code_detail": "Petroleum Oils and Oils Obtained from Bituminous Minerals, Crude"
+  "hs_code_detail": "Petroleum Oils and Oils Obtained from Bituminous Minerals, Crude",
+  "name": "2709"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2710",
-  "hs_code_detail": "Petroleum Oils and Oils Obtained from Bituminous Minerals"
+  "hs_code_detail": "Petroleum Oils and Oils Obtained from Bituminous Minerals",
+  "name": "2710"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2711",
-  "hs_code_detail": "Petroleum Gases and Other Gaseous Hydrocarbons"
+  "hs_code_detail": "Petroleum Gases and Other Gaseous Hydrocarbons",
+  "name": "2711"
  },
  {
   "doctype": "HS Code",
   "hs_code": "2901",
-  "hs_code_detail": "Acyclic Hydrocarbons"
+  "hs_code_detail": "Acyclic Hydrocarbons",
+  "name": "2901"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3004",
-  "hs_code_detail": "Medicaments for Therapeutic or Prophylactic Uses"
+  "hs_code_detail": "Medicaments for Therapeutic or Prophylactic Uses",
+  "name": "3004"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3201",
-  "hs_code_detail": "Tanning Extracts of Vegetable Origin"
+  "hs_code_detail": "Tanning Extracts of Vegetable Origin",
+  "name": "3201"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3301",
-  "hs_code_detail": "Essential Oils and Resinoids"
+  "hs_code_detail": "Essential Oils and Resinoids",
+  "name": "3301"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3401",
-  "hs_code_detail": "Soap; Organic Surface-Active Products"
+  "hs_code_detail": "Soap; Organic Surface-Active Products",
+  "name": "3401"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3402",
-  "hs_code_detail": "Organic Surface-Active Agents; Washing Preparations"
+  "hs_code_detail": "Organic Surface-Active Agents; Washing Preparations",
+  "name": "3402"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3808",
-  "hs_code_detail": "Insecticides, Rodenticides, Fungicides, Herbicides"
+  "hs_code_detail": "Insecticides, Rodenticides, Fungicides, Herbicides",
+  "name": "3808"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3901",
-  "hs_code_detail": "Polymers of Ethylene, in Primary Forms"
+  "hs_code_detail": "Polymers of Ethylene, in Primary Forms",
+  "name": "3901"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3919",
-  "hs_code_detail": "Self-Adhesive Plates, Sheets, Film, Foil, Tape, Strip of Plastics"
+  "hs_code_detail": "Self-Adhesive Plates, Sheets, Film, Foil, Tape, Strip of Plastics",
+  "name": "3919"
  },
  {
   "doctype": "HS Code",
   "hs_code": "3923",
-  "hs_code_detail": "Articles for the Conveyance or Packing of Goods, of Plastics"
+  "hs_code_detail": "Articles for the Conveyance or Packing of Goods, of Plastics",
+  "name": "3923"
  },
  {
   "doctype": "HS Code",
   "hs_code": "4001",
-  "hs_code_detail": "Natural Rubber, Balata, Gutta-Percha"
+  "hs_code_detail": "Natural Rubber, Balata, Gutta-Percha",
+  "name": "4001"
  },
  {
   "doctype": "HS Code",
   "hs_code": "4011",
-  "hs_code_detail": "New Pneumatic Tyres, of Rubber"
+  "hs_code_detail": "New Pneumatic Tyres, of Rubber",
+  "name": "4011"
  },
  {
   "doctype": "HS Code",
   "hs_code": "4901",
-  "hs_code_detail": "Printed Books, Brochures, Leaflets"
+  "hs_code_detail": "Printed Books, Brochures, Leaflets",
+  "name": "4901"
  },
  {
   "doctype": "HS Code",
   "hs_code": "5201",
-  "hs_code_detail": "Cotton, Not Carded or Combed"
+  "hs_code_detail": "Cotton, Not Carded or Combed",
+  "name": "5201"
  },
  {
   "doctype": "HS Code",
   "hs_code": "5208",
-  "hs_code_detail": "Woven Fabrics of Cotton (>= 85%, <= 200g/m2)"
+  "hs_code_detail": "Woven Fabrics of Cotton (>= 85%, <= 200g/m2)",
+  "name": "5208"
  },
  {
   "doctype": "HS Code",
   "hs_code": "5209",
-  "hs_code_detail": "Woven Fabrics of Cotton (>= 85%, > 200g/m2)"
+  "hs_code_detail": "Woven Fabrics of Cotton (>= 85%, > 200g/m2)",
+  "name": "5209"
  },
  {
   "doctype": "HS Code",
   "hs_code": "6101",
-  "hs_code_detail": "Men's or Boys' Overcoats, Car-Coats, of Knitted Fabric"
+  "hs_code_detail": "Men's or Boys' Overcoats, Car-Coats, of Knitted Fabric",
+  "name": "6101"
  },
  {
   "doctype": "HS Code",
   "hs_code": "6109",
-  "hs_code_detail": "T-Shirts, Singlets and Other Vests, of Knitted Fabric"
+  "hs_code_detail": "T-Shirts, Singlets and Other Vests, of Knitted Fabric",
+  "name": "6109"
  },
  {
   "doctype": "HS Code",
   "hs_code": "6203",
-  "hs_code_detail": "Men's or Boys' Suits, Ensembles, Jackets, Blazers, Trousers"
+  "hs_code_detail": "Men's or Boys' Suits, Ensembles, Jackets, Blazers, Trousers",
+  "name": "6203"
  },
  {
   "doctype": "HS Code",
   "hs_code": "6211",
-  "hs_code_detail": "Track Suits, Ski Suits and Swimwear"
+  "hs_code_detail": "Track Suits, Ski Suits and Swimwear",
+  "name": "6211"
  },
  {
   "doctype": "HS Code",
   "hs_code": "6301",
-  "hs_code_detail": "Blankets and Travelling Rugs"
+  "hs_code_detail": "Blankets and Travelling Rugs",
+  "name": "6301"
  },
  {
   "doctype": "HS Code",
   "hs_code": "6302",
-  "hs_code_detail": "Bed Linen, Table Linen, Toilet Linen and Kitchen Linen"
+  "hs_code_detail": "Bed Linen, Table Linen, Toilet Linen and Kitchen Linen",
+  "name": "6302"
  },
  {
   "doctype": "HS Code",
   "hs_code": "7201",
-  "hs_code_detail": "Pig Iron and Spiegeleisen in Pigs, Blocks"
+  "hs_code_detail": "Pig Iron and Spiegeleisen in Pigs, Blocks",
+  "name": "7201"
  },
  {
   "doctype": "HS Code",
   "hs_code": "7214",
-  "hs_code_detail": "Other Bars and Rods of Iron or Non-Alloy Steel"
+  "hs_code_detail": "Other Bars and Rods of Iron or Non-Alloy Steel",
+  "name": "7214"
  },
  {
   "doctype": "HS Code",
   "hs_code": "7219",
-  "hs_code_detail": "Flat-Rolled Products of Stainless Steel, Width >= 600mm"
+  "hs_code_detail": "Flat-Rolled Products of Stainless Steel, Width >= 600mm",
+  "name": "7219"
  },
  {
   "doctype": "HS Code",
   "hs_code": "7308",
-  "hs_code_detail": "Structures and Parts of Structures of Iron or Steel"
+  "hs_code_detail": "Structures and Parts of Structures of Iron or Steel",
+  "name": "7308"
  },
  {
   "doctype": "HS Code",
   "hs_code": "7601",
-  "hs_code_detail": "Unwrought Aluminium"
+  "hs_code_detail": "Unwrought Aluminium",
+  "name": "7601"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8414",
-  "hs_code_detail": "Air or Vacuum Pumps, Air or Other Gas Compressors and Fans"
+  "hs_code_detail": "Air or Vacuum Pumps, Air or Other Gas Compressors and Fans",
+  "name": "8414"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8415",
-  "hs_code_detail": "Air Conditioning Machines"
+  "hs_code_detail": "Air Conditioning Machines",
+  "name": "8415"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8418",
-  "hs_code_detail": "Refrigerators, Freezers and Other Refrigerating Equipment"
+  "hs_code_detail": "Refrigerators, Freezers and Other Refrigerating Equipment",
+  "name": "8418"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8450",
-  "hs_code_detail": "Household or Laundry-Type Washing Machines"
+  "hs_code_detail": "Household or Laundry-Type Washing Machines",
+  "name": "8450"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8471",
-  "hs_code_detail": "Automatic Data Processing Machines and Units"
+  "hs_code_detail": "Automatic Data Processing Machines and Units",
+  "name": "8471"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8517",
-  "hs_code_detail": "Telephone Sets, Including Smartphones"
+  "hs_code_detail": "Telephone Sets, Including Smartphones",
+  "name": "8517"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8525",
-  "hs_code_detail": "Transmission Apparatus for Radio-Broadcasting"
+  "hs_code_detail": "Transmission Apparatus for Radio-Broadcasting",
+  "name": "8525"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8528",
-  "hs_code_detail": "Monitors and Projectors; Television Receivers"
+  "hs_code_detail": "Monitors and Projectors; Television Receivers",
+  "name": "8528"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8703",
-  "hs_code_detail": "Motor Cars and Other Motor Vehicles for Persons"
+  "hs_code_detail": "Motor Cars and Other Motor Vehicles for Persons",
+  "name": "8703"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8704",
-  "hs_code_detail": "Motor Vehicles for the Transport of Goods"
+  "hs_code_detail": "Motor Vehicles for the Transport of Goods",
+  "name": "8704"
  },
  {
   "doctype": "HS Code",
   "hs_code": "8708",
-  "hs_code_detail": "Parts and Accessories of Motor Vehicles"
+  "hs_code_detail": "Parts and Accessories of Motor Vehicles",
+  "name": "8708"
  },
  {
   "doctype": "HS Code",
   "hs_code": "9001",
-  "hs_code_detail": "Optical Fibres and Optical Fibre Bundles"
+  "hs_code_detail": "Optical Fibres and Optical Fibre Bundles",
+  "name": "9001"
  },
  {
   "doctype": "HS Code",
   "hs_code": "9401",
-  "hs_code_detail": "Seats (Other than Garden Seats or Camping Equipment)"
+  "hs_code_detail": "Seats (Other than Garden Seats or Camping Equipment)",
+  "name": "9401"
  },
  {
   "doctype": "HS Code",
   "hs_code": "9403",
-  "hs_code_detail": "Other Furniture and Parts Thereof"
+  "hs_code_detail": "Other Furniture and Parts Thereof",
+  "name": "9403"
  },
  {
   "doctype": "HS Code",
   "hs_code": "9503",
-  "hs_code_detail": "Tricycles, Scooters, Pedal Cars and Similar Wheeled Toys"
+  "hs_code_detail": "Tricycles, Scooters, Pedal Cars and Similar Wheeled Toys",
+  "name": "9503"
  }
 ]

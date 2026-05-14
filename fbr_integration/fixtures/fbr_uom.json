@@ -1,78 +1,97 @@
 [
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "KGS"
+  "fbr_uom": "KGS",
+  "name": "KGS"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "MTR"
+  "fbr_uom": "MTR",
+  "name": "MTR"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "NOS"
+  "fbr_uom": "NOS",
+  "name": "NOS"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "LTR"
+  "fbr_uom": "LTR",
+  "name": "LTR"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "SQM"
+  "fbr_uom": "SQM",
+  "name": "SQM"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "MTQ"
+  "fbr_uom": "MTQ",
+  "name": "MTQ"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "TNE"
+  "fbr_uom": "TNE",
+  "name": "TNE"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "DZN"
+  "fbr_uom": "DZN",
+  "name": "DZN"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "SET"
+  "fbr_uom": "SET",
+  "name": "SET"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "PRJ"
+  "fbr_uom": "PRJ",
+  "name": "PRJ"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "BOX"
+  "fbr_uom": "BOX",
+  "name": "BOX"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "PKT"
+  "fbr_uom": "PKT",
+  "name": "PKT"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "BAG"
+  "fbr_uom": "BAG",
+  "name": "BAG"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "ROL"
+  "fbr_uom": "ROL",
+  "name": "ROL"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "CYL"
+  "fbr_uom": "CYL",
+  "name": "CYL"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "CRT"
+  "fbr_uom": "CRT",
+  "name": "CRT"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "PCS"
+  "fbr_uom": "PCS",
+  "name": "PCS"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "GRM"
+  "fbr_uom": "GRM",
+  "name": "GRM"
  },
  {
   "doctype": "FBR UOM",
-  "fbr_uom": "MGM"
+  "fbr_uom": "MGM",
+  "name": "MGM"
  }
 ]

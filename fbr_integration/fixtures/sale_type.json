@@ -1,30 +1,37 @@
 [
  {
   "doctype": "Sale Type",
-  "sale_type": "Goods at Standard Rate"
+  "sale_type": "Goods at Standard Rate",
+  "name": "Goods at Standard Rate"
  },
  {
   "doctype": "Sale Type",
-  "sale_type": "Goods at Reduced Rate"
+  "sale_type": "Goods at Reduced Rate",
+  "name": "Goods at Reduced Rate"
  },
  {
   "doctype": "Sale Type",
-  "sale_type": "Exempt"
+  "sale_type": "Exempt",
+  "name": "Exempt"
  },
  {
   "doctype": "Sale Type",
-  "sale_type": "Zero-Rated"
+  "sale_type": "Zero-Rated",
+  "name": "Zero-Rated"
  },
  {
   "doctype": "Sale Type",
-  "sale_type": "Fixed or Notified Value or Retail Price"
+  "sale_type": "Fixed or Notified Value or Retail Price",
+  "name": "Fixed or Notified Value or Retail Price"
  },
  {
   "doctype": "Sale Type",
-  "sale_type": "Services at Standard Rate"
+  "sale_type": "Services at Standard Rate",
+  "name": "Services at Standard Rate"
  },
  {
   "doctype": "Sale Type",
-  "sale_type": "Further Tax"
+  "sale_type": "Further Tax",
+  "name": "Further Tax"
  }
 ]

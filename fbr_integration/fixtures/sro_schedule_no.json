@@ -1,42 +1,52 @@
 [
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 678(I)/2004"
+  "sro_schedule_no": "SRO 678(I)/2004",
+  "name": "SRO 678(I)/2004"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 1125(I)/2011"
+  "sro_schedule_no": "SRO 1125(I)/2011",
+  "name": "SRO 1125(I)/2011"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 1190(I)/2015"
+  "sro_schedule_no": "SRO 1190(I)/2015",
+  "name": "SRO 1190(I)/2015"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 1(I)/2019"
+  "sro_schedule_no": "SRO 1(I)/2019",
+  "name": "SRO 1(I)/2019"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 69(I)/2021"
+  "sro_schedule_no": "SRO 69(I)/2021",
+  "name": "SRO 69(I)/2021"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 283(I)/2022"
+  "sro_schedule_no": "SRO 283(I)/2022",
+  "name": "SRO 283(I)/2022"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 350(I)/2022"
+  "sro_schedule_no": "SRO 350(I)/2022",
+  "name": "SRO 350(I)/2022"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 499(I)/2013"
+  "sro_schedule_no": "SRO 499(I)/2013",
+  "name": "SRO 499(I)/2013"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 550(I)/2006"
+  "sro_schedule_no": "SRO 550(I)/2006",
+  "name": "SRO 550(I)/2006"
  },
  {
   "doctype": "SRO Schedule No",
-  "sro_schedule_no": "SRO 655(I)/2006"
+  "sro_schedule_no": "SRO 655(I)/2006",
+  "name": "SRO 655(I)/2006"
  }
 ]

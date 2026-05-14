@@ -1,34 +1,42 @@
 [
  {
   "doctype": "Buyer Province",
-  "buyer_province": "Punjab"
+  "buyer_province": "Punjab",
+  "name": "Punjab"
  },
  {
   "doctype": "Buyer Province",
-  "buyer_province": "Sindh"
+  "buyer_province": "Sindh",
+  "name": "Sindh"
  },
  {
   "doctype": "Buyer Province",
-  "buyer_province": "Khyber Pakhtunkhwa"
+  "buyer_province": "Khyber Pakhtunkhwa",
+  "name": "Khyber Pakhtunkhwa"
  },
  {
   "doctype": "Buyer Province",
-  "buyer_province": "Balochistan"
+  "buyer_province": "Balochistan",
+  "name": "Balochistan"
  },
  {
   "doctype": "Buyer Province",
-  "buyer_province": "Islamabad Capital Territory"
+  "buyer_province": "Islamabad Capital Territory",
+  "name": "Islamabad Capital Territory"
  },
  {
   "doctype": "Buyer Province",
-  "buyer_province": "Azad Jammu & Kashmir"
+  "buyer_province": "Azad Jammu & Kashmir",
+  "name": "Azad Jammu & Kashmir"
  },
  {
   "doctype": "Buyer Province",
-  "buyer_province": "Gilgit-Baltistan"
+  "buyer_province": "Gilgit-Baltistan",
+  "name": "Gilgit-Baltistan"
  },
  {
   "doctype": "Buyer Province",
-  "buyer_province": "FATA"
+  "buyer_province": "FATA",
+  "name": "FATA"
  }
 ]

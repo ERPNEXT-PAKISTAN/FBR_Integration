@@ -10,10 +10,12 @@ AUTO_SEND_ON_SUBMIT = 0  # 1 = auto send on submit, 0 = manual button
 doc_events = {
 	"Sales Invoice": {
 		"validate": [
+			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",
 		],
 		"before_save": [
+			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",
 		],
@@ -36,7 +38,7 @@ fixtures = [
 	{"dt": "Module Def", "filters": [["module_name", "=", "FBR Integration"]]},
 	{
 		"dt": "Custom Field",
-		"filters": [["dt", "in", ["Sales Invoice", "Sales Invoice Item"]]],
+		"filters": [["dt", "in", ["Sales Invoice", "Sales Invoice Item", "Customer", "Item"]]],
 	},
 	{"dt": "Print Format", "filters": [["module", "=", "FBR Integration"]]},
 	{"dt": "Workspace", "filters": [["name", "in", ["FBR Pakistan"]]]},
@@ -49,6 +51,6 @@ fixtures = [
 	{"dt": "Tax Payer Type", "filters": [["name", "!=", ""]]},
 	{"dt": "Scenario ID", "filters": [["name", "!=", ""]]},
 	{"dt": "SRO Schedule No", "filters": [["name", "!=", ""]]},
-	{"dt": "SRO Item SNO", "filters": [["name", "!=", ""]]},
+	{"dt": "SRO Item SNo", "filters": [["name", "!=", ""]]},
 	{"dt": "HS Code", "filters": [["name", "!=", ""]]},
 ]
