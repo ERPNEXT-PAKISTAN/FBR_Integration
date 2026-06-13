@@ -53,6 +53,45 @@ def safe_fbr_item_text(val):
 	return " ".join(text.split())
 
 
+def normalize_fbr_token(token):
+	"""Return a clean bearer token value without leaking or duplicating prefixes."""
+	token = safe_str(token).strip()
+	if token.lower().startswith("bearer "):
+		token = token[7:].strip()
+	return token
+
+
+def get_fbr_setting_password(settings, fieldname):
+	"""Read Password fields safely across Frappe versions/custom Single storage."""
+	try:
+		value = settings.get_password(fieldname, raise_exception=False)
+	except Exception:
+		value = None
+	return normalize_fbr_token(value or getattr(settings, fieldname, ""))
+
+
+def get_fbr_connection_settings(settings):
+	"""Resolve endpoint/token for the active FBR environment."""
+	integration_type = safe_str(settings.integration_type).strip()
+	is_sandbox = integration_type == "Sandbox"
+
+	if is_sandbox:
+		api_url = safe_str(settings.sandbox_api_url).strip()
+		token = get_fbr_setting_password(settings, "sandbox_security_token")
+	else:
+		api_url = safe_str(settings.production_api_url).strip()
+		token = get_fbr_setting_password(settings, "production_security_token")
+
+	return integration_type, is_sandbox, api_url, token
+
+
+def tokens_match(settings):
+	"""Compare configured sandbox/production token values without exposing them."""
+	sandbox_token = get_fbr_setting_password(settings, "sandbox_security_token")
+	production_token = get_fbr_setting_password(settings, "production_security_token")
+	return bool(sandbox_token and production_token and sandbox_token == production_token)
+
+
 def extra_tax_value(val, sale_type_str):
 	reduced_types = ("goodsatreducedrate", "reducedrate", "rr")
 	if sale_type_str in reduced_types:
@@ -286,7 +325,7 @@ def send_to_fbr_si(name: str):
 
 	# Enforce submission requirement in Production mode
 	settings = frappe.get_single("FBR Invoice Settings")
-	is_sandbox = (settings.integration_type or "").strip() == "Sandbox"
+	_, is_sandbox, _, _ = get_fbr_connection_settings(settings)
 	if not is_sandbox and doc.docstatus != 1:
 		frappe.throw(
 			"Invoice must be submitted before sending to FBR in Production mode.",
@@ -308,12 +347,7 @@ def send_invoice_to_fbr(doc, method=None):
 	if not settings.enabled:
 		frappe.throw("FBR Integration Disabled")
 
-	if settings.integration_type == "Sandbox":
-		api_url = settings.sandbox_api_url
-		token = (settings.sandbox_security_token or "").strip()
-	else:
-		api_url = settings.production_api_url
-		token = (settings.production_security_token or "").strip()
+	integration_type, is_sandbox, api_url, token = get_fbr_connection_settings(settings)
 
 	if not api_url:
 		frappe.throw("FBR API URL missing in settings")
@@ -539,7 +573,7 @@ def send_invoice_to_fbr(doc, method=None):
 
 	# Fill ALL your SI fields (if exist)
 	if hasattr(doc, "custom_fbr_integration_type"):
-		doc.custom_fbr_integration_type = settings.integration_type
+		doc.custom_fbr_integration_type = integration_type
 
 	if hasattr(doc, "custom_fbr_invoice_status"):
 		doc.custom_fbr_invoice_status = status
@@ -584,6 +618,19 @@ def send_invoice_to_fbr(doc, method=None):
 
 	# Raise if HTTP error
 	if resp.status_code >= 400:
+		fault = res_json.get("fault", {}) if isinstance(res_json, dict) else {}
+		if resp.status_code == 401 and safe_str(fault.get("code")) == "900901":
+			detail = (
+				"FBR rejected the access token for Production. "
+				"Update FBR Invoice Settings > Production Security Token with the live/production token."
+			)
+			if not is_sandbox and tokens_match(settings):
+				detail += " The configured Production Security Token is currently the same as the Sandbox Security Token."
+
+			frappe.throw(
+				f"FBR Invalid Credentials\n\n{detail}\n\nFBR Response:\n{resp_text}",
+				title="FBR Invalid Credentials",
+			)
 		frappe.throw(f"? FBR HTTP Error\nStatus: {resp.status_code}\n\n{resp_text}")
 
 	# If FBR returned invalid
