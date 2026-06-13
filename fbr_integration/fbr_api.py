@@ -527,6 +527,7 @@ def send_invoice_to_fbr(doc, method=None):
 		"invoiceRefNo": safe_str(doc.name),
 		"scenarioId": safe_str(doc.custom_scenario_id),
 		"referencedInvoiceNo": safe_str(doc.name),
+		"sourceInvoiceNo": safe_str(doc.name),
 		"reason": "",
 		"remarks": safe_fbr_text(getattr(doc, "remarks", "")),
 		"buyerRegistrationType": safe_fbr_text(doc.custom_tax_payer_type),
