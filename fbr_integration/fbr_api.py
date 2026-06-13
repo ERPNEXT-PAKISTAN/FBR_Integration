@@ -1,5 +1,6 @@
 import json
 import re
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 import frappe
 import requests
@@ -22,6 +23,25 @@ def safe_abs_float(val):
 		return abs(float(val))
 	except (TypeError, ValueError):
 		return 0
+
+
+def rounded_float(val, precision):
+	"""Round numeric values for FBR while keeping JSON numbers, not strings."""
+	try:
+		quant = Decimal("1").scaleb(-precision)
+		return float(Decimal(str(val or 0)).quantize(quant, rounding=ROUND_HALF_UP))
+	except (InvalidOperation, TypeError, ValueError):
+		return 0
+
+
+def fbr_money(val):
+	"""FBR allows money/rate numeric fields up to 2 decimal places."""
+	return rounded_float(val, 2)
+
+
+def fbr_quantity(val):
+	"""FBR allows quantity numeric fields up to 4 decimal places."""
+	return rounded_float(val, 4)
 
 
 def safe_str(val):
@@ -150,6 +170,40 @@ def merge_fbr_items(items):
 			)
 
 	return list(merged.values())
+
+
+def normalize_fbr_item_numbers(item):
+	"""Apply FBR decimal precision limits to one item payload."""
+	normalized = dict(item)
+	for field in (
+		"totalValues",
+		"valueSalesExcludingST",
+		"fixedNotifiedValueOrRetailPrice",
+		"salesTaxApplicable",
+		"salesTaxWithheldAtSource",
+		"extraTax",
+		"furtherTax",
+		"fedPayable",
+		"discount",
+	):
+		normalized[field] = fbr_money(normalized.get(field))
+	normalized["quantity"] = fbr_quantity(normalized.get("quantity"))
+	return normalized
+
+
+def parse_fbr_response(response):
+	"""Parse FBR responses, including sandbox responses with trailing commas."""
+	response_text = response.text or ""
+	try:
+		return response.json()
+	except Exception:
+		pass
+
+	try:
+		cleaned = re.sub(r",\s*([}\]])", r"\1", response_text)
+		return json.loads(cleaned)
+	except Exception:
+		return {"raw_response": response_text}
 
 
 def normalize_sro_fields_for_scenario(scenario_id, sro_schedule_no, sro_item_sno):
@@ -472,11 +526,11 @@ def send_invoice_to_fbr(doc, method=None):
 		"buyerProvince": safe_fbr_text(buyer_province),
 		"invoiceRefNo": safe_str(doc.name),
 		"scenarioId": safe_str(doc.custom_scenario_id),
-		"referencedInvoiceNo": "",
+		"referencedInvoiceNo": safe_str(doc.name),
 		"reason": "",
 		"remarks": safe_fbr_text(getattr(doc, "remarks", "")),
 		"buyerRegistrationType": safe_fbr_text(doc.custom_tax_payer_type),
-		"items": merge_fbr_items(items_list),
+		"items": [normalize_fbr_item_numbers(item) for item in merge_fbr_items(items_list)],
 	}
 
 	if is_credit_note_return:
@@ -507,10 +561,7 @@ def send_invoice_to_fbr(doc, method=None):
 
 	# Always keep response in SI for audit (even if invalid)
 	resp_text = resp.text or ""
-	try:
-		res_json = resp.json()
-	except Exception:
-		res_json = {"raw_response": resp_text}
+	res_json = parse_fbr_response(resp)
 
 	# Some FBR setups reject Credit Note label but accept Debit Note for returns.
 	if is_credit_note_return:
@@ -526,10 +577,7 @@ def send_invoice_to_fbr(doc, method=None):
 			resp = _post_payload(payload)
 			log_fbr_exchange(doc.name, "retry_debit_note", payload, resp)
 			resp_text = resp.text or ""
-			try:
-				res_json = resp.json()
-			except Exception:
-				res_json = {"raw_response": resp_text}
+			res_json = parse_fbr_response(resp)
 
 	# SN024 can be strict on saleType labels even when scenario and SRO are valid.
 	validation = res_json.get("validationResponse", {}) or {}
@@ -551,10 +599,7 @@ def send_invoice_to_fbr(doc, method=None):
 			resp = _post_payload(retry_payload)
 			log_fbr_exchange(doc.name, f"retry_sn024_sale_type_{attempt_idx}", retry_payload, resp)
 			resp_text = resp.text or ""
-			try:
-				res_json = resp.json()
-			except Exception:
-				res_json = {"raw_response": resp_text}
+			res_json = parse_fbr_response(resp)
 
 			validation = res_json.get("validationResponse", {}) or {}
 			if validation.get("statusCode") == "00":
