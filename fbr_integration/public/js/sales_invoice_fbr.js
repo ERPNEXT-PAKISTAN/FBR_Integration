@@ -160,64 +160,45 @@ function fetch_scenario_doc(scenario_id) {
 function render_scenario_tree_html(data, sid) {
     const sample = data.sample || {};
     const items = Array.isArray(sample.items) ? sample.items : [];
-    const buyerRegistrationType = sample.buyerRegistrationType || "";
-    const scenarioFields = [
-        ["Scenario ID", sample.scenarioId || data.id || sid],
-        ["Invoice Type", sample.invoiceType || ""],
-        ["Invoice Date", sample.invoiceDate || ""],
-        ["Seller NTN/CNIC", sample.sellerNTNCNIC || ""],
-        ["Seller Business Name", sample.sellerBusinessName || ""],
-        ["Seller Province", sample.sellerProvince || ""],
-        ["Seller Address", sample.sellerAddress || ""],
-        ["Buyer NTN/CNIC", sample.buyerNTNCNIC || ""],
-        ["Buyer Business Name", sample.buyerBusinessName || ""],
-        ["Buyer Registration Type", buyerRegistrationType],
-        ["Buyer Province", sample.buyerProvince || ""],
-        ["Buyer Address", sample.buyerAddress || ""],
-        ["Invoice Ref No", sample.invoiceRefNo || ""],
-    ];
+    const scenarioId = sample.scenarioId || data.id || sid;
+    const invoiceType = sample.invoiceType || "";
 
-    const scenarioRows = scenarioFields
-        .map(
-            ([label, value]) => `
-<tr>
-    <td style="padding:9px 10px;border:1px solid #dbeafe;background:#f8fbff;font-size:12px;font-weight:700;color:#1e3a5f;width:32%;">${esc(
-        label
-    )}</td>
-    <td style="padding:9px 10px;border:1px solid #dbeafe;background:#fff;font-size:12px;color:#0f172a;">${esc(
-        value || "-"
-    )}</td>
-</tr>`
-        )
-        .join("");
-
-    const itemRows = items.length
+    const rows = items.length
         ? items
               .map(
                   (item, idx) => `
 <tr>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${idx + 1}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.hsCode || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.productDescription || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.rate || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.uoM || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.quantity || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.totalValues || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.valueSalesExcludingST || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.fixedNotifiedValueOrRetailPrice || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.salesTaxApplicable || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.salesTaxWithheldAtSource || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.extraTax || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.furtherTax || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.fedPayable || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.discount || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.saleType || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.sroScheduleNo || "-")}</td>
-    <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.sroItemSerialNo || "-")}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        scenarioId
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        data.title || "-"
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        invoiceType || "-"
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        item.hsCode || "-"
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        item.rate || "-"
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        item.uoM || "-"
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        item.saleType || "-"
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        item.sroScheduleNo || "-"
+    )}</td>
+    <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+        item.sroItemSerialNo || "-"
+    )}</td>
 </tr>`
               )
               .join("")
-        : `<tr><td colspan="18" style="padding:12px;border:1px dashed #cbd5e1;color:#64748b;text-align:center;">No item data found in sample payload.</td></tr>`;
+        : `<tr><td colspan="9" style="padding:12px;border:1px dashed #cbd5e1;color:#64748b;text-align:center;">No item data found in sample payload.</td></tr>`;
 
     return `
 <div style="font-family:inherit;line-height:1.5;">
@@ -230,45 +211,25 @@ function render_scenario_tree_html(data, sid) {
         )}</span>
     </div>
 
-    <div style="margin-bottom:14px;border:1px solid #bfdbfe;border-radius:10px;overflow:hidden;">
-        <div style="padding:10px 14px;background:#eff6ff;font-size:12px;font-weight:700;color:#1d4ed8;">Scenario Fields</div>
-        <div style="overflow:auto;">
-            <table style="width:100%;border-collapse:collapse;min-width:640px;">
-                <tbody>
-                    ${scenarioRows}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
     <div style="border:1px solid #c7d2fe;border-radius:10px;overflow:hidden;">
-        <div style="padding:10px 14px;background:#eef2ff;font-size:12px;font-weight:700;color:#312e81;">Item Fields</div>
+        <div style="padding:10px 14px;background:#eef2ff;font-size:12px;font-weight:700;color:#312e81;">Scenario Table</div>
         <div style="overflow:auto;">
-            <table style="width:100%;border-collapse:collapse;min-width:1800px;font-size:12px;color:#0f172a;">
+            <table style="width:100%;border-collapse:collapse;min-width:1200px;font-size:12px;color:#0f172a;">
                 <thead style="background:#e0e7ff;color:#312e81;">
                     <tr>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">#</th>
+                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Scenario ID</th>
+                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Title</th>
+                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Invoice Type</th>
                         <th style="padding:8px 10px;border:1px solid #c7d2fe;">HS Code</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Product Description</th>
                         <th style="padding:8px 10px;border:1px solid #c7d2fe;">Rate</th>
                         <th style="padding:8px 10px;border:1px solid #c7d2fe;">UoM</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Quantity</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Total Values</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Value Sales Excl. ST</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Fixed Notified Value / Retail Price</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Sales Tax Applicable</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">ST Withheld at Source</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Extra Tax</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Further Tax</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">FED Payable</th>
-                        <th style="padding:8px 10px;border:1px solid #c7d2fe;">Discount</th>
                         <th style="padding:8px 10px;border:1px solid #c7d2fe;">Sale Type</th>
                         <th style="padding:8px 10px;border:1px solid #c7d2fe;">SRO Schedule No</th>
                         <th style="padding:8px 10px;border:1px solid #c7d2fe;">SRO Item Serial No</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${itemRows}
+                    ${rows}
                 </tbody>
             </table>
         </div>
