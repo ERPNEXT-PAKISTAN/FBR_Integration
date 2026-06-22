@@ -1,6 +1,14 @@
 import frappe
 
 DEFAULT_FBR_SCENARIO = "Pakistan Tax"
+LEGACY_FBR_SCENARIO_OPTIONS = {
+	"Manual Item-wise",
+	"All Taxes",
+	"Pakistan Tax",
+	"Zero Rated",
+	"Exempt",
+	"Cement Per Qty",
+}
 
 SCENARIO_TEMPLATE_ALIASES = {
 	"all taxes": ["all taxes", "taxable", "gst further extra", "gst+further+extra"],
@@ -17,12 +25,24 @@ EXTRA_TAX_KEYS = ("extra tax",)
 MANUAL_SCENARIO_KEYS = {"", "manual", "manual item wise", "none", "no scenario"}
 SCENARIO_APPLY_MODE_FILL = "Fill Empty Items"
 SCENARIO_APPLY_MODE_FORCE = "Update All Items"
+SCENARIO_ID_TEMPLATE_ALIASES = {
+	"sn005": ["reduced rate", "goods at reduced rate", "reduced rate sale"],
+	"sn006": ["exempt", "exempt goods"],
+	"sn007": ["zero rated", "zero-rated", "goods at zero rate", "zero rated goods"],
+	"sn009": ["reduced rate", "goods at reduced rate", "reduced rate sale"],
+}
+SCENARIO_ID_LEGACY_SELECT_MAP = {
+	"SN006": "Exempt",
+	"SN007": "Zero Rated",
+}
 
 
 def sync_sales_invoice_master_defaults(doc, method=None):
 	"""Fill FBR fields from Customer/Item masters when invoice/item values are empty."""
 	if doc.doctype != "Sales Invoice":
 		return
+
+	normalize_sales_invoice_scenarios(doc)
 
 	if doc.customer:
 		customer_defaults = (
@@ -66,11 +86,81 @@ def _normalize_text(value):
 	return " ".join((value or "").lower().replace("/", " ").replace("-", " ").replace("_", " ").split())
 
 
+def _extract_scenario_id(value: str) -> str:
+	match = frappe.safe_decode(value or "")
+	match = (match or "").strip().upper()
+	if match.startswith("SN") and len(match) >= 5:
+		return match.split(" ", 1)[0]
+	return ""
+
+
+def _normalize_legacy_scenario_value(value: str, fallback: str = "Manual Item-wise") -> str:
+	raw_value = (value or "").strip()
+	if not raw_value:
+		return ""
+	if raw_value in LEGACY_FBR_SCENARIO_OPTIONS:
+		return raw_value
+
+	scenario_id = _extract_scenario_id(raw_value)
+	if scenario_id:
+		return SCENARIO_ID_LEGACY_SELECT_MAP.get(scenario_id, fallback)
+
+	normalized = _normalize_text(raw_value)
+	for option in LEGACY_FBR_SCENARIO_OPTIONS:
+		if _normalize_text(option) == normalized:
+			return option
+
+	return fallback
+
+
+def normalize_sales_invoice_scenarios(doc):
+	"""Keep legacy helper scenario selects valid before Frappe select validation runs."""
+	doc.custom_fbr_scenario = _normalize_legacy_scenario_value(
+		getattr(doc, "custom_fbr_scenario", None)
+	)
+
+	for item in doc.get("items") or []:
+		item.custom_fbr_item_scenario = _normalize_legacy_scenario_value(
+			getattr(item, "custom_fbr_item_scenario", None)
+		)
+
+
 def _scenario_aliases(scenario: str):
 	normalized = _normalize_text(scenario)
 	if normalized in MANUAL_SCENARIO_KEYS:
 		return []
-	return SCENARIO_TEMPLATE_ALIASES.get(normalized, [])
+
+	if normalized in SCENARIO_TEMPLATE_ALIASES:
+		return SCENARIO_TEMPLATE_ALIASES[normalized]
+
+	match = frappe.safe_decode(scenario or "")
+	match = (match or "").strip().upper()
+	scenario_id = ""
+	if match.startswith("SN") and len(match) >= 5:
+		scenario_id = match.split(" ", 1)[0]
+	elif normalized.startswith("sn") and " " in normalized:
+		scenario_id = normalized.split(" ", 1)[0].upper()
+
+	if scenario_id and scenario_id.lower() in SCENARIO_ID_TEMPLATE_ALIASES:
+		return SCENARIO_ID_TEMPLATE_ALIASES[scenario_id.lower()]
+
+	for key, aliases in SCENARIO_TEMPLATE_ALIASES.items():
+		if key and key in normalized:
+			return aliases
+
+	for key, aliases in SCENARIO_ID_TEMPLATE_ALIASES.items():
+		if key in normalized:
+			return aliases
+
+	return []
+
+
+def get_effective_invoice_tax_scenario(doc):
+	helper_scenario = (getattr(doc, "custom_fbr_scenario", None) or "").strip()
+	if helper_scenario and helper_scenario != "Manual Item-wise":
+		return helper_scenario
+
+	return (getattr(doc, "custom_scenario_id", None) or "").strip() or helper_scenario
 
 
 def resolve_item_tax_template_name(scenario: str | None = None):
@@ -130,7 +220,7 @@ def calculate_fbr_tax(doc, method=None):
 
 	for item in doc.items:
 		item_scenario = (getattr(item, "custom_fbr_item_scenario", None) or "").strip()
-		doc_scenario = (getattr(doc, "custom_fbr_scenario", None) or "").strip()
+		doc_scenario = get_effective_invoice_tax_scenario(doc)
 		scenario = item_scenario or doc_scenario
 		template_name = resolve_item_tax_template_name(scenario)
 

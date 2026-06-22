@@ -779,7 +779,7 @@
   "name": "Sales Invoice Item-custom_fbr_item_scenario",
   "no_copy": 0,
   "non_negative": 0,
-  "options": "All Taxes\nPakistan Tax\nZero Rated\nExempt\nCement Per Qty",
+  "options": "Manual Item-wise\nAll Taxes\nPakistan Tax\nZero Rated\nExempt\nCement Per Qty",
   "permlevel": 0,
   "placeholder": null,
   "precision": "",

@@ -73,6 +73,25 @@ def safe_fbr_item_text(val):
 	return " ".join(text.split())
 
 
+def normalize_registration_no(val):
+	"""Keep only digits for FBR registration values like NTN/CNIC."""
+	return re.sub(r"\D+", "", safe_str(val))
+
+
+def get_valid_seller_registration_no(doc):
+	"""Return a normalized seller registration value or raise a precise local error."""
+	raw_value = getattr(doc, "company_tax_id", "")
+	registration_no = normalize_registration_no(raw_value)
+	if len(registration_no) in (7, 13):
+		return registration_no
+
+	frappe.throw(
+		"Company Tax ID must be a valid NTN or CNIC before sending to FBR. "
+		f"Found '{safe_str(raw_value)}' on Sales Invoice {safe_str(doc.name)}. "
+		"Use 7 digits for NTN or 13 digits for CNIC, without separators."
+	)
+
+
 def normalize_fbr_token(token):
 	"""Return a clean bearer token value without leaking or duplicating prefixes."""
 	token = safe_str(token).strip()
@@ -123,6 +142,19 @@ def extra_tax_value(val, sale_type_str):
 		return num
 	except (TypeError, ValueError):
 		return 0
+
+
+def is_reduced_rate_scenario(scenario_id):
+	"""Return True for FBR scenarios where extra tax must not be sent."""
+	return safe_str(scenario_id).strip().upper() in {"SN005", "SN009"}
+
+
+def format_extra_tax_for_payload(extra_tax, scenario_id):
+	"""Return blank extraTax for scenarios where FBR rejects even numeric zero."""
+	scenario = safe_str(scenario_id).strip().upper()
+	if scenario in {"SN005", "SN006", "SN007", "SN009"}:
+		return ""
+	return safe_float(extra_tax)
 
 
 def merge_fbr_items(items):
@@ -443,12 +475,16 @@ def send_invoice_to_fbr(doc, method=None):
 	# Items
 	items_list = []
 	scenario_id = safe_str(doc.custom_scenario_id).strip().upper()
+	seller_registration_no = get_valid_seller_registration_no(doc)
+	is_reduced_rate = is_reduced_rate_scenario(scenario_id)
 	is_exempt_scenario = scenario_id == "SN006"
 	is_zero_rated_scenario = scenario_id == "SN007"
 	num = safe_abs_float if is_return_invoice else safe_float
 	for item in doc.items:
 		sale_type_str = str(item.custom_sale_type or "").lower().replace(" ", "")
 		extra_tax = extra_tax_value(item.custom_extra_tax, sale_type_str)
+		if is_reduced_rate:
+			extra_tax = 0
 
 		if is_exempt_scenario:
 			rate_val = "Exempt"
@@ -503,7 +539,7 @@ def send_invoice_to_fbr(doc, method=None):
 				"fixedNotifiedValueOrRetailPrice": num(item.rate),
 				"salesTaxApplicable": sales_tax_applicable,
 				"salesTaxWithheldAtSource": 0,
-				"extraTax": num(extra_tax),
+				"extraTax": format_extra_tax_for_payload(extra_tax, scenario_id),
 				"furtherTax": further_tax,
 				"sroScheduleNo": sro_schedule_no_val,
 				"fedPayable": 0,
@@ -516,7 +552,7 @@ def send_invoice_to_fbr(doc, method=None):
 	payload = {
 		"invoiceType": safe_fbr_text(doc.custom_invoice_type),
 		"invoiceDate": str(doc.posting_date),
-		"sellerNTNCNIC": safe_str(doc.company_tax_id),
+		"sellerNTNCNIC": seller_registration_no,
 		"sellerBusinessName": safe_fbr_text(doc.company),
 		"sellerAddress": safe_fbr_text(seller_address),
 		"sellerProvince": safe_fbr_text(seller_province),
