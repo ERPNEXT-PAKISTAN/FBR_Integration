@@ -128,35 +128,58 @@ function show_scenario_tree(scenario_id) {
     const sid = (scenario_id || "").toString().trim().toUpperCase();
     if (!sid) return;
 
-    const url = `/assets/fbr_integration/scenario_docs/${sid}.json`;
-    fetch(url)
-        .then(function (r) {
-            if (!r.ok) throw new Error("Not found: " + sid);
-            return r.json();
-        })
+    fetch_scenario_doc(sid)
         .then(function (data) {
-            const sample = data.sample || {};
-            const items = Array.isArray(sample.items) ? sample.items : [];
-            const buyerRegistrationType = sample.buyerRegistrationType || "";
-            const scenarioFields = [
-                ["Scenario ID", sample.scenarioId || data.id || sid],
-                ["Invoice Type", sample.invoiceType || ""],
-                ["Invoice Date", sample.invoiceDate || ""],
-                ["Seller NTN/CNIC", sample.sellerNTNCNIC || ""],
-                ["Seller Business Name", sample.sellerBusinessName || ""],
-                ["Seller Province", sample.sellerProvince || ""],
-                ["Seller Address", sample.sellerAddress || ""],
-                ["Buyer NTN/CNIC", sample.buyerNTNCNIC || ""],
-                ["Buyer Business Name", sample.buyerBusinessName || ""],
-                ["Buyer Registration Type", buyerRegistrationType],
-                ["Buyer Province", sample.buyerProvince || ""],
-                ["Buyer Address", sample.buyerAddress || ""],
-                ["Invoice Ref No", sample.invoiceRefNo || ""],
-            ];
+            frappe.msgprint({
+                title: __("Scenario Tree: {0}", [esc(sid)]),
+                indicator: "blue",
+                message: render_scenario_tree_html(data, sid),
+                wide: true,
+            });
+        })
+        .catch(function (err) {
+            frappe.msgprint({
+                title: __("Scenario Tree Not Available"),
+                indicator: "orange",
+                message: __("Could not load tree for scenario <b>{0}</b>.", [
+                    esc(sid),
+                ]),
+            });
+        });
+}
 
-            const scenarioRows = scenarioFields
-                .map(
-                    ([label, value]) => `
+function fetch_scenario_doc(scenario_id) {
+    const sid = (scenario_id || "").toString().trim().toUpperCase();
+    const url = `/assets/fbr_integration/scenario_docs/${sid}.json`;
+    return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error("Not found: " + sid);
+        return r.json();
+    });
+}
+
+function render_scenario_tree_html(data, sid) {
+    const sample = data.sample || {};
+    const items = Array.isArray(sample.items) ? sample.items : [];
+    const buyerRegistrationType = sample.buyerRegistrationType || "";
+    const scenarioFields = [
+        ["Scenario ID", sample.scenarioId || data.id || sid],
+        ["Invoice Type", sample.invoiceType || ""],
+        ["Invoice Date", sample.invoiceDate || ""],
+        ["Seller NTN/CNIC", sample.sellerNTNCNIC || ""],
+        ["Seller Business Name", sample.sellerBusinessName || ""],
+        ["Seller Province", sample.sellerProvince || ""],
+        ["Seller Address", sample.sellerAddress || ""],
+        ["Buyer NTN/CNIC", sample.buyerNTNCNIC || ""],
+        ["Buyer Business Name", sample.buyerBusinessName || ""],
+        ["Buyer Registration Type", buyerRegistrationType],
+        ["Buyer Province", sample.buyerProvince || ""],
+        ["Buyer Address", sample.buyerAddress || ""],
+        ["Invoice Ref No", sample.invoiceRefNo || ""],
+    ];
+
+    const scenarioRows = scenarioFields
+        .map(
+            ([label, value]) => `
 <tr>
     <td style="padding:9px 10px;border:1px solid #dbeafe;background:#f8fbff;font-size:12px;font-weight:700;color:#1e3a5f;width:32%;">${esc(
         label
@@ -165,13 +188,13 @@ function show_scenario_tree(scenario_id) {
         value || "-"
     )}</td>
 </tr>`
-                )
-                .join("");
+        )
+        .join("");
 
-            const itemRows = items.length
-                ? items
-                      .map(
-                          (item, idx) => `
+    const itemRows = items.length
+        ? items
+              .map(
+                  (item, idx) => `
 <tr>
     <td style="padding:8px 10px;border:1px solid #dbeafe;">${idx + 1}</td>
     <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.hsCode || "-")}</td>
@@ -192,11 +215,11 @@ function show_scenario_tree(scenario_id) {
     <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.sroScheduleNo || "-")}</td>
     <td style="padding:8px 10px;border:1px solid #dbeafe;">${esc(item.sroItemSerialNo || "-")}</td>
 </tr>`
-                      )
-                      .join("")
-                : `<tr><td colspan="18" style="padding:12px;border:1px dashed #cbd5e1;color:#64748b;text-align:center;">No item data found in sample payload.</td></tr>`;
+              )
+              .join("")
+        : `<tr><td colspan="18" style="padding:12px;border:1px dashed #cbd5e1;color:#64748b;text-align:center;">No item data found in sample payload.</td></tr>`;
 
-            const tree_html = `
+    return `
 <div style="font-family:inherit;line-height:1.5;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:linear-gradient(135deg,#1f4e79,#2b6da8);border-radius:10px;">
         <span style="background:#fff;color:#1f4e79;font-weight:700;padding:3px 10px;border-radius:999px;font-size:13px;">${esc(
@@ -251,23 +274,6 @@ function show_scenario_tree(scenario_id) {
         </div>
     </div>
 </div>`;
-
-            frappe.msgprint({
-                title: __("Scenario Tree: {0}", [esc(sid)]),
-                indicator: "blue",
-                message: tree_html,
-                wide: true,
-            });
-        })
-        .catch(function (err) {
-            frappe.msgprint({
-                title: __("Scenario Tree Not Available"),
-                indicator: "orange",
-                message: __("Could not load tree for scenario <b>{0}</b>.", [
-                    esc(sid),
-                ]),
-            });
-        });
 }
 
 let fbrScenarioIndexCache = null;
@@ -344,8 +350,22 @@ function show_scenario_browser(frm) {
                         fieldtype: "HTML",
                         fieldname: "results",
                     },
+                    {
+                        fieldtype: "Section Break",
+                    },
+                    {
+                        fieldtype: "HTML",
+                        fieldname: "preview",
+                    },
                 ],
             });
+
+            const preview = dialog.get_field("preview").$wrapper;
+            preview.html(
+                `<div style="padding:14px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;color:#64748b;font-size:12px;">
+                    ${__("Click Tree to load the scenario table here.")}
+                </div>`
+            );
 
             const render_rows = function (query) {
                 const q = (query || "").toString().toLowerCase().trim();
@@ -420,7 +440,26 @@ function show_scenario_browser(frm) {
                     const sid = ($(this).attr("data-sid") || "")
                         .toString()
                         .trim();
-                    if (sid) show_scenario_tree(sid);
+                    if (!sid) return;
+                    preview.html(
+                        `<div style="padding:14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:12px;">
+                            ${__("Loading scenario table for {0}...", [esc(sid)])}
+                        </div>`
+                    );
+                    fetch_scenario_doc(sid)
+                        .then(function (data) {
+                            preview.html(render_scenario_tree_html(data, sid));
+                        })
+                        .catch(function () {
+                            preview.html(
+                                `<div style="padding:14px;border:1px solid #fecaca;border-radius:10px;background:#fff1f2;color:#b91c1c;font-size:12px;">
+                                    ${__(
+                                        "Could not load scenario table for {0}.",
+                                        [esc(sid)]
+                                    )}
+                                </div>`
+                            );
+                        });
                 });
 
                 container.find(".btn-use").on("click", function () {
@@ -446,6 +485,13 @@ function show_scenario_browser(frm) {
 
             dialog.show();
             render_rows("");
+            if (rows.length) {
+                fetch_scenario_doc(rows[0].id)
+                    .then(function (data) {
+                        preview.html(render_scenario_tree_html(data, rows[0].id));
+                    })
+                    .catch(function () {});
+            }
 
             dialog.get_field("search").$input.on("input", function () {
                 render_rows($(this).val());
