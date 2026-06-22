@@ -361,17 +361,18 @@ function show_scenario_browser(frm) {
                 const html_rows = filtered
                     .map(function (row) {
                         return `
-<div class="scenario-row" style="border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:8px;">
-  <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
-    <div style="flex:1;min-width:0;">
-      <div style="font-weight:700;font-size:14px;line-height:1.4;">${esc(
-          row.id
-      )} - ${esc(row.title)}</div>
-      <div style="font-size:12px;color:#666;margin-top:4px;line-height:1.5;">${esc(
-          row.description || ""
-      )}</div>
-    </div>
-    <div style="display:flex;gap:6px;flex-shrink:0;">
+<tr>
+  <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;font-weight:700;color:#1d4ed8;">${esc(
+      row.id
+  )}</td>
+  <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
+      row.title || ""
+  )}</td>
+  <td style="padding:8px 10px;border:1px solid #dbeafe;min-width:380px;color:#475569;">${esc(
+      row.description || ""
+  )}</td>
+  <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">
+    <div style="display:flex;gap:6px;justify-content:flex-end;">
       <button class="btn btn-default btn-sm btn-view" data-sid="${esc(
           row.id
       )}">${__("View")}</button>
@@ -382,15 +383,27 @@ function show_scenario_browser(frm) {
           row.id
       )}">${__("Use")}</button>
     </div>
-  </div>
-</div>`;
+  </td>
+</tr>`;
                     })
                     .join("");
 
                 const container = dialog.get_field("results").$wrapper;
                 container.html(
                     filtered.length
-                        ? `<div style="max-height:460px;overflow:auto;padding-right:4px;">${html_rows}</div>`
+                        ? `<div style="max-height:520px;overflow:auto;padding-right:4px;">
+<table style="width:100%;border-collapse:collapse;min-width:980px;font-size:12px;">
+  <thead style="position:sticky;top:0;background:#eff6ff;z-index:1;">
+    <tr>
+      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:left;">Scenario ID</th>
+      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:left;">Title</th>
+      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:left;">Description</th>
+      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:right;">Actions</th>
+    </tr>
+  </thead>
+  <tbody>${html_rows}</tbody>
+</table>
+</div>`
                         : `<div style="padding:12px;color:#777;">${__(
                               "No scenarios matched your search."
                           )}</div>`
@@ -482,6 +495,42 @@ const LEGACY_FBR_SCENARIO_OPTIONS = [
     "Exempt",
     "Cement Per Qty",
 ];
+const FULL_FBR_SCENARIO_OPTIONS = [
+    "Manual Item-wise",
+    "All Taxes",
+    "Pakistan Tax",
+    "Zero Rated",
+    "Exempt",
+    "Cement Per Qty",
+    "SN001 - Goods at Standard Rate (Registered Buyer)",
+    "SN002 - Goods at Standard Rate (Unregistered Buyer)",
+    "SN003 - Steel Melting and Re-rolling",
+    "SN004 - Ship Breaking",
+    "SN005 - Goods at Reduced Rate (Eighth Schedule)",
+    "SN006 - Exempt Goods (Sixth Schedule)",
+    "SN007 - Zero-Rated Goods",
+    "SN008 - Third Schedule Goods (Retail Price Based)",
+    "SN009 - Cotton Ginners",
+    "SN010 - Telecommunication Services",
+    "SN011 - Toll Manufacturing",
+    "SN012 - Petroleum Products",
+    "SN013 - Electricity Supply to Retailers",
+    "SN014 - Gas to CNG Stations",
+    "SN015 - Mobile Phones",
+    "SN016 - Processing/Conversion of Goods",
+    "SN017 - Goods (FED in ST Mode)",
+    "SN018 - Services (FED in ST Mode)",
+    "SN019 - ICT Services",
+    "SN020 - Electric Vehicles",
+    "SN021 - Cement/Concrete Block",
+    "SN022 - Potassium Chlorate",
+    "SN023 - CNG Sales",
+    "SN024 - Goods as per SRO.297(I)/2023",
+    "SN025 - Non-Adjustable Supplies (Pharmaceuticals)",
+    "SN026 - Retailer - Standard Rate Goods",
+    "SN027 - Retailer - Third Schedule Goods",
+    "SN028 - Retailer - Reduced Rate Goods",
+];
 const FBR_SCENARIO_LEGACY_MAP = {
     SN006: "Exempt",
     SN007: "Zero Rated",
@@ -553,7 +602,7 @@ function build_dynamic_fbr_scenario_options(rows) {
     });
 
     return dedupe_fbr_options([
-        ...LEGACY_FBR_SCENARIO_OPTIONS,
+        ...FULL_FBR_SCENARIO_OPTIONS,
         ...scenarioOptions,
     ]);
 }
@@ -574,8 +623,17 @@ function apply_fbr_scenario_options_to_form(frm, options) {
 }
 
 function sync_fbr_scenario_select_options(frm) {
-    apply_fbr_scenario_options_to_form(frm, LEGACY_FBR_SCENARIO_OPTIONS);
-    return Promise.resolve();
+    apply_fbr_scenario_options_to_form(frm, FULL_FBR_SCENARIO_OPTIONS);
+    return load_scenario_index()
+        .then((rows) => {
+            apply_fbr_scenario_options_to_form(
+                frm,
+                build_dynamic_fbr_scenario_options(rows)
+            );
+        })
+        .catch(() => {
+            // Keep built-in options when scenario catalog is unavailable.
+        });
 }
 
 async function set_invoice_scenario_detail_by_id(frm, scenarioId) {
@@ -597,10 +655,20 @@ async function set_invoice_scenario_detail_by_id(frm, scenarioId) {
 }
 
 async function sync_legacy_helper_scenario(frm, options = {}) {
-    const nextHelperScenario = map_to_legacy_fbr_scenario(
-        (frm.doc.custom_fbr_scenario || "").toString().trim() ||
-            (frm.doc.custom_scenario_id || "").toString().trim()
-    );
+    const explicitScenario = (frm.doc.custom_fbr_scenario || "").toString().trim();
+    const scenarioId = (frm.doc.custom_scenario_id || "").toString().trim();
+    let nextHelperScenario = explicitScenario;
+    if (!nextHelperScenario && scenarioId && Array.isArray(fbrScenarioIndexCache)) {
+        const row = fbrScenarioIndexCache.find((entry) => {
+            return ((entry.id || "").toString().trim().toUpperCase() === scenarioId.toUpperCase());
+        });
+        if (row) {
+            nextHelperScenario = `${row.id} - ${row.title}`;
+        }
+    }
+    if (!nextHelperScenario) {
+        nextHelperScenario = map_to_legacy_fbr_scenario(scenarioId);
+    }
 
     if (
         nextHelperScenario &&
@@ -1278,6 +1346,10 @@ frappe.ui.form.on("Sales Invoice", {
     },
 
     async custom_fbr_scenario(frm) {
+        const scenarioId = extract_fbr_scenario_id(frm.doc.custom_fbr_scenario);
+        if (scenarioId) {
+            await set_invoice_scenario_detail_by_id(frm, scenarioId);
+        }
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
     },
 
