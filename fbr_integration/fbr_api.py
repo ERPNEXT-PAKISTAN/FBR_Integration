@@ -193,6 +193,9 @@ def merge_fbr_items(items):
 
 		target = merged[key]
 		for field in numeric_sum_fields:
+			if field == "extraTax" and target.get(field) == "" and item.get(field) == "":
+				target[field] = ""
+				continue
 			target[field] = safe_float(target.get(field)) + safe_float(item.get(field))
 
 		# Keep the unit retail/notified value from the first line.
@@ -218,6 +221,8 @@ def normalize_fbr_item_numbers(item):
 		"fedPayable",
 		"discount",
 	):
+		if field == "extraTax" and normalized.get(field) == "":
+			continue
 		normalized[field] = fbr_money(normalized.get(field))
 	normalized["quantity"] = fbr_quantity(normalized.get("quantity"))
 	return normalized
