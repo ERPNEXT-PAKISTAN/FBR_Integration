@@ -157,16 +157,16 @@ function fetch_scenario_doc(scenario_id) {
     });
 }
 
-function render_scenario_tree_html(data, sid) {
+function build_scenario_table_rows(data, sid) {
     const sample = data.sample || {};
     const items = Array.isArray(sample.items) ? sample.items : [];
     const scenarioId = sample.scenarioId || data.id || sid;
     const invoiceType = sample.invoiceType || "";
 
-    const rows = items.length
+    return items.length
         ? items
               .map(
-                  (item, idx) => `
+                  (item) => `
 <tr>
     <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
         scenarioId
@@ -199,7 +199,10 @@ function render_scenario_tree_html(data, sid) {
               )
               .join("")
         : `<tr><td colspan="9" style="padding:12px;border:1px dashed #cbd5e1;color:#64748b;text-align:center;">No item data found in sample payload.</td></tr>`;
+}
 
+function render_scenario_tree_html(data, sid) {
+    const rows = build_scenario_table_rows(data, sid);
     return `
 <div style="font-family:inherit;line-height:1.5;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:linear-gradient(135deg,#1f4e79,#2b6da8);border-radius:10px;">
@@ -311,22 +314,8 @@ function show_scenario_browser(frm) {
                         fieldtype: "HTML",
                         fieldname: "results",
                     },
-                    {
-                        fieldtype: "Section Break",
-                    },
-                    {
-                        fieldtype: "HTML",
-                        fieldname: "preview",
-                    },
                 ],
             });
-
-            const preview = dialog.get_field("preview").$wrapper;
-            preview.html(
-                `<div style="padding:14px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;color:#64748b;font-size:12px;">
-                    ${__("Click Tree to load the scenario table here.")}
-                </div>`
-            );
 
             const render_rows = function (query) {
                 const q = (query || "").toString().toLowerCase().trim();
@@ -339,120 +328,59 @@ function show_scenario_browser(frm) {
                     return !q || hay.includes(q);
                 });
 
-                const html_rows = filtered
-                    .map(function (row) {
-                        return `
-<tr>
-  <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;font-weight:700;color:#1d4ed8;">${esc(
-      row.id
-  )}</td>
-  <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">${esc(
-      row.title || ""
-  )}</td>
-  <td style="padding:8px 10px;border:1px solid #dbeafe;min-width:380px;color:#475569;">${esc(
-      row.description || ""
-  )}</td>
-  <td style="padding:8px 10px;border:1px solid #dbeafe;white-space:nowrap;">
-    <div style="display:flex;gap:6px;justify-content:flex-end;">
-      <button class="btn btn-default btn-sm btn-view" data-sid="${esc(
-          row.id
-      )}">${__("View")}</button>
-      <button class="btn btn-default btn-sm btn-tree" data-sid="${esc(
-          row.id
-      )}">${__("Tree")}</button>
-      <button class="btn btn-primary btn-sm btn-use" data-sid="${esc(
-          row.id
-      )}">${__("Use")}</button>
-    </div>
-  </td>
-</tr>`;
-                    })
-                    .join("");
-
                 const container = dialog.get_field("results").$wrapper;
                 container.html(
-                    filtered.length
-                        ? `<div style="max-height:520px;overflow:auto;padding-right:4px;">
-<table style="width:100%;border-collapse:collapse;min-width:980px;font-size:12px;">
-  <thead style="position:sticky;top:0;background:#eff6ff;z-index:1;">
-    <tr>
-      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:left;">Scenario ID</th>
-      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:left;">Title</th>
-      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:left;">Description</th>
-      <th style="padding:9px 10px;border:1px solid #bfdbfe;text-align:right;">Actions</th>
-    </tr>
-  </thead>
-  <tbody>${html_rows}</tbody>
-</table>
-</div>`
-                        : `<div style="padding:12px;color:#777;">${__(
-                              "No scenarios matched your search."
-                          )}</div>`
+                    `<div style="padding:14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:12px;">
+                        ${__("Loading scenario table...")}
+                    </div>`
                 );
 
-                container.find(".btn-view").on("click", function () {
-                    const sid = ($(this).attr("data-sid") || "")
-                        .toString()
-                        .trim();
-                    if (sid) show_scenario_details(sid);
-                });
-
-                container.find(".btn-tree").on("click", function () {
-                    const sid = ($(this).attr("data-sid") || "")
-                        .toString()
-                        .trim();
-                    if (!sid) return;
-                    preview.html(
-                        `<div style="padding:14px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:12px;">
-                            ${__("Loading scenario table for {0}...", [esc(sid)])}
-                        </div>`
-                    );
-                    fetch_scenario_doc(sid)
-                        .then(function (data) {
-                            preview.html(render_scenario_tree_html(data, sid));
-                        })
-                        .catch(function () {
-                            preview.html(
-                                `<div style="padding:14px;border:1px solid #fecaca;border-radius:10px;background:#fff1f2;color:#b91c1c;font-size:12px;">
-                                    ${__(
-                                        "Could not load scenario table for {0}.",
-                                        [esc(sid)]
-                                    )}
-                                </div>`
-                            );
-                        });
-                });
-
-                container.find(".btn-use").on("click", function () {
-                    const sid = ($(this).attr("data-sid") || "")
-                        .toString()
-                        .trim();
-                    if (!sid) return;
-                    set_invoice_scenario_detail_by_id(frm, sid)
-                        .then(() =>
-                            sync_legacy_helper_scenario(frm, {
-                                applyItems: true,
+                Promise.all(
+                    filtered.map(function (row) {
+                        return fetch_scenario_doc(row.id)
+                            .then(function (data) {
+                                return build_scenario_table_rows(data, row.id);
                             })
-                        )
-                        .then(() => {
-                            frappe.show_alert({
-                                message: __("Scenario selected: {0}", [sid]),
-                                indicator: "green",
+                            .catch(function () {
+                                return "";
                             });
-                            dialog.hide();
-                        });
+                    })
+                ).then(function (tableRows) {
+                    const htmlRows = tableRows.join("");
+                    container.html(
+                        filtered.length
+                            ? `<div style="max-height:620px;overflow:auto;padding-right:4px;">
+<div style="padding:10px 14px;background:#eef2ff;font-size:12px;font-weight:700;color:#312e81;border:1px solid #c7d2fe;border-bottom:none;border-radius:10px 10px 0 0;">${__(
+    "Scenario Table"
+)}</div>
+<table style="width:100%;border-collapse:collapse;min-width:1200px;font-size:12px;color:#0f172a;">
+  <thead style="position:sticky;top:0;background:#e0e7ff;z-index:1;color:#312e81;">
+    <tr>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Scenario ID</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Title</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Invoice Type</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">HS Code</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Rate</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">UoM</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Sale Type</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">SRO Schedule No</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;">SRO Item Serial No</th>
+    </tr>
+  </thead>
+  <tbody>${htmlRows || `<tr><td colspan="9" style="padding:12px;border:1px dashed #cbd5e1;color:#64748b;text-align:center;">${__(
+      "No scenario rows available."
+  )}</td></tr>`}</tbody>
+</table>
+</div>`
+                            : `<div style="padding:12px;color:#777;">${__(
+                                  "No scenarios matched your search."
+                              )}</div>`
+                    );
                 });
             };
 
             dialog.show();
             render_rows("");
-            if (rows.length) {
-                fetch_scenario_doc(rows[0].id)
-                    .then(function (data) {
-                        preview.html(render_scenario_tree_html(data, rows[0].id));
-                    })
-                    .catch(function () {});
-            }
 
             dialog.get_field("search").$input.on("input", function () {
                 render_rows($(this).val());
