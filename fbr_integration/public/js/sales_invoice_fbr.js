@@ -317,6 +317,11 @@ function show_scenario_browser(frm) {
                 ],
             });
 
+            dialog.$wrapper.find(".modal-dialog").css({
+                width: "96vw",
+                "max-width": "96vw",
+            });
+
             const render_rows = function (query) {
                 const q = (query || "").toString().toLowerCase().trim();
                 const filtered = rows.filter(function (row) {
@@ -349,22 +354,22 @@ function show_scenario_browser(frm) {
                     const htmlRows = tableRows.join("");
                     container.html(
                         filtered.length
-                            ? `<div style="max-height:620px;overflow:auto;padding-right:4px;">
+                            ? `<div style="max-height:72vh;overflow:auto;padding-right:4px;">
 <div style="padding:10px 14px;background:#eef2ff;font-size:12px;font-weight:700;color:#312e81;border:1px solid #c7d2fe;border-bottom:none;border-radius:10px 10px 0 0;">${__(
     "Scenario Table"
 )}</div>
-<table style="width:100%;border-collapse:collapse;min-width:1200px;font-size:12px;color:#0f172a;">
+<table style="width:max-content;border-collapse:collapse;min-width:1550px;font-size:12px;color:#0f172a;">
   <thead style="position:sticky;top:0;background:#e0e7ff;z-index:1;color:#312e81;">
     <tr>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Scenario ID</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Title</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Invoice Type</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">HS Code</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Rate</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">UoM</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">Sale Type</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">SRO Schedule No</th>
-      <th style="padding:8px 10px;border:1px solid #c7d2fe;">SRO Item Serial No</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:120px;">Scenario ID</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:320px;">Title</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:130px;">Invoice Type</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:140px;">HS Code</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:90px;">Rate</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:210px;">UoM</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:220px;">Sale Type</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:220px;">SRO Schedule No</th>
+      <th style="padding:8px 10px;border:1px solid #c7d2fe;min-width:180px;">SRO Item Serial No</th>
     </tr>
   </thead>
   <tbody>${htmlRows || `<tr><td colspan="9" style="padding:12px;border:1px dashed #cbd5e1;color:#64748b;text-align:center;">${__(
