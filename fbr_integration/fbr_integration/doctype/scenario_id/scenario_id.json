@@ -15,6 +15,7 @@
   {
    "fieldname": "scenario_id",
    "fieldtype": "Data",
+   "unique": 1,
    "label": "Scenario ID"
   },
   {
