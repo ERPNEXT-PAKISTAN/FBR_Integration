@@ -590,9 +590,15 @@ function bind_item_scenario_detail_preview(frm) {
     if (frm.__fbr_item_scenario_preview_bound) return;
     frm.__fbr_item_scenario_preview_bound = true;
 
-    $(frm.wrapper).on("grid-row-render", function (e, grid_row) {
-        if ((grid_row || {}).doc?.doctype !== "Sales Invoice Item") return;
-        render_item_scenario_detail_fields(frm, grid_row.doc.name);
+    // Frappe emits form_render after a child row form is opened, which is the
+    // first point where the HTML field control exists.
+    frappe.ui.form.on("Sales Invoice Item", {
+        form_render(parentFrm, cdt, cdn) {
+            if (parentFrm && parentFrm.doc && parentFrm.doc.name !== frm.doc.name) {
+                return;
+            }
+            render_item_scenario_detail_fields(frm, cdn);
+        },
     });
 }
 
@@ -660,7 +666,10 @@ async function render_item_scenario_detail_fields(frm, cdn) {
         // Keep the item row preview aligned with the selected scenario detail.
         set_html_control_content(control, render_scenario_detail_field_html(data, sid));
 
-        const wrapper = control.$wrapper || (grid_row && grid_row.wrapper);
+        const wrapper =
+            control.$wrapper ||
+            (grid_row && grid_row.grid_form && grid_row.grid_form.wrapper) ||
+            (grid_row && grid_row.wrapper);
         if (wrapper) {
             wrapper.find("[data-scenario-tree]").off("click").on("click", function () {
                 show_scenario_tree((this.dataset || {}).scenarioTree || sid);
@@ -1367,6 +1376,10 @@ frappe.ui.form.on("Sales Invoice", {
 });
 
 frappe.ui.form.on("Sales Invoice Item", {
+    form_render(frm, cdt, cdn) {
+        render_item_scenario_detail_fields(frm, cdn);
+    },
+
     qty(frm, cdt, cdn) {
         recalc_fbr_item_row(frm, cdt, cdn);
     },
