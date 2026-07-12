@@ -39,16 +39,16 @@ class TestFbrTaxCalculation(unittest.TestCase):
 
 		self.assertEqual(
 			get_effective_invoice_tax_scenario(doc),
+			"SN028 - Retailer - Reduced Rate Goods",
+		)
+
+		doc.custom_scenario_detail = ""
+		self.assertEqual(
+			get_effective_invoice_tax_scenario(doc),
 			"SN005",
 		)
 
 		doc.custom_scenario_id = ""
-		self.assertEqual(
-			get_effective_invoice_tax_scenario(doc),
-			"SN028",
-		)
-
-		doc.custom_scenario_detail = ""
 		self.assertEqual(get_effective_invoice_tax_scenario(doc), "")
 
 	def test_format_extra_tax_for_payload_uses_blank_for_reduced_rate_scenarios(self):

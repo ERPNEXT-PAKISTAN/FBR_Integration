@@ -435,13 +435,13 @@ function extract_fbr_scenario_id(value) {
 }
 
 function get_effective_invoice_fbr_scenario(frm) {
-    const scenarioId = (frm.doc.custom_scenario_id || "").toString().trim();
-    if (scenarioId) {
-        return scenarioId;
+    const detail = (frm.doc.custom_scenario_detail || "").toString().trim();
+    if (detail) {
+        return detail;
     }
 
-    const detail = (frm.doc.custom_scenario_detail || "").toString().trim();
-    return extract_fbr_scenario_id(detail) || detail;
+    const scenarioId = (frm.doc.custom_scenario_id || "").toString().trim();
+    return scenarioId;
 }
 
 function get_effective_fbr_scenario(frm) {
@@ -470,7 +470,7 @@ function resolve_scenario_detail_from_id(scenarioId) {
 }
 
 async function sync_invoice_scenario_fields(frm) {
-    const scenarioId = get_effective_invoice_fbr_scenario(frm);
+    const scenarioId = (frm.doc.custom_scenario_id || "").toString().trim();
     if (!scenarioId) return;
 
     const detail = await resolve_scenario_detail_from_id(scenarioId);

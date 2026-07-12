@@ -93,16 +93,12 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 
 
 def get_effective_invoice_tax_scenario(doc):
-	scenario_id = (getattr(doc, "custom_scenario_id", None) or "").strip()
-	if scenario_id:
-		return scenario_id
-
 	detail = (getattr(doc, "custom_scenario_detail", None) or "").strip()
-	match = frappe.safe_decode(detail)
-	match = (match or "").strip().upper()
-	if match.startswith("SN") and len(match) >= 5:
-		return match.split(" ", 1)[0]
-	return detail
+	if detail:
+		return detail
+
+	scenario_id = (getattr(doc, "custom_scenario_id", None) or "").strip()
+	return scenario_id
 
 
 def resolve_item_tax_template_name(scenario: str | None = None):
