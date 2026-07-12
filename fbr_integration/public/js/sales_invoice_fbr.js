@@ -552,14 +552,6 @@ async function sync_return_source_invoice_no(frm) {
     }
 }
 
-function build_missing_template_message(row, scenario) {
-    const label = row.item_code || row.idx || __("row");
-    return __(
-        "No Item Tax Template mapping was found for {0} using scenario {1}. Set the Item Tax Template manually for this row.",
-        [label, scenario]
-    );
-}
-
 async function resolve_fbr_item_tax_template(scenario) {
     const key = normalize_fbr_text(scenario);
 
@@ -591,7 +583,6 @@ async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
         (frm.doc.items || []).find((d) => d.name === cdn);
     if (!row) return "";
 
-    const notify = options.notify === true;
     const forceApply = should_force_apply_scenario(options);
     const scenario = get_effective_fbr_scenario(frm);
     const templateName = await resolve_fbr_item_tax_template(scenario);
@@ -615,13 +606,6 @@ async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
         return currentTemplate;
     }
 
-    if (notify) {
-        frappe.show_alert({
-            message: build_missing_template_message(row, scenario),
-            indicator: "orange",
-        });
-    }
-
     return "";
 }
 
@@ -634,9 +618,7 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
         }))
         .filter((d) => d.cdn);
 
-    const notify = options.notify === true;
     const forceApply = should_force_apply_scenario(options);
-    const missing = [];
     const changedTargets = [];
 
     for (const target of targets) {
@@ -648,14 +630,7 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
             .trim();
         const nextTemplate = (templateName || "").toString().trim();
 
-        if (!nextTemplate) {
-            if (!currentTemplate) {
-                missing.push(
-                    build_missing_template_message(target.row, scenario)
-                );
-            }
-            continue;
-        }
+        if (!nextTemplate) continue;
 
         if (forceApply || !currentTemplate) {
             target.row.item_tax_template = nextTemplate;
@@ -672,16 +647,9 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
         }
     }
 
-    if (notify && missing.length) {
-        frappe.show_alert({
-            message: missing.slice(0, 3).join("<br>"),
-            indicator: "orange",
-        });
-    }
 }
 
 async function apply_invoice_scenario_to_all_items(frm, options = {}) {
-    const notify = options.notify === true;
     const forceApply = should_force_apply_scenario(options);
     const rows = [...(frm.doc.items || [])];
     if (!rows.length) return;
@@ -722,15 +690,6 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
         }
     }
 
-    if (notify && !targetTemplate) {
-        frappe.show_alert({
-            message: __(
-                "No Item Tax Template mapping was found for scenario {0}. Existing manual Item Tax Template values were kept.",
-                [scenario]
-            ),
-            indicator: "orange",
-        });
-    }
 }
 
 function setv(cdt, cdn, field, value) {
