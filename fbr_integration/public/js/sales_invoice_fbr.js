@@ -586,6 +586,102 @@ async function render_selected_scenario_detail_fields(frm) {
     }
 }
 
+function bind_item_scenario_detail_preview(frm) {
+    if (frm.__fbr_item_scenario_preview_bound) return;
+    frm.__fbr_item_scenario_preview_bound = true;
+
+    $(frm.wrapper).on("grid-row-render", function (e, grid_row) {
+        if ((grid_row || {}).doc?.doctype !== "Sales Invoice Item") return;
+        render_item_scenario_detail_fields(frm, grid_row.doc.name);
+    });
+}
+
+function set_html_control_content(control, html) {
+    if (!control) return;
+    if (typeof control.html === "function") {
+        control.html(html);
+        return;
+    }
+    if (control.$wrapper) {
+        control.$wrapper.html(html || "");
+    }
+}
+
+async function render_item_scenario_detail_fields(frm, cdn) {
+    const row = locals["Sales Invoice Item"]?.[cdn];
+    if (!row) return;
+
+    const grid_row =
+        frm.fields_dict.items &&
+        frm.fields_dict.items.grid &&
+        frm.fields_dict.items.grid.grid_rows_by_docname
+            ? frm.fields_dict.items.grid.grid_rows_by_docname[cdn]
+            : null;
+    const control =
+        (grid_row && grid_row.on_grid_fields_dict
+            ? grid_row.on_grid_fields_dict.custom_scenario_detial_fields
+            : null) ||
+        (grid_row && grid_row.grid_form && grid_row.grid_form.fields_dict
+            ? grid_row.grid_form.fields_dict.custom_scenario_detial_fields
+            : null);
+
+    if (!control) return;
+
+    const sid = (
+        row.custom_scenario_detail ||
+        frm.doc.custom_scenario_detail ||
+        frm.doc.custom_scenario_id ||
+        ""
+    )
+        .toString()
+        .trim()
+        .toUpperCase();
+
+    if (!sid) {
+        set_html_control_content(
+            control,
+            '<div style="padding:10px;color:#64748b;">Select a scenario detail to preview its scenario JSON.</div>'
+        );
+        return;
+    }
+
+    try {
+        const data = await fetch_scenario_doc(sid);
+        if ((locals["Sales Invoice Item"]?.[cdn] || {}).custom_scenario_detail) {
+            const currentSid = (
+                locals["Sales Invoice Item"][cdn].custom_scenario_detail || ""
+            )
+                .toString()
+                .trim()
+                .toUpperCase();
+            if (currentSid && currentSid !== sid) return;
+        }
+
+        // Keep the item row preview aligned with the selected scenario detail.
+        set_html_control_content(control, render_scenario_detail_field_html(data, sid));
+
+        const wrapper = control.$wrapper || (grid_row && grid_row.wrapper);
+        if (wrapper) {
+            wrapper.find("[data-scenario-tree]").off("click").on("click", function () {
+                show_scenario_tree((this.dataset || {}).scenarioTree || sid);
+            });
+        }
+    } catch (err) {
+        set_html_control_content(
+            control,
+            `<div style="padding:10px;color:#b45309;">Scenario details not available for <b>${esc(
+                sid
+            )}</b>.</div>`
+        );
+    }
+}
+
+function render_all_item_scenario_detail_fields(frm) {
+    (frm.doc.items || []).forEach(function (row) {
+        render_item_scenario_detail_fields(frm, row.name);
+    });
+}
+
 function should_force_apply_scenario(options = {}) {
     return options.forceApply === true;
 }
@@ -1119,6 +1215,7 @@ frappe.ui.form.on("Sales Invoice", {
             await sync_return_source_invoice_no(frm);
             await clear_fbr_response_fields(frm);
         }
+        bind_item_scenario_detail_preview(frm);
     },
 
     async is_return(frm) {
@@ -1167,12 +1264,14 @@ frappe.ui.form.on("Sales Invoice", {
         }
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
         await render_selected_scenario_detail_fields(frm);
+        render_all_item_scenario_detail_fields(frm);
     },
 
     async custom_scenario_id(frm) {
         await set_invoice_scenario_detail_by_id(frm, frm.doc.custom_scenario_id);
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
         await render_selected_scenario_detail_fields(frm);
+        render_all_item_scenario_detail_fields(frm);
     },
 
     refresh(frm) {
@@ -1180,6 +1279,8 @@ frappe.ui.form.on("Sales Invoice", {
         render_qr_preview(frm);
         sync_invoice_scenario_fields(frm);
         render_selected_scenario_detail_fields(frm);
+        bind_item_scenario_detail_preview(frm);
+        render_all_item_scenario_detail_fields(frm);
 
         frm.add_custom_button(__("Scenario Index"), function () {
             show_scenario_browser(frm);
@@ -1281,5 +1382,11 @@ frappe.ui.form.on("Sales Invoice Item", {
 
     item_code(frm, cdt, cdn) {
         apply_fbr_item_tax_template(frm, cdt, cdn, { notify: false });
+    },
+
+    async custom_scenario_detail(frm, cdt, cdn) {
+        await render_item_scenario_detail_fields(frm, cdn);
+        if (frm.__fbr_bulk_updating) return;
+        await apply_fbr_item_tax_template(frm, cdt, cdn, { notify: false });
     },
 });
