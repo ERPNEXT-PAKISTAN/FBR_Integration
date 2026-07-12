@@ -7,3 +7,4 @@ fbr_integration.patches.remove_duplicate_scenario_ids
 # Patches added in this section will be executed after doctypes are migrated
 fbr_integration.patches.add_customer_item_fbr_defaults
 fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping
+fbr_integration.patches.remove_legacy_fbr_scenario_fields
