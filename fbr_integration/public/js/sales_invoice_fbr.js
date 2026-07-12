@@ -417,65 +417,6 @@ function show_scenario_browser(frm) {
 const FBR_PRINT_FORMAT = "FBR Sales Invoice";
 const FBR_LOGO_URL = "/assets/fbr_integration/images/fbr/DI_invoicing.png";
 const FBR_DEFAULT_SCENARIO = "Pakistan Tax";
-const FBR_SCENARIO_OPTIONS = [
-    "Manual Item-wise",
-    "All Taxes",
-    "Pakistan Tax",
-    "Zero Rated",
-    "Exempt",
-    "Cement Per Qty",
-];
-const FBR_SCENARIO_APPLY_MODE_FILL = "Fill Empty Items";
-const FBR_SCENARIO_APPLY_MODE_FORCE = "Update All Items";
-const LEGACY_FBR_SCENARIO_OPTIONS = [
-    "Manual Item-wise",
-    "All Taxes",
-    "Pakistan Tax",
-    "Zero Rated",
-    "Exempt",
-    "Cement Per Qty",
-];
-const FULL_FBR_SCENARIO_OPTIONS = [
-    "Manual Item-wise",
-    "All Taxes",
-    "Pakistan Tax",
-    "Zero Rated",
-    "Exempt",
-    "Cement Per Qty",
-    "SN001 - Goods at Standard Rate (Registered Buyer)",
-    "SN002 - Goods at Standard Rate (Unregistered Buyer)",
-    "SN003 - Steel Melting and Re-rolling",
-    "SN004 - Ship Breaking",
-    "SN005 - Goods at Reduced Rate (Eighth Schedule)",
-    "SN006 - Exempt Goods (Sixth Schedule)",
-    "SN007 - Zero-Rated Goods",
-    "SN008 - Third Schedule Goods (Retail Price Based)",
-    "SN009 - Cotton Ginners",
-    "SN010 - Telecommunication Services",
-    "SN011 - Toll Manufacturing",
-    "SN012 - Petroleum Products",
-    "SN013 - Electricity Supply to Retailers",
-    "SN014 - Gas to CNG Stations",
-    "SN015 - Mobile Phones",
-    "SN016 - Processing/Conversion of Goods",
-    "SN017 - Goods (FED in ST Mode)",
-    "SN018 - Services (FED in ST Mode)",
-    "SN019 - ICT Services",
-    "SN020 - Electric Vehicles",
-    "SN021 - Cement/Concrete Block",
-    "SN022 - Potassium Chlorate",
-    "SN023 - CNG Sales",
-    "SN024 - Goods as per SRO.297(I)/2023",
-    "SN025 - Non-Adjustable Supplies (Pharmaceuticals)",
-    "SN026 - Retailer - Standard Rate Goods",
-    "SN027 - Retailer - Third Schedule Goods",
-    "SN028 - Retailer - Reduced Rate Goods",
-];
-const FBR_SCENARIO_LEGACY_MAP = {
-    SN006: "Exempt",
-    SN007: "Zero Rated",
-};
-
 const fbrScenarioTemplateCache = new Map();
 
 function normalize_fbr_text(value) {
@@ -487,160 +428,59 @@ function normalize_fbr_text(value) {
         .trim();
 }
 
-function get_effective_fbr_scenario(frm, row) {
-    const rowScenario = (row && row.custom_fbr_item_scenario) || "";
-    const invoiceScenario = get_effective_invoice_fbr_scenario(frm);
-    return (rowScenario || invoiceScenario).toString().trim();
-}
-
 function extract_fbr_scenario_id(value) {
     const text = (value || "").toString().trim().toUpperCase();
     const match = text.match(/^(SN\d{3})\b/);
     return match ? match[1] : "";
 }
 
-function map_to_legacy_fbr_scenario(value) {
-    const text = (value || "").toString().trim();
-    if (!text) return "";
-    if (LEGACY_FBR_SCENARIO_OPTIONS.includes(text)) return text;
-
-    const scenarioId = extract_fbr_scenario_id(text);
-    return FBR_SCENARIO_LEGACY_MAP[scenarioId] || "Manual Item-wise";
-}
-
 function get_effective_invoice_fbr_scenario(frm) {
-    const helperScenario = (frm.doc.custom_fbr_scenario || "").toString().trim();
-    if (helperScenario && helperScenario !== "Manual Item-wise") {
-        return helperScenario;
+    const scenarioId = (frm.doc.custom_scenario_id || "").toString().trim();
+    if (scenarioId) {
+        return scenarioId;
     }
 
-    return (frm.doc.custom_scenario_id || "").toString().trim() || helperScenario;
+    const detail = (frm.doc.custom_scenario_detail || "").toString().trim();
+    return extract_fbr_scenario_id(detail) || detail;
 }
 
-function dedupe_fbr_options(options) {
-    const seen = new Set();
-    const rows = [];
-
-    for (const option of options) {
-        const value = (option || "").toString().trim();
-        if (!value) continue;
-        const key = normalize_fbr_text(value);
-        if (!key || seen.has(key)) continue;
-        seen.add(key);
-        rows.push(value);
-    }
-
-    return rows;
-}
-
-function build_dynamic_fbr_scenario_options(rows) {
-    const scenarioOptions = (rows || []).map((row) => {
-        const sid = (row.id || "").toString().trim().toUpperCase();
-        const title = (row.title || "").toString().trim();
-        if (!sid) return "";
-        return title ? `${sid} - ${title}` : sid;
-    });
-
-    return dedupe_fbr_options([
-        ...FULL_FBR_SCENARIO_OPTIONS,
-        ...scenarioOptions,
-    ]);
-}
-
-function apply_fbr_scenario_options_to_form(frm, options) {
-    const optionString = dedupe_fbr_options(options).join("\n");
-    if (!optionString) return;
-
-    frm.set_df_property("custom_fbr_scenario", "options", optionString);
-
-    if (frm.fields_dict.items && frm.fields_dict.items.grid) {
-        frm.fields_dict.items.grid.update_docfield_property(
-            "custom_fbr_item_scenario",
-            "options",
-            optionString
-        );
-    }
-}
-
-function sync_fbr_scenario_select_options(frm) {
-    apply_fbr_scenario_options_to_form(frm, FULL_FBR_SCENARIO_OPTIONS);
-    return load_scenario_index()
-        .then((rows) => {
-            apply_fbr_scenario_options_to_form(
-                frm,
-                build_dynamic_fbr_scenario_options(rows)
-            );
-        })
-        .catch(() => {
-            // Keep built-in options when scenario catalog is unavailable.
-        });
+function get_effective_fbr_scenario(frm) {
+    return get_effective_invoice_fbr_scenario(frm);
 }
 
 async function set_invoice_scenario_detail_by_id(frm, scenarioId) {
     const sid = (scenarioId || "").toString().trim().toUpperCase();
     if (!sid) return;
 
-    const response = await frappe.db.get_value(
-        "Scenario ID",
-        { scenario_id: sid },
-        "name"
-    );
-    const name = (((response || {}).message || {}).name || "").toString().trim();
-
+    const name = await resolve_scenario_detail_from_id(sid);
     if (name) {
         await frm.set_value("custom_scenario_detail", name);
-    } else {
-        await frm.set_value("custom_scenario_id", sid);
     }
 }
 
-async function sync_legacy_helper_scenario(frm, options = {}) {
-    const explicitScenario = (frm.doc.custom_fbr_scenario || "").toString().trim();
-    const scenarioId = (frm.doc.custom_scenario_id || "").toString().trim();
-    let nextHelperScenario = explicitScenario;
-    if (!nextHelperScenario && scenarioId && Array.isArray(fbrScenarioIndexCache)) {
-        const row = fbrScenarioIndexCache.find((entry) => {
-            return ((entry.id || "").toString().trim().toUpperCase() === scenarioId.toUpperCase());
+function resolve_scenario_detail_from_id(scenarioId) {
+    const sid = (scenarioId || "").toString().trim().toUpperCase();
+    if (!sid) return Promise.resolve("");
+
+    return frappe.db
+        .get_value("Scenario ID", { scenario_id: sid }, "name")
+        .then((response) => {
+            return (((response || {}).message || {}).name || "").toString().trim();
         });
-        if (row) {
-            nextHelperScenario = `${row.id} - ${row.title}`;
-        }
-    }
-    if (!nextHelperScenario) {
-        nextHelperScenario = map_to_legacy_fbr_scenario(scenarioId);
-    }
+}
 
-    if (
-        nextHelperScenario &&
-        (frm.doc.custom_fbr_scenario || "").toString().trim() !== nextHelperScenario
-    ) {
-        await frm.set_value("custom_fbr_scenario", nextHelperScenario);
-    }
+async function sync_invoice_scenario_fields(frm) {
+    const scenarioId = get_effective_invoice_fbr_scenario(frm);
+    if (!scenarioId) return;
 
-    if (options.applyItems === true) {
-        await apply_invoice_scenario_to_all_items(frm, {
-            notify: options.notify === true,
-        });
+    const detail = await resolve_scenario_detail_from_id(scenarioId);
+    if (detail && (frm.doc.custom_scenario_detail || "").toString().trim() !== detail) {
+        await frm.set_value("custom_scenario_detail", detail);
     }
 }
 
-function should_force_apply_scenario(frm, options = {}) {
-    if (options.forceApply === true) return true;
-    const mode = ((frm.doc && frm.doc.custom_fbr_scenario_apply_mode) || "")
-        .toString()
-        .trim();
-    return mode === FBR_SCENARIO_APPLY_MODE_FORCE;
-}
-
-function should_auto_apply_scenario(frm, options = {}) {
-    if (options.forceApply === true) return true;
-    const mode = ((frm.doc && frm.doc.custom_fbr_scenario_apply_mode) || "")
-        .toString()
-        .trim();
-    return (
-        mode === FBR_SCENARIO_APPLY_MODE_FILL ||
-        mode === FBR_SCENARIO_APPLY_MODE_FORCE
-    );
+function should_force_apply_scenario(options = {}) {
+    return options.forceApply === true;
 }
 
 function is_return_checked(doc) {
@@ -752,15 +592,10 @@ async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
     if (!row) return "";
 
     const notify = options.notify === true;
-    const autoApply = should_auto_apply_scenario(frm, options);
-    const forceApply = should_force_apply_scenario(frm, options);
-    const scenario = get_effective_fbr_scenario(frm, row);
+    const forceApply = should_force_apply_scenario(options);
+    const scenario = get_effective_fbr_scenario(frm);
     const templateName = await resolve_fbr_item_tax_template(scenario);
     const currentTemplate = (row.item_tax_template || "").toString().trim();
-
-    if (!autoApply) {
-        return currentTemplate;
-    }
 
     if (templateName) {
         if (forceApply || !currentTemplate) {
@@ -800,17 +635,12 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
         .filter((d) => d.cdn);
 
     const notify = options.notify === true;
-    const autoApply = should_auto_apply_scenario(frm, options);
-    const forceApply = should_force_apply_scenario(frm, options);
+    const forceApply = should_force_apply_scenario(options);
     const missing = [];
     const changedTargets = [];
 
-    if (!autoApply) {
-        return;
-    }
-
     for (const target of targets) {
-        const scenario = get_effective_fbr_scenario(frm, target.row);
+        const scenario = get_effective_fbr_scenario(frm);
         const templateName = await resolve_fbr_item_tax_template(scenario);
 
         const currentTemplate = (target.row.item_tax_template || "")
@@ -852,20 +682,14 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
 
 async function apply_invoice_scenario_to_all_items(frm, options = {}) {
     const notify = options.notify === true;
-    const autoApply = should_auto_apply_scenario(frm, options);
-    const forceApply = should_force_apply_scenario(frm, options);
+    const forceApply = should_force_apply_scenario(options);
     const rows = [...(frm.doc.items || [])];
     if (!rows.length) return;
 
-    const helperScenario = map_to_legacy_fbr_scenario(frm.doc.custom_fbr_scenario);
     const scenario = get_effective_invoice_fbr_scenario(frm);
     const templateName = await resolve_fbr_item_tax_template(scenario);
     const targetTemplate = (templateName || "").toString().trim();
     const changedTargets = [];
-
-    if (!autoApply) {
-        return;
-    }
 
     frm.__fbr_bulk_updating = true;
     try {
@@ -873,24 +697,7 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
             const cdt = row.doctype || "Sales Invoice Item";
             const cdn = row.name;
             const current = (row.item_tax_template || "").toString().trim();
-            const currentItemScenario = (row.custom_fbr_item_scenario || "")
-                .toString()
-                .trim();
-            const scenarioChanged = currentItemScenario !== helperScenario;
-
-            if (scenarioChanged) {
-                await frappe.model.set_value(
-                    cdt,
-                    cdn,
-                    "custom_fbr_item_scenario",
-                    helperScenario
-                );
-            }
-
             if (!targetTemplate) {
-                if (scenarioChanged) {
-                    changedTargets.push({ cdt, cdn });
-                }
                 continue;
             }
 
@@ -901,8 +708,6 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
                     "item_tax_template",
                     targetTemplate
                 );
-                changedTargets.push({ cdt, cdn });
-            } else if (scenarioChanged) {
                 changedTargets.push({ cdt, cdn });
             }
         }
@@ -1285,14 +1090,6 @@ frappe.ui.form.on("Sales Invoice", {
         }
     },
 
-    async custom_fbr_scenario(frm) {
-        const scenarioId = extract_fbr_scenario_id(frm.doc.custom_fbr_scenario);
-        if (scenarioId) {
-            await set_invoice_scenario_detail_by_id(frm, scenarioId);
-        }
-        await apply_invoice_scenario_to_all_items(frm, { notify: true });
-    },
-
     async custom_scenario_detail(frm) {
         const scenarioName = (frm.doc.custom_scenario_detail || "").toString().trim();
         const scenarioId = extract_fbr_scenario_id(scenarioName);
@@ -1302,22 +1099,18 @@ frappe.ui.form.on("Sales Invoice", {
         ) {
             await frm.set_value("custom_scenario_id", scenarioId);
         }
-        await sync_legacy_helper_scenario(frm, { applyItems: true, notify: true });
+        await apply_invoice_scenario_to_all_items(frm, { notify: true });
     },
 
     async custom_scenario_id(frm) {
-        await sync_legacy_helper_scenario(frm, { applyItems: true, notify: true });
-    },
-
-    async custom_fbr_scenario_apply_mode(frm) {
-        if (!get_effective_invoice_fbr_scenario(frm)) return;
+        await set_invoice_scenario_detail_by_id(frm, frm.doc.custom_scenario_id);
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
     },
 
     refresh(frm) {
-        sync_fbr_scenario_select_options(frm);
         sync_qr_field_on_form(frm);
         render_qr_preview(frm);
+        sync_invoice_scenario_fields(frm);
 
         frm.add_custom_button(__("Scenario Index"), function () {
             show_scenario_browser(frm);
@@ -1415,10 +1208,6 @@ frappe.ui.form.on("Sales Invoice Item", {
     item_tax_template(frm, cdt, cdn) {
         if (frm.__fbr_bulk_updating) return;
         recalc_fbr_item_row(frm, cdt, cdn);
-    },
-
-    custom_fbr_item_scenario(frm, cdt, cdn) {
-        apply_fbr_item_tax_template(frm, cdt, cdn, { notify: true });
     },
 
     item_code(frm, cdt, cdn) {
