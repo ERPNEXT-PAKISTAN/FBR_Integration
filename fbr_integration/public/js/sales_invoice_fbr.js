@@ -633,15 +633,15 @@ async function render_item_scenario_detail_fields(frm, cdn) {
 
     if (!control) return;
 
-    const sid = (
-        row.custom_scenario_detail ||
-        frm.doc.custom_scenario_detail ||
-        frm.doc.custom_scenario_id ||
-        ""
-    )
+    const rowDetail = (row.custom_scenario_detail || "").toString().trim();
+    const parentDetail = (frm.doc.custom_scenario_detail || "")
         .toString()
-        .trim()
-        .toUpperCase();
+        .trim();
+    const sid =
+        extract_fbr_scenario_id(rowDetail) ||
+        extract_fbr_scenario_id(parentDetail) ||
+        (row.custom_scenario_id || "").toString().trim().toUpperCase() ||
+        (frm.doc.custom_scenario_id || "").toString().trim().toUpperCase();
 
     if (!sid) {
         set_html_control_content(
