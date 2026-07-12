@@ -448,6 +448,11 @@ function get_effective_fbr_scenario(frm) {
     return get_effective_invoice_fbr_scenario(frm);
 }
 
+function get_selected_scenario_id(frm) {
+    const detail = (frm.doc.custom_scenario_detail || "").toString().trim();
+    return extract_fbr_scenario_id(detail) || (frm.doc.custom_scenario_id || "").toString().trim();
+}
+
 async function set_invoice_scenario_detail_by_id(frm, scenarioId) {
     const sid = (scenarioId || "").toString().trim().toUpperCase();
     if (!sid) return;
@@ -476,6 +481,108 @@ async function sync_invoice_scenario_fields(frm) {
     const detail = await resolve_scenario_detail_from_id(scenarioId);
     if (detail && (frm.doc.custom_scenario_detail || "").toString().trim() !== detail) {
         await frm.set_value("custom_scenario_detail", detail);
+    }
+}
+
+function render_scenario_detail_field_html(data, sid) {
+    const sample = data.sample || {};
+    const items = Array.isArray(sample.items) ? sample.items : [];
+    const itemHtml = items.length
+        ? items
+              .map((item, idx) => {
+                  return `
+<div style="margin-top:10px;padding:10px;border:1px solid #c7d2fe;border-radius:8px;background:#fff;">
+  <div style="font-size:12px;font-weight:700;color:#312e81;margin-bottom:8px;">Item ${idx + 1}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+    <div><div style="font-size:11px;color:#64748b;">HS Code</div><div style="font-size:12px;font-weight:600;">${esc(item.hsCode || "")}</div></div>
+    <div><div style="font-size:11px;color:#64748b;">Description</div><div style="font-size:12px;font-weight:600;">${esc(item.productDescription || "")}</div></div>
+    <div><div style="font-size:11px;color:#64748b;">Sale Type</div><div style="font-size:12px;font-weight:600;">${esc(item.saleType || "")}</div></div>
+    <div><div style="font-size:11px;color:#64748b;">UoM</div><div style="font-size:12px;font-weight:600;">${esc(item.uoM || "")}</div></div>
+    <div><div style="font-size:11px;color:#64748b;">Rate</div><div style="font-size:12px;font-weight:600;">${esc(item.rate || "")}</div></div>
+    <div><div style="font-size:11px;color:#64748b;">SRO Schedule No</div><div style="font-size:12px;font-weight:600;">${esc(item.sroScheduleNo || "")}</div></div>
+    <div><div style="font-size:11px;color:#64748b;">SRO Item Serial No</div><div style="font-size:12px;font-weight:600;">${esc(item.sroItemSerialNo || "")}</div></div>
+  </div>
+</div>`;
+              })
+              .join("")
+        : `<div style="margin-top:10px;padding:10px;border:1px dashed #cbd5e1;border-radius:8px;color:#64748b;">No item data found in sample payload.</div>`;
+
+    return `
+<div style="font-family:inherit;line-height:1.5;">
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:10px;color:#f8fafc;">
+    <span style="background:#38bdf8;color:#0f172a;font-weight:700;padding:3px 10px;border-radius:999px;font-size:13px;">${esc(
+        data.id || sid
+    )}</span>
+    <span style="font-size:14px;font-weight:700;">${esc(data.title || "")}</span>
+    <button type="button" class="btn btn-xs btn-default" data-scenario-tree="${esc(
+        sid
+    )}" style="margin-left:auto;">Scenario Index</button>
+  </div>
+  <div style="margin-top:10px;padding:12px;border:1px solid #dbeafe;border-radius:10px;background:#f8fbff;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#1d4ed8;margin-bottom:4px;">Description</div>
+    <div style="font-size:13px;color:#1f2937;">${esc(data.description || "")}</div>
+  </div>
+  <div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+    <div style="padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;">
+      <div style="font-size:11px;color:#64748b;">Invoice Type</div>
+      <div style="font-size:12px;font-weight:600;">${esc(sample.invoiceType || "")}</div>
+    </div>
+    <div style="padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;">
+      <div style="font-size:11px;color:#64748b;">Buyer Registration Type</div>
+      <div style="font-size:12px;font-weight:600;">${esc(sample.buyerRegistrationType || "")}</div>
+    </div>
+    <div style="padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;">
+      <div style="font-size:11px;color:#64748b;">Scenario ID</div>
+      <div style="font-size:12px;font-weight:600;">${esc(sample.scenarioId || data.id || sid)}</div>
+    </div>
+    <div style="padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;">
+      <div style="font-size:11px;color:#64748b;">Items</div>
+      <div style="font-size:12px;font-weight:600;">${items.length}</div>
+    </div>
+  </div>
+  <div style="margin-top:10px;padding:10px;border:1px solid #c7d2fe;border-radius:10px;background:#eef2ff;">
+    <div style="font-size:12px;font-weight:700;color:#312e81;margin-bottom:6px;">Selected Scenario Preview</div>
+    ${itemHtml}
+  </div>
+</div>`;
+}
+
+async function render_selected_scenario_detail_fields(frm) {
+    if (!frm.fields_dict.custom_scenario_detial_fields) return;
+
+    const sid = get_selected_scenario_id(frm);
+    if (!sid) {
+        frm.set_df_property(
+            "custom_scenario_detial_fields",
+            "options",
+            '<div style="padding:10px;color:#64748b;">Select a scenario detail to preview its scenario JSON.</div>'
+        );
+        return;
+    }
+
+    try {
+        const data = await fetch_scenario_doc(sid);
+        // Render only the currently selected scenario so the form stays focused.
+        frm.set_df_property(
+            "custom_scenario_detial_fields",
+            "options",
+            render_scenario_detail_field_html(data, sid)
+        );
+        if (frm.fields_dict.custom_scenario_detial_fields.$wrapper) {
+            frm.fields_dict.custom_scenario_detial_fields.$wrapper.find(
+                "[data-scenario-tree]"
+            ).on("click", function () {
+                show_scenario_tree((this.dataset || {}).scenarioTree || sid);
+            });
+        }
+    } catch (err) {
+        frm.set_df_property(
+            "custom_scenario_detial_fields",
+            "options",
+            `<div style="padding:10px;color:#b45309;">Scenario details not available for <b>${esc(
+                sid
+            )}</b>.</div>`
+        );
     }
 }
 
@@ -1059,17 +1166,20 @@ frappe.ui.form.on("Sales Invoice", {
             await frm.set_value("custom_scenario_id", scenarioId);
         }
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
+        await render_selected_scenario_detail_fields(frm);
     },
 
     async custom_scenario_id(frm) {
         await set_invoice_scenario_detail_by_id(frm, frm.doc.custom_scenario_id);
         await apply_invoice_scenario_to_all_items(frm, { notify: true });
+        await render_selected_scenario_detail_fields(frm);
     },
 
     refresh(frm) {
         sync_qr_field_on_form(frm);
         render_qr_preview(frm);
         sync_invoice_scenario_fields(frm);
+        render_selected_scenario_detail_fields(frm);
 
         frm.add_custom_button(__("Scenario Index"), function () {
             show_scenario_browser(frm);
