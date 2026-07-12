@@ -206,7 +206,7 @@
     "hidden": 0,
     "icon": null,
     "is_query_report": 0,
-    "label": "FBR Scenario ID",
+    "label": "Scenario ID",
     "link_count": 0,
     "link_to": "Scenario ID",
     "link_type": "DocType",
