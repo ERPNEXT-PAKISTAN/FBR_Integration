@@ -258,6 +258,10 @@ ITEM_TAX_TEMPLATE_SPECS = [
 ]
 
 
+def _canonical_titles():
+	return {template["title"] for template in ITEM_TAX_TEMPLATE_SPECS}
+
+
 def _get_item_tax_templates(company, titles):
 	if not titles:
 		return []
@@ -328,9 +332,31 @@ def _upsert_item_tax_template(template):
 			frappe.delete_doc("Item Tax Template", row.name, ignore_permissions=True, force=1)
 
 
+def _cleanup_obsolete_templates(company):
+	canonical_titles = _canonical_titles()
+	obsolete = frappe.get_all(
+		"Item Tax Template",
+		filters={
+			"company": company,
+			"title": ["like", "SN%"],
+		},
+		fields=["name", "title"],
+		limit_page_length=0,
+	)
+
+	for row in obsolete:
+		if row.title in canonical_titles:
+			continue
+		if frappe.db.exists("Item Tax Template", row.name):
+			frappe.delete_doc("Item Tax Template", row.name, ignore_permissions=True, force=1)
+
+
 def execute():
 	for template in ITEM_TAX_TEMPLATE_SPECS:
 		_upsert_item_tax_template(template)
+
+	for company in {template["company"] for template in ITEM_TAX_TEMPLATE_SPECS}:
+		_cleanup_obsolete_templates(_resolve_company(company))
 
 	frappe.clear_cache(doctype="Item Tax Template")
 	frappe.clear_cache(doctype="Account")
