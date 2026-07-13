@@ -1,0 +1,404 @@
+[
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN001 - Goods at Standard Rate (Registered Buyer)",
+  "title": "Goods at Standard Rate (Registered Buyer)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN002 - Goods at Standard Rate (Unregistered Buyer)",
+  "title": "Goods at Standard Rate (Unregistered Buyer)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN003 - Steel Melting and Re-rolling",
+  "title": "Steel Melting and Re-rolling",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN004 - Ship Breaking",
+  "title": "Ship Breaking",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN005 - Goods at Reduced Rate (Eighth Schedule)",
+  "title": "Goods at Reduced Rate (Eighth Schedule)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 1
+   },
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Further Tax",
+    "tax_rate": 12
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN006 - Exempt Goods (Sixth Schedule)",
+  "title": "Exempt Goods (Sixth Schedule)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 0
+   },
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Further Tax",
+    "tax_rate": 12
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN007 - Zero-Rated Goods",
+  "title": "Zero-Rated Goods",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 0
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN008 - Third Schedule Goods (Retail Price Based)",
+  "title": "Third Schedule Goods (Retail Price Based)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN009 - Cotton Ginners",
+  "title": "Cotton Ginners",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN010 - Telecommunication Services",
+  "title": "Telecommunication Services",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 17
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN011 - Toll Manufacturing",
+  "title": "Toll Manufacturing",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN012 - Petroleum Products",
+  "title": "Petroleum Products",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 1.43
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN013 - Electricity Supply to Retailers",
+  "title": "Electricity Supply to Retailers",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 5
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN014 - Gas to CNG Stations",
+  "title": "Gas to CNG Stations",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN015 - Mobile Phones",
+  "title": "Mobile Phones",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN016 - Processing/Conversion of Goods",
+  "title": "Processing/Conversion of Goods",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 5
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN017 - Goods (FED in ST Mode)",
+  "title": "Goods (FED in ST Mode)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 8
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN018 - Services (FED in ST Mode)",
+  "title": "Services (FED in ST Mode)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 8
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN019 - ICT Services",
+  "title": "ICT Services",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 5
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN020 - Electric Vehicles",
+  "title": "Electric Vehicles",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 1
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN021 - Cement/Concrete Block",
+  "title": "Cement/Concrete Block",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 29.26829268
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN022 - Potassium Chlorate",
+  "title": "Potassium Chlorate",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 78
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN023 - CNG Sales",
+  "title": "CNG Sales",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 10512.82051282
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN024 - Goods as per SRO.297(I)/2023",
+  "title": "Goods as per SRO.297(I)/2023",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 25
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN025 - Non-Adjustable Supplies (Pharmaceuticals)",
+  "title": "Non-Adjustable Supplies (Pharmaceuticals)",
+  "company": "Logic Layer Pvt Ltd",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 0
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN026 - Retailer - Standard Rate Goods",
+  "title": "Retailer - Standard Rate Goods",
+  "company": "Logic Layer Retail",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN027 - Retailer - Third Schedule Goods",
+  "title": "Retailer - Third Schedule Goods",
+  "company": "Logic Layer Retail",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 18
+   }
+  ]
+ },
+ {
+  "doctype": "Item Tax Template",
+  "name": "SN028 - Retailer - Reduced Rate Goods",
+  "title": "Retailer - Reduced Rate Goods",
+  "company": "Logic Layer Retail",
+  "disabled": 0,
+  "taxes": [
+   {
+    "doctype": "Item Tax Template Detail",
+    "tax_type": "Sales Tax",
+    "tax_rate": 1
+   }
+  ]
+ }
+]
