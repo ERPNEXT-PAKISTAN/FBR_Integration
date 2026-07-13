@@ -441,11 +441,15 @@ def _cleanup_obsolete_templates(company):
 
 
 def execute():
-	for template in ITEM_TAX_TEMPLATE_SPECS:
-		_upsert_item_tax_template(template)
+	company_names = [row.name for row in frappe.get_all("Company", fields=["name"], limit_page_length=0)]
 
-	for company in {template["company"] for template in ITEM_TAX_TEMPLATE_SPECS}:
-		_cleanup_obsolete_templates(_resolve_company(company))
+	for company in company_names:
+		for template in ITEM_TAX_TEMPLATE_SPECS:
+			template_for_company = dict(template)
+			template_for_company["company"] = company
+			_upsert_item_tax_template(template_for_company)
+
+		_cleanup_obsolete_templates(company)
 
 	frappe.clear_cache(doctype="Item Tax Template")
 	frappe.clear_cache(doctype="Account")
