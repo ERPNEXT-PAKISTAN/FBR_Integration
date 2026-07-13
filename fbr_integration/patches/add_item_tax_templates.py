@@ -1,57 +1,19 @@
 import frappe
 
 
-def _resolve_tax_account(company, label_candidates, fallback_candidates):
-	# Prefer exact account names first, then partial matches within the company.
-	for candidate in label_candidates + fallback_candidates:
-		if not candidate:
-			continue
-		exact = frappe.db.exists("Account", {"company": company, "name": candidate})
-		if exact:
-			return candidate
-
-		matches = frappe.get_all(
-			"Account",
-			filters={
-				"company": company,
-				"is_group": 0,
-				"name": ["like", f"%{candidate}%"],
-			},
-			fields=["name"],
-			order_by="name asc",
-			limit_page_length=1,
-		)
-		if matches:
-			return matches[0].name
-
-	return ""
-
-
 def _tax_rows(company, sales_rate, further_rate=0, extra_rate=0):
 	rows = []
-	sales_tax = _resolve_tax_account(
-		company,
-		["Sales Tax", "Output Tax", "VAT", "GST"],
-		["Tax"],
-	)
+	sales_tax = _ensure_tax_account(company, "FBR Sales Tax")
 	if sales_tax:
 		rows.append({"tax_type": sales_tax, "tax_rate": sales_rate})
 
 	if further_rate:
-		further_tax = _resolve_tax_account(
-			company,
-			["Further Tax", "Extra Tax", "Additional Tax"],
-			["Tax"],
-		)
+		further_tax = _ensure_tax_account(company, "FBR Further Tax")
 		if further_tax:
 			rows.append({"tax_type": further_tax, "tax_rate": further_rate})
 
 	if extra_rate:
-		extra_tax = _resolve_tax_account(
-			company,
-			["Extra Tax", "Additional Tax"],
-			["Tax"],
-		)
+		extra_tax = _ensure_tax_account(company, "FBR Extra Tax")
 		if extra_tax:
 			rows.append({"tax_type": extra_tax, "tax_rate": extra_rate})
 
@@ -64,6 +26,56 @@ def _resolve_company(preferred_name):
 
 	companies = frappe.get_all("Company", fields=["name"], order_by="name asc", limit_page_length=1)
 	return companies[0].name if companies else preferred_name
+
+
+def _resolve_tax_group(company):
+	group = frappe.db.get_value(
+		"Account",
+		{"company": company, "account_name": "Duties and Taxes", "is_group": 1},
+		"name",
+	)
+	if group:
+		return group
+
+	group = frappe.db.get_value(
+		"Account",
+		{"company": company, "account_type": "Tax", "is_group": 1},
+		"name",
+	)
+	if group:
+		return group
+
+	frappe.throw(f"Could not find a tax group account for company {company}")
+
+
+def _ensure_tax_account(company, account_name):
+	existing = frappe.db.get_value(
+		"Account",
+		{"company": company, "account_name": account_name, "is_group": 0},
+		"name",
+	)
+	if existing:
+		return existing
+
+	parent_account = _resolve_tax_group(company)
+	currency = frappe.get_cached_value("Company", company, "default_currency")
+
+	account = frappe.get_doc(
+		{
+			"doctype": "Account",
+			"account_name": account_name,
+			"company": company,
+			"parent_account": parent_account,
+			"account_type": "Tax",
+			"is_group": 0,
+			"account_currency": currency,
+		}
+	)
+	account.flags.ignore_mandatory = True
+	account.flags.ignore_permissions = True
+	account.flags.ignore_links = True
+	account.insert(ignore_permissions=True)
+	return account.name
 
 
 ITEM_TAX_TEMPLATE_SPECS = [
@@ -241,15 +253,17 @@ ITEM_TAX_TEMPLATE_SPECS = [
 
 
 def _upsert_item_tax_template(template):
-	name = template["name"]
 	company = _resolve_company(template["company"])
-	doc = frappe.db.exists("Item Tax Template", name)
+	existing = frappe.db.get_value(
+		"Item Tax Template",
+		{"title": template["title"], "company": company},
+		"name",
+	)
 
-	if doc:
-		item_tax_template = frappe.get_doc("Item Tax Template", name)
+	if existing:
+		item_tax_template = frappe.get_doc("Item Tax Template", existing)
 	else:
 		item_tax_template = frappe.new_doc("Item Tax Template")
-		item_tax_template.name = name
 
 	item_tax_template.title = template["title"]
 	item_tax_template.company = company
@@ -273,14 +287,14 @@ def _upsert_item_tax_template(template):
 
 	item_tax_template.flags.ignore_links = True
 
-	if doc:
+	if existing:
 		item_tax_template.save(ignore_permissions=True, ignore_version=True)
 	else:
 		item_tax_template.insert(ignore_permissions=True)
 
 
 def execute():
-	for template in ITEM_TAX_TEMPLATES:
+	for template in ITEM_TAX_TEMPLATE_SPECS:
 		_upsert_item_tax_template(template)
 
 	frappe.clear_cache(doctype="Item Tax Template")

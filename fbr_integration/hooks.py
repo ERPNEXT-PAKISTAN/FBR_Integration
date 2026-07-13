@@ -35,7 +35,6 @@ app_include_css = ["/assets/fbr_integration/css/fbr.css"]
 
 after_migrate = [
 	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
-	"fbr_integration.patches.add_item_tax_templates.execute",
 ]
 
 # Fixtures: ship custom fields + print formats + reports + workspace/dashboard (recommended)
@@ -58,5 +57,4 @@ fixtures = [
 	{"dt": "SRO Schedule No", "filters": [["name", "!=", ""]]},
 	{"dt": "SRO Item SNo", "filters": [["name", "!=", ""]]},
 	{"dt": "HS Code", "filters": [["name", "!=", ""]]},
-	{"dt": "Item Tax Template", "filters": [["name", "!=", ""]]},
 ]
