@@ -1,23 +1,31 @@
 import frappe
 
 
-def _tax_rows(company, sales_rate, further_rate=0, extra_rate=0):
-	rows = []
-	sales_tax = _ensure_tax_account(company, "FBR Sales Tax")
-	if sales_tax:
-		rows.append({"tax_type": sales_tax, "tax_rate": sales_rate})
+VALID_TAX_ACCOUNT_TYPES = {
+	"Tax",
+	"Chargeable",
+	"Income Account",
+	"Expense Account",
+	"Expenses Included In Valuation",
+}
 
-	if further_rate:
-		further_tax = _ensure_tax_account(company, "FBR Further Tax")
-		if further_tax:
-			rows.append({"tax_type": further_tax, "tax_rate": further_rate})
+TAX_ACCOUNT_PARENT_CANDIDATES = (
+	"Duties and Taxes",
+	"Tax Payables",
+	"Current Liabilities",
+	"Liabilities",
+)
 
-	if extra_rate:
-		extra_tax = _ensure_tax_account(company, "FBR Extra Tax")
-		if extra_tax:
-			rows.append({"tax_type": extra_tax, "tax_rate": extra_rate})
+GST_ACCOUNT_CANDIDATES = (
+	"GST",
+	"General Sales Tax",
+	"Sales Tax",
+	"Output Tax",
+	"VAT",
+)
 
-	return rows
+FURTHER_TAX_ACCOUNT_CANDIDATES = ("Further Tax",)
+EXTRA_TAX_ACCOUNT_CANDIDATES = ("Extra Tax",)
 
 
 def _resolve_company(preferred_name):
@@ -28,247 +36,265 @@ def _resolve_company(preferred_name):
 	return companies[0].name if companies else preferred_name
 
 
-def _resolve_tax_group(company):
-	group = frappe.db.get_value(
+def _format_rate(rate):
+	if rate is None:
+		return "0"
+
+	try:
+		rate_value = float(rate)
+	except (TypeError, ValueError):
+		return str(rate)
+
+	if rate_value.is_integer():
+		return str(int(rate_value))
+
+	return f"{rate_value:.8f}".rstrip("0").rstrip(".")
+
+
+def _get_company_abbr(company):
+	return frappe.get_cached_value("Company", company, "abbr") or ""
+
+
+def _desired_name(title, company):
+	abbr = _get_company_abbr(company)
+	return f"{title} - {abbr}" if abbr else title
+
+
+def _find_group_account(company, account_name):
+	rows = frappe.get_all(
 		"Account",
-		{"company": company, "account_name": "Duties and Taxes", "is_group": 1},
-		"name",
+		filters={"company": company, "account_name": account_name, "is_group": 1},
+		fields=["name"],
+		limit_page_length=1,
 	)
-	if group:
-		return group
+	return rows[0].name if rows else ""
 
-	group = frappe.db.get_value(
+
+def _resolve_tax_parent(company):
+	for parent_name in TAX_ACCOUNT_PARENT_CANDIDATES:
+		parent = _find_group_account(company, parent_name)
+		if parent:
+			return parent
+
+	rows = frappe.get_all(
 		"Account",
-		{"company": company, "account_type": "Tax", "is_group": 1},
-		"name",
+		filters={"company": company, "root_type": "Liability", "is_group": 1},
+		fields=["name"],
+		order_by="lft asc",
+		limit_page_length=1,
 	)
-	if group:
-		return group
+	if rows:
+		return rows[0].name
 
-	frappe.throw(f"Could not find a tax group account for company {company}")
-
-
-def _ensure_tax_account(company, account_name):
-	existing = frappe.db.get_value(
+	rows = frappe.get_all(
 		"Account",
-		{"company": company, "account_name": account_name, "is_group": 0},
-		"name",
+		filters={"company": company, "is_group": 1},
+		fields=["name"],
+		order_by="lft asc",
+		limit_page_length=1,
 	)
-	if existing:
-		return existing
+	return rows[0].name if rows else ""
 
-	parent_account = _resolve_tax_group(company)
-	currency = frappe.get_cached_value("Company", company, "default_currency")
 
-	account = frappe.get_doc(
-		{
-			"doctype": "Account",
-			"account_name": account_name,
-			"company": company,
-			"parent_account": parent_account,
-			"account_type": "Tax",
-			"is_group": 0,
-			"account_currency": currency,
-		}
-	)
-	account.flags.ignore_mandatory = True
-	account.flags.ignore_permissions = True
-	account.flags.ignore_links = True
-	account.insert(ignore_permissions=True)
-	return account.name
+def _find_account(company, candidates):
+	for account_name in candidates:
+		rows = frappe.get_all(
+			"Account",
+			filters={"company": company, "account_name": account_name},
+			fields=["name", "account_type"],
+			limit_page_length=1,
+		)
+		if rows:
+			return rows[0].name, rows[0].account_type
+
+		rows = frappe.get_all(
+			"Account",
+			filters={"company": company, "name": account_name},
+			fields=["name", "account_type"],
+			limit_page_length=1,
+		)
+		if rows:
+			return rows[0].name, rows[0].account_type
+
+	return "", ""
+
+
+def _normalize_tax_account(account_name):
+	account_type = frappe.db.get_value("Account", account_name, "account_type")
+	if account_type in VALID_TAX_ACCOUNT_TYPES:
+		return
+
+	frappe.db.set_value("Account", account_name, "account_type", "Tax", update_modified=False)
+
+
+def _create_tax_account(company, account_name):
+	parent_account = _resolve_tax_parent(company)
+	if not parent_account:
+		frappe.throw(f"Unable to find a liability parent account for {company}")
+
+	doc = frappe.new_doc("Account")
+	doc.account_name = account_name
+	doc.company = company
+	doc.parent_account = parent_account
+	doc.account_type = "Tax"
+	doc.is_group = 0
+	doc.disabled = 0
+	doc.flags.ignore_permissions = True
+	doc.insert(ignore_permissions=True)
+	return doc.name
+
+
+def _resolve_tax_account(company, candidates, create_name=None):
+	account_name, account_type = _find_account(company, candidates)
+	if account_name:
+		if account_type not in VALID_TAX_ACCOUNT_TYPES:
+			_normalize_tax_account(account_name)
+		return account_name
+
+	if create_name:
+		return _create_tax_account(company, create_name)
+
+	return ""
+
+
+def _tax_rows(company, sales_rate, further_rate=0, extra_rate=0):
+	rows = []
+	sales_tax = _resolve_tax_account(company, GST_ACCOUNT_CANDIDATES, create_name="GST")
+	if sales_tax:
+		rows.append({"tax_type": sales_tax, "tax_rate": sales_rate})
+
+	if further_rate:
+		further_tax = _resolve_tax_account(
+			company,
+			FURTHER_TAX_ACCOUNT_CANDIDATES,
+			create_name="Further Tax",
+		)
+		if further_tax:
+			rows.append({"tax_type": further_tax, "tax_rate": further_rate})
+
+	if extra_rate:
+		extra_tax = _resolve_tax_account(
+			company,
+			EXTRA_TAX_ACCOUNT_CANDIDATES,
+			create_name="Extra Tax",
+		)
+		if extra_tax:
+			rows.append({"tax_type": extra_tax, "tax_rate": extra_rate})
+
+	return rows
+
+
+def _template_spec(sn, description, company, sales_rate, aliases=None, further_rate=0, extra_rate=0):
+	rate_label = _format_rate(sales_rate)
+	title = f"{sn} - {rate_label}% {description}"
+	return {
+		"title": title,
+		"company": company,
+		"sales_rate": sales_rate,
+		"further_rate": further_rate,
+		"extra_rate": extra_rate,
+		"aliases": [title, *(aliases or [])],
+	}
 
 
 ITEM_TAX_TEMPLATE_SPECS = [
-	{
-		"name": "SN001 - Goods at Standard Rate (Registered Buyer)",
-		"title": "Goods at Standard Rate (Registered Buyer)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN002 - Goods at Standard Rate (Unregistered Buyer)",
-		"title": "Goods at Standard Rate (Unregistered Buyer)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN003 - Steel Melting and Re-rolling",
-		"title": "Steel Melting and Re-rolling",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN004 - Ship Breaking",
-		"title": "Ship Breaking",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN005 - Goods at Reduced Rate (Eighth Schedule)",
-		"title": "Goods at Reduced Rate (Eighth Schedule)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 1,
-		"further_rate": 12,
-	},
-	{
-		"name": "SN006 - Exempt Goods (Sixth Schedule)",
-		"title": "Exempt Goods (Sixth Schedule)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 0,
-		"further_rate": 12,
-	},
-	{
-		"name": "SN007 - Zero-Rated Goods",
-		"title": "Zero-Rated Goods",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 0,
-	},
-	{
-		"name": "SN008 - Third Schedule Goods (Retail Price Based)",
-		"title": "Third Schedule Goods (Retail Price Based)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN009 - Cotton Ginners",
-		"title": "Cotton Ginners",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN010 - Telecommunication Services",
-		"title": "Telecommunication Services",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 17,
-	},
-	{
-		"name": "SN011 - Toll Manufacturing",
-		"title": "Toll Manufacturing",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN012 - Petroleum Products",
-		"title": "Petroleum Products",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 1.43,
-	},
-	{
-		"name": "SN013 - Electricity Supply to Retailers",
-		"title": "Electricity Supply to Retailers",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 5,
-	},
-	{
-		"name": "SN014 - Gas to CNG Stations",
-		"title": "Gas to CNG Stations",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN015 - Mobile Phones",
-		"title": "Mobile Phones",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN016 - Processing/Conversion of Goods",
-		"title": "Processing/Conversion of Goods",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 5,
-	},
-	{
-		"name": "SN017 - Goods (FED in ST Mode)",
-		"title": "Goods (FED in ST Mode)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 8,
-	},
-	{
-		"name": "SN018 - Services (FED in ST Mode)",
-		"title": "Services (FED in ST Mode)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 8,
-	},
-	{
-		"name": "SN019 - ICT Services",
-		"title": "ICT Services",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 5,
-	},
-	{
-		"name": "SN020 - Electric Vehicles",
-		"title": "Electric Vehicles",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 1,
-	},
-	{
-		"name": "SN021 - Cement/Concrete Block",
-		"title": "Cement/Concrete Block",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 29.26829268,
-	},
-	{
-		"name": "SN022 - Potassium Chlorate",
-		"title": "Potassium Chlorate",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 78,
-	},
-	{
-		"name": "SN023 - CNG Sales",
-		"title": "CNG Sales",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 10512.82051282,
-	},
-	{
-		"name": "SN024 - Goods as per SRO.297(I)/2023",
-		"title": "Goods as per SRO.297(I)/2023",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 25,
-	},
-	{
-		"name": "SN025 - Non-Adjustable Supplies (Pharmaceuticals)",
-		"title": "Non-Adjustable Supplies (Pharmaceuticals)",
-		"company": "Logic Layer Pvt Ltd",
-		"sales_rate": 0,
-	},
-	{
-		"name": "SN026 - Retailer - Standard Rate Goods",
-		"title": "Retailer - Standard Rate Goods",
-		"company": "Logic Layer Retail",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN027 - Retailer - Third Schedule Goods",
-		"title": "Retailer - Third Schedule Goods",
-		"company": "Logic Layer Retail",
-		"sales_rate": 18,
-	},
-	{
-		"name": "SN028 - Retailer - Reduced Rate Goods",
-		"title": "Retailer - Reduced Rate Goods",
-		"company": "Logic Layer Retail",
-		"sales_rate": 1,
-	},
+	_template_spec(
+		"SN001",
+		"Goods at Standard Rate to Registered Buyers",
+		"Logic Layer Pvt Ltd",
+		18,
+		aliases=["SN001 - Goods at Standard Rate (Registered Buyer)"],
+	),
+	_template_spec(
+		"SN002",
+		"Goods at Standard Rate to Unregistered Buyers",
+		"Logic Layer Pvt Ltd",
+		18,
+		aliases=["SN002 - Goods at Standard Rate (Unregistered Buyer)"],
+	),
+	_template_spec("SN003", "Steel Melting and Re-rolling", "Logic Layer Pvt Ltd", 18),
+	_template_spec("SN004", "Ship Breaking", "Logic Layer Pvt Ltd", 18),
+	_template_spec(
+		"SN005",
+		"Goods at Reduced Rate (Eighth Schedule)",
+		"Logic Layer Pvt Ltd",
+		1,
+		further_rate=12,
+	),
+	_template_spec(
+		"SN006",
+		"Exempt Goods (Sixth Schedule)",
+		"Logic Layer Pvt Ltd",
+		0,
+		further_rate=12,
+	),
+	_template_spec("SN007", "Zero-Rated Goods", "Logic Layer Pvt Ltd", 0),
+	_template_spec(
+		"SN008",
+		"Third Schedule Goods (Retail Price Based)",
+		"Logic Layer Pvt Ltd",
+		18,
+	),
+	_template_spec("SN009", "Cotton Ginners", "Logic Layer Pvt Ltd", 18),
+	_template_spec("SN010", "Telecommunication Services", "Logic Layer Pvt Ltd", 17),
+	_template_spec("SN011", "Toll Manufacturing", "Logic Layer Pvt Ltd", 18),
+	_template_spec("SN012", "Petroleum Products", "Logic Layer Pvt Ltd", 1.43),
+	_template_spec("SN013", "Electricity Supply to Retailers", "Logic Layer Pvt Ltd", 5),
+	_template_spec("SN014", "Gas to CNG Stations", "Logic Layer Pvt Ltd", 18),
+	_template_spec("SN015", "Mobile Phones", "Logic Layer Pvt Ltd", 18),
+	_template_spec("SN016", "Processing/Conversion of Goods", "Logic Layer Pvt Ltd", 5),
+	_template_spec("SN017", "Goods (FED in ST Mode)", "Logic Layer Pvt Ltd", 8),
+	_template_spec("SN018", "Services (FED in ST Mode)", "Logic Layer Pvt Ltd", 8),
+	_template_spec("SN019", "ICT Services", "Logic Layer Pvt Ltd", 5),
+	_template_spec("SN020", "Electric Vehicles", "Logic Layer Pvt Ltd", 1),
+	_template_spec("SN021", "Cement/Concrete Block", "Logic Layer Pvt Ltd", 29.26829268),
+	_template_spec("SN022", "Potassium Chlorate", "Logic Layer Pvt Ltd", 78),
+	_template_spec("SN023", "CNG Sales", "Logic Layer Pvt Ltd", 10512.82051282),
+	_template_spec("SN024", "Goods as per SRO.297(I)/2023", "Logic Layer Pvt Ltd", 25),
+	_template_spec("SN025", "Non-Adjustable Supplies (Pharmaceuticals)", "Logic Layer Pvt Ltd", 0),
+	_template_spec("SN026", "Retailer - Standard Rate Goods", "Logic Layer Retail", 18),
+	_template_spec("SN027", "Retailer - Third Schedule Goods", "Logic Layer Retail", 18),
+	_template_spec("SN028", "Retailer - Reduced Rate Goods", "Logic Layer Retail", 1),
 ]
+
+
+def _get_item_tax_templates(company, titles):
+	if not titles:
+		return []
+
+	return frappe.get_all(
+		"Item Tax Template",
+		filters={"company": company, "title": ["in", titles]},
+		fields=["name", "title"],
+		order_by="modified desc, name asc",
+		limit_page_length=0,
+	)
+
+
+def _save_template(template_doc):
+	template_doc.flags.ignore_permissions = True
+	template_doc.flags.ignore_links = True
+	template_doc.save(ignore_permissions=True, ignore_version=True)
 
 
 def _upsert_item_tax_template(template):
 	company = _resolve_company(template["company"])
-	existing = frappe.db.get_value(
-		"Item Tax Template",
-		{"title": template["title"], "company": company},
-		"name",
-	)
+	desired_title = template["title"]
+	desired_name = _desired_name(desired_title, company)
+	matches = _get_item_tax_templates(company, template.get("aliases", []))
 
-	if existing:
-		item_tax_template = frappe.get_doc("Item Tax Template", existing)
+	if matches:
+		keeper_name = desired_name if any(row.name == desired_name for row in matches) else matches[0].name
+		keeper_original_name = keeper_name
+		keeper = frappe.get_doc("Item Tax Template", keeper_name)
 	else:
-		item_tax_template = frappe.new_doc("Item Tax Template")
+		keeper = frappe.new_doc("Item Tax Template")
+		keeper_original_name = ""
 
-	item_tax_template.title = template["title"]
-	item_tax_template.company = company
-	item_tax_template.disabled = 0
-	item_tax_template.set("taxes", [])
+	keeper.title = desired_title
+	keeper.company = company
+	keeper.disabled = 0
+	keeper.set("taxes", [])
 
 	for row in _tax_rows(
 		company,
@@ -276,7 +302,7 @@ def _upsert_item_tax_template(template):
 		further_rate=template.get("further_rate", 0),
 		extra_rate=template.get("extra_rate", 0),
 	):
-		item_tax_template.append(
+		keeper.append(
 			"taxes",
 			{
 				"doctype": "Item Tax Template Detail",
@@ -285,12 +311,21 @@ def _upsert_item_tax_template(template):
 			},
 		)
 
-	item_tax_template.flags.ignore_links = True
-
-	if existing:
-		item_tax_template.save(ignore_permissions=True, ignore_version=True)
+	if matches:
+		_save_template(keeper)
+		if keeper.name != desired_name:
+			frappe.rename_doc("Item Tax Template", keeper.name, desired_name, force=True)
 	else:
-		item_tax_template.insert(ignore_permissions=True)
+		keeper.flags.ignore_permissions = True
+		keeper.insert(ignore_permissions=True)
+		if keeper.name != desired_name:
+			frappe.rename_doc("Item Tax Template", keeper.name, desired_name, force=True)
+
+	for row in matches:
+		if row.name in {desired_name, keeper_original_name}:
+			continue
+		if frappe.db.exists("Item Tax Template", row.name):
+			frappe.delete_doc("Item Tax Template", row.name, ignore_permissions=True, force=1)
 
 
 def execute():
@@ -298,3 +333,4 @@ def execute():
 		_upsert_item_tax_template(template)
 
 	frappe.clear_cache(doctype="Item Tax Template")
+	frappe.clear_cache(doctype="Account")
