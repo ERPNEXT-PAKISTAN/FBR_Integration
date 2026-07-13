@@ -184,7 +184,16 @@ def _tax_rows(company, sales_rate, further_rate=0, extra_rate=0):
 	return rows
 
 
-def _template_spec(sn, description, company, sales_rate, aliases=None, further_rate=0, extra_rate=0):
+def _template_spec(
+	sn,
+	description,
+	company,
+	sales_rate,
+	aliases=None,
+	legacy_titles=None,
+	further_rate=0,
+	extra_rate=0,
+):
 	rate_label = _format_rate(sales_rate)
 	title = f"{sn} - {rate_label}% {description}"
 	return {
@@ -193,7 +202,7 @@ def _template_spec(sn, description, company, sales_rate, aliases=None, further_r
 		"sales_rate": sales_rate,
 		"further_rate": further_rate,
 		"extra_rate": extra_rate,
-		"aliases": [title, *(aliases or [])],
+		"aliases": [title, *(aliases or []), *(legacy_titles or [])],
 	}
 
 
@@ -204,6 +213,7 @@ ITEM_TAX_TEMPLATE_SPECS = [
 		"Logic Layer Pvt Ltd",
 		18,
 		aliases=["SN001 - Goods at Standard Rate (Registered Buyer)"],
+		legacy_titles=["Goods at Standard Rate (Registered Buyer)"],
 	),
 	_template_spec(
 		"SN002",
@@ -211,14 +221,28 @@ ITEM_TAX_TEMPLATE_SPECS = [
 		"Logic Layer Pvt Ltd",
 		18,
 		aliases=["SN002 - Goods at Standard Rate (Unregistered Buyer)"],
+		legacy_titles=["Goods at Standard Rate (Unregistered Buyer)"],
 	),
-	_template_spec("SN003", "Steel Melting and Re-rolling", "Logic Layer Pvt Ltd", 18),
-	_template_spec("SN004", "Ship Breaking", "Logic Layer Pvt Ltd", 18),
+	_template_spec(
+		"SN003",
+		"Steel Melting and Re-rolling",
+		"Logic Layer Pvt Ltd",
+		18,
+		legacy_titles=["Steel Melting and Re-rolling"],
+	),
+	_template_spec(
+		"SN004",
+		"Ship Breaking",
+		"Logic Layer Pvt Ltd",
+		18,
+		legacy_titles=["Ship Breaking"],
+	),
 	_template_spec(
 		"SN005",
 		"Goods at Reduced Rate (Eighth Schedule)",
 		"Logic Layer Pvt Ltd",
 		1,
+		legacy_titles=["Goods at Reduced Rate (Eighth Schedule)"],
 		further_rate=12,
 	),
 	_template_spec(
@@ -226,35 +250,103 @@ ITEM_TAX_TEMPLATE_SPECS = [
 		"Exempt Goods (Sixth Schedule)",
 		"Logic Layer Pvt Ltd",
 		0,
+		legacy_titles=["Exempt Goods (Sixth Schedule)"],
 		further_rate=12,
 	),
-	_template_spec("SN007", "Zero-Rated Goods", "Logic Layer Pvt Ltd", 0),
+	_template_spec(
+		"SN007",
+		"Zero-Rated Goods",
+		"Logic Layer Pvt Ltd",
+		0,
+		legacy_titles=["Zero-Rated Goods"],
+	),
 	_template_spec(
 		"SN008",
 		"Third Schedule Goods (Retail Price Based)",
 		"Logic Layer Pvt Ltd",
 		18,
+		legacy_titles=["Third Schedule Goods (Retail Price Based)"],
 	),
-	_template_spec("SN009", "Cotton Ginners", "Logic Layer Pvt Ltd", 18),
-	_template_spec("SN010", "Telecommunication Services", "Logic Layer Pvt Ltd", 17),
-	_template_spec("SN011", "Toll Manufacturing", "Logic Layer Pvt Ltd", 18),
-	_template_spec("SN012", "Petroleum Products", "Logic Layer Pvt Ltd", 1.43),
-	_template_spec("SN013", "Electricity Supply to Retailers", "Logic Layer Pvt Ltd", 5),
-	_template_spec("SN014", "Gas to CNG Stations", "Logic Layer Pvt Ltd", 18),
-	_template_spec("SN015", "Mobile Phones", "Logic Layer Pvt Ltd", 18),
-	_template_spec("SN016", "Processing/Conversion of Goods", "Logic Layer Pvt Ltd", 5),
-	_template_spec("SN017", "Goods (FED in ST Mode)", "Logic Layer Pvt Ltd", 8),
-	_template_spec("SN018", "Services (FED in ST Mode)", "Logic Layer Pvt Ltd", 8),
-	_template_spec("SN019", "ICT Services", "Logic Layer Pvt Ltd", 5),
-	_template_spec("SN020", "Electric Vehicles", "Logic Layer Pvt Ltd", 1),
-	_template_spec("SN021", "Cement/Concrete Block", "Logic Layer Pvt Ltd", 29.26829268),
-	_template_spec("SN022", "Potassium Chlorate", "Logic Layer Pvt Ltd", 78),
-	_template_spec("SN023", "CNG Sales", "Logic Layer Pvt Ltd", 10512.82051282),
-	_template_spec("SN024", "Goods as per SRO.297(I)/2023", "Logic Layer Pvt Ltd", 25),
-	_template_spec("SN025", "Non-Adjustable Supplies (Pharmaceuticals)", "Logic Layer Pvt Ltd", 0),
-	_template_spec("SN026", "Retailer - Standard Rate Goods", "Logic Layer Retail", 18),
-	_template_spec("SN027", "Retailer - Third Schedule Goods", "Logic Layer Retail", 18),
-	_template_spec("SN028", "Retailer - Reduced Rate Goods", "Logic Layer Retail", 1),
+	_template_spec("SN009", "Cotton Ginners", "Logic Layer Pvt Ltd", 18, legacy_titles=["Cotton Ginners"]),
+	_template_spec(
+		"SN010",
+		"Telecommunication Services",
+		"Logic Layer Pvt Ltd",
+		17,
+		legacy_titles=["Telecommunication Services"],
+	),
+	_template_spec("SN011", "Toll Manufacturing", "Logic Layer Pvt Ltd", 18, legacy_titles=["Toll Manufacturing"]),
+	_template_spec("SN012", "Petroleum Products", "Logic Layer Pvt Ltd", 1.43, legacy_titles=["Petroleum Products"]),
+	_template_spec(
+		"SN013",
+		"Electricity Supply to Retailers",
+		"Logic Layer Pvt Ltd",
+		5,
+		legacy_titles=["Electricity Supply to Retailers"],
+	),
+	_template_spec("SN014", "Gas to CNG Stations", "Logic Layer Pvt Ltd", 18, legacy_titles=["Gas to CNG Stations"]),
+	_template_spec("SN015", "Mobile Phones", "Logic Layer Pvt Ltd", 18, legacy_titles=["Mobile Phones"]),
+	_template_spec(
+		"SN016",
+		"Processing/Conversion of Goods",
+		"Logic Layer Pvt Ltd",
+		5,
+		legacy_titles=["Processing/Conversion of Goods"],
+	),
+	_template_spec("SN017", "Goods (FED in ST Mode)", "Logic Layer Pvt Ltd", 8, legacy_titles=["Goods (FED in ST Mode)"]),
+	_template_spec(
+		"SN018",
+		"Services (FED in ST Mode)",
+		"Logic Layer Pvt Ltd",
+		8,
+		legacy_titles=["Services (FED in ST Mode)"],
+	),
+	_template_spec("SN019", "ICT Services", "Logic Layer Pvt Ltd", 5, legacy_titles=["ICT Services"]),
+	_template_spec("SN020", "Electric Vehicles", "Logic Layer Pvt Ltd", 1, legacy_titles=["Electric Vehicles"]),
+	_template_spec(
+		"SN021",
+		"Cement/Concrete Block",
+		"Logic Layer Pvt Ltd",
+		29.26829268,
+		legacy_titles=["Cement/Concrete Block"],
+	),
+	_template_spec("SN022", "Potassium Chlorate", "Logic Layer Pvt Ltd", 78, legacy_titles=["Potassium Chlorate"]),
+	_template_spec("SN023", "CNG Sales", "Logic Layer Pvt Ltd", 10512.82051282, legacy_titles=["CNG Sales"]),
+	_template_spec(
+		"SN024",
+		"Goods as per SRO.297(I)/2023",
+		"Logic Layer Pvt Ltd",
+		25,
+		legacy_titles=["Goods as per SRO.297(I)/2023"],
+	),
+	_template_spec(
+		"SN025",
+		"Non-Adjustable Supplies (Pharmaceuticals)",
+		"Logic Layer Pvt Ltd",
+		0,
+		legacy_titles=["Non-Adjustable Supplies (Pharmaceuticals)"],
+	),
+	_template_spec(
+		"SN026",
+		"Retailer - Standard Rate Goods",
+		"Logic Layer Retail",
+		18,
+		legacy_titles=["Retailer - Standard Rate Goods"],
+	),
+	_template_spec(
+		"SN027",
+		"Retailer - Third Schedule Goods",
+		"Logic Layer Retail",
+		18,
+		legacy_titles=["Retailer - Third Schedule Goods"],
+	),
+	_template_spec(
+		"SN028",
+		"Retailer - Reduced Rate Goods",
+		"Logic Layer Retail",
+		1,
+		legacy_titles=["Retailer - Reduced Rate Goods"],
+	),
 ]
 
 
@@ -336,10 +428,7 @@ def _cleanup_obsolete_templates(company):
 	canonical_titles = _canonical_titles()
 	obsolete = frappe.get_all(
 		"Item Tax Template",
-		filters={
-			"company": company,
-			"title": ["like", "SN%"],
-		},
+		filters={"company": company},
 		fields=["name", "title"],
 		limit_page_length=0,
 	)
