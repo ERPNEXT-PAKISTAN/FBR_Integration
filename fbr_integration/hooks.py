@@ -34,6 +34,7 @@ doctype_js = {
 app_include_css = ["/assets/fbr_integration/css/fbr.css"]
 
 after_migrate = [
+	"fbr_integration.patches.add_item_tax_templates.execute",
 	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
 ]
 
