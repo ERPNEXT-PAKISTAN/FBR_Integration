@@ -354,43 +354,22 @@ def _canonical_titles():
 	return {template["title"] for template in ITEM_TAX_TEMPLATE_SPECS}
 
 
-def _get_item_tax_templates(company, titles):
-	if not titles:
-		return []
-
-	return frappe.get_all(
+def _delete_all_item_tax_templates(company):
+	for row in frappe.get_all(
 		"Item Tax Template",
-		filters={"company": company, "title": ["in", titles]},
-		fields=["name", "title"],
-		order_by="modified desc, name asc",
+		filters={"company": company},
+		fields=["name"],
 		limit_page_length=0,
-	)
+	):
+		if frappe.db.exists("Item Tax Template", row.name):
+			frappe.delete_doc("Item Tax Template", row.name, ignore_permissions=True, force=1)
 
 
-def _save_template(template_doc):
-	template_doc.flags.ignore_permissions = True
-	template_doc.flags.ignore_links = True
-	template_doc.save(ignore_permissions=True, ignore_version=True)
-
-
-def _upsert_item_tax_template(template):
-	company = _resolve_company(template["company"])
-	desired_title = template["title"]
-	desired_name = _desired_name(desired_title, company)
-	matches = _get_item_tax_templates(company, template.get("aliases", []))
-
-	if matches:
-		keeper_name = desired_name if any(row.name == desired_name for row in matches) else matches[0].name
-		keeper_original_name = keeper_name
-		keeper = frappe.get_doc("Item Tax Template", keeper_name)
-	else:
-		keeper = frappe.new_doc("Item Tax Template")
-		keeper_original_name = ""
-
-	keeper.title = desired_title
-	keeper.company = company
-	keeper.disabled = 0
-	keeper.set("taxes", [])
+def _create_item_tax_template(company, template):
+	doc = frappe.new_doc("Item Tax Template")
+	doc.title = template["title"]
+	doc.company = company
+	doc.disabled = 0
 
 	for row in _tax_rows(
 		company,
@@ -398,7 +377,7 @@ def _upsert_item_tax_template(template):
 		further_rate=template.get("further_rate", 0),
 		extra_rate=template.get("extra_rate", 0),
 	):
-		keeper.append(
+		doc.append(
 			"taxes",
 			{
 				"doctype": "Item Tax Template Detail",
@@ -407,49 +386,19 @@ def _upsert_item_tax_template(template):
 			},
 		)
 
-	if matches:
-		_save_template(keeper)
-		if keeper.name != desired_name:
-			frappe.rename_doc("Item Tax Template", keeper.name, desired_name, force=True)
-	else:
-		keeper.flags.ignore_permissions = True
-		keeper.insert(ignore_permissions=True)
-		if keeper.name != desired_name:
-			frappe.rename_doc("Item Tax Template", keeper.name, desired_name, force=True)
-
-	for row in matches:
-		if row.name in {desired_name, keeper_original_name}:
-			continue
-		if frappe.db.exists("Item Tax Template", row.name):
-			frappe.delete_doc("Item Tax Template", row.name, ignore_permissions=True, force=1)
-
-
-def _cleanup_obsolete_templates(company):
-	canonical_titles = _canonical_titles()
-	obsolete = frappe.get_all(
-		"Item Tax Template",
-		filters={"company": company},
-		fields=["name", "title"],
-		limit_page_length=0,
-	)
-
-	for row in obsolete:
-		if row.title in canonical_titles:
-			continue
-		if frappe.db.exists("Item Tax Template", row.name):
-			frappe.delete_doc("Item Tax Template", row.name, ignore_permissions=True, force=1)
+	doc.flags.ignore_permissions = True
+	doc.flags.ignore_links = True
+	doc.insert(ignore_permissions=True)
 
 
 def execute():
 	company_names = [row.name for row in frappe.get_all("Company", fields=["name"], limit_page_length=0)]
 
 	for company in company_names:
-		for template in ITEM_TAX_TEMPLATE_SPECS:
-			template_for_company = dict(template)
-			template_for_company["company"] = company
-			_upsert_item_tax_template(template_for_company)
+		_delete_all_item_tax_templates(company)
 
-		_cleanup_obsolete_templates(company)
+		for template in ITEM_TAX_TEMPLATE_SPECS:
+			_create_item_tax_template(company, template)
 
 	frappe.clear_cache(doctype="Item Tax Template")
 	frappe.clear_cache(doctype="Account")
