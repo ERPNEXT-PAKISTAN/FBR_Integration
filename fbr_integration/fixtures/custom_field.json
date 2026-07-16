@@ -57,7 +57,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -117,7 +118,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -177,7 +179,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -237,7 +240,8 @@
   "sort_options": 0,
   "translatable": 1,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -297,7 +301,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -357,7 +362,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -417,7 +423,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -477,7 +484,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -537,7 +545,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -597,7 +606,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -657,7 +667,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -717,7 +728,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -777,7 +789,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -837,7 +850,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -897,7 +911,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -957,7 +972,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1017,7 +1033,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1077,7 +1094,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1137,7 +1155,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1197,7 +1216,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1257,7 +1277,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1317,7 +1338,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1377,7 +1399,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1437,7 +1460,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1497,7 +1521,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1557,7 +1582,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1617,7 +1643,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1677,7 +1704,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1737,7 +1765,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1797,7 +1826,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1857,7 +1887,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1917,7 +1948,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -1977,7 +2009,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2037,7 +2070,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2097,7 +2131,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2157,7 +2192,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2217,7 +2253,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2277,7 +2314,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2337,7 +2375,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2397,7 +2436,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2457,7 +2497,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2517,7 +2558,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2577,7 +2619,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2637,7 +2680,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2697,7 +2741,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2757,7 +2802,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2817,7 +2863,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2877,7 +2924,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2937,7 +2985,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -2997,7 +3046,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3057,7 +3107,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3117,7 +3168,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3177,7 +3229,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3237,7 +3290,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3297,7 +3351,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3357,7 +3412,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3417,7 +3473,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3477,7 +3534,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3537,7 +3595,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3597,7 +3656,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3657,7 +3717,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3717,7 +3778,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3777,7 +3839,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3837,7 +3900,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3897,7 +3961,8 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  },
  {
   "allow_in_quick_entry": 0,
@@ -3957,6 +4022,7 @@
   "sort_options": 0,
   "translatable": 0,
   "unique": 0,
-  "width": null
+  "width": null,
+  "doctype": "Custom Field"
  }
 ]
