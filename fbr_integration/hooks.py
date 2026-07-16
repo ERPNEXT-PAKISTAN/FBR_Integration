@@ -37,6 +37,7 @@ after_install = "fbr_integration.item_tax_templates.after_install"
 
 after_migrate = [
 	"fbr_integration.item_tax_templates.sync_item_tax_templates",
+	"fbr_integration.print_format_sync.sync_print_formats",
 	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
 ]
 
