@@ -45,7 +45,19 @@ fixtures = [
 	{"dt": "Module Def", "filters": [["module_name", "=", "FBR Integration"]]},
 	{
 		"dt": "Custom Field",
-		"filters": [["dt", "in", ["Sales Invoice", "Sales Invoice Item", "Customer", "Item"]]],
+		"filters": [[
+			"dt",
+			"in",
+			["Sales Invoice", "Sales Invoice Item", "Delivery Note", "Delivery Note Item", "Customer", "Item"],
+		]],
+	},
+	{
+		"dt": "Property Setter",
+		"filters": [[
+			"doc_type",
+			"in",
+			["Sales Invoice", "Sales Invoice Item", "Delivery Note", "Delivery Note Item"],
+		]],
 	},
 	{"dt": "Print Format", "filters": [["module", "=", "FBR Integration"]]},
 	{"dt": "Workspace", "filters": [["name", "in", ["FBR Pakistan"]]]},
