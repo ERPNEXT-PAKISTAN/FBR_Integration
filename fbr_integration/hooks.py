@@ -33,8 +33,10 @@ doctype_js = {
 # Purple button CSS (you already have fbr.css)
 app_include_css = ["/assets/fbr_integration/css/fbr.css"]
 
+after_install = "fbr_integration.item_tax_templates.after_install"
+
 after_migrate = [
-	"fbr_integration.patches.add_item_tax_templates.execute",
+	"fbr_integration.item_tax_templates.sync_item_tax_templates",
 	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
 ]
 

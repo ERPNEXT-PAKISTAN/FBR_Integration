@@ -20,6 +20,7 @@ from fbr_integration.fbr_api import format_extra_tax_for_payload  # noqa: E402
 from fbr_integration.fbr_tax_calculation import (  # noqa: E402
 	get_effective_invoice_tax_scenario,
 )
+from fbr_integration.item_tax_templates import get_item_tax_template_specs  # noqa: E402
 
 
 class DummyDoc:
@@ -55,6 +56,12 @@ class TestFbrTaxCalculation(unittest.TestCase):
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN005"), "")
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN009"), "")
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN004"), 12.5)
+
+	def test_item_tax_template_seed_data_ships_expected_scenarios(self):
+		specs = get_item_tax_template_specs()
+		self.assertEqual(len(specs), 28)
+		self.assertEqual(specs[0]["scenario_id"], "SN001")
+		self.assertEqual(specs[-1]["scenario_id"], "SN028")
 
 
 if __name__ == "__main__":
