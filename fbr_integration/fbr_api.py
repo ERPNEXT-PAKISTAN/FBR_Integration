@@ -305,6 +305,32 @@ def sync_qr_fields(doc, qr_value):
 		doc.custom_qr_code = qr_val
 
 
+def persist_fbr_response_fields(doc):
+	"""Persist FBR response fields even when a later throw rolls back the document save."""
+	fields = {}
+	for fieldname in (
+		"custom_fbr_digital_invoice_response",
+		"custom_fbr_integration_type",
+		"custom_fbr_invoice_status",
+		"custom_fbr_invoice_status_code",
+		"custom_fbr_invoice_error",
+		"custom_fbr_invoice_error_code",
+		"custom_fbr_submission_time",
+		"custom_fbr_invoice_no",
+		"custom_fbr_invoice_item_no",
+		"custom_fbr_invoice_statuses",
+		"custom_fbr_qr_code",
+		"custom_qr_code",
+		"custom_fbr_responsed",
+	):
+		if hasattr(doc, fieldname):
+			fields[fieldname] = getattr(doc, fieldname)
+
+	if fields:
+		frappe.db.set_value(doc.doctype, doc.name, fields, update_modified=False)
+		frappe.db.commit()
+
+
 def get_source_invoice_no_for_return(doc):
 	"""Resolve source invoice number for Sales Return payloads."""
 	return_against = safe_str(getattr(doc, "return_against", "")).strip()
@@ -561,7 +587,7 @@ def send_invoice_to_fbr(doc, method=None):
 		"sellerBusinessName": safe_fbr_text(doc.company),
 		"sellerAddress": safe_fbr_text(seller_address),
 		"sellerProvince": safe_fbr_text(seller_province),
-		"buyerNTNCNIC": safe_str(doc.tax_id),
+		"buyerNTNCNIC": normalize_registration_no(doc.tax_id),
 		"buyerBusinessName": safe_fbr_text(doc.customer),
 		"buyerAddress": safe_fbr_text(buyer_address),
 		"buyerProvince": safe_fbr_text(buyer_province),
@@ -702,6 +728,7 @@ def send_invoice_to_fbr(doc, method=None):
 		doc.custom_fbr_responsed = "Success" if status_code == "00" else "Error"
 
 	doc.save(ignore_permissions=True)
+	persist_fbr_response_fields(doc)
 
 	# Raise if HTTP error
 	if resp.status_code >= 400:
