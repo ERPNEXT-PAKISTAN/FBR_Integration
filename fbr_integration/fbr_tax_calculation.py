@@ -92,6 +92,16 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 			item.custom_fbr_uom = item_defaults.get("custom_fbr_uom")
 
 
+def disable_update_stock_for_delivery_note_invoice(doc, method=None):
+	if doc.doctype != "Sales Invoice" or not getattr(doc, "update_stock", 0):
+		return
+
+	for item in doc.get("items") or []:
+		if getattr(item, "delivery_note", None) or getattr(item, "dn_detail", None):
+			doc.update_stock = 0
+			return
+
+
 def get_effective_invoice_tax_scenario(doc):
 	detail = (getattr(doc, "custom_scenario_detail", None) or "").strip()
 	if detail:
