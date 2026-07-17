@@ -588,7 +588,7 @@ def send_invoice_to_fbr(doc, method=None):
 		"sellerAddress": safe_fbr_text(seller_address),
 		"sellerProvince": safe_fbr_text(seller_province),
 		"buyerNTNCNIC": normalize_registration_no(doc.tax_id),
-		"buyerBusinessName": safe_fbr_text(doc.customer),
+		"buyerBusinessName": safe_fbr_text(getattr(doc, "customer_name", None) or doc.customer),
 		"buyerAddress": safe_fbr_text(buyer_address),
 		"buyerProvince": safe_fbr_text(buyer_province),
 		"invoiceRefNo": safe_str(doc.name),
