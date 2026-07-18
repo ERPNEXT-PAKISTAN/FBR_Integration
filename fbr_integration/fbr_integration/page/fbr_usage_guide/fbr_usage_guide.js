@@ -61,6 +61,9 @@ bench restart</pre>
                     <a href="/app/scheduled-job-log" target="_blank">Scheduled Job Log</a>
                     <a href="/app/scenario-id" target="_blank">Scenario ID</a>
                     <a href="/app/fbr-invoice-settings" target="_blank">FBR Invoice Settings</a>
+                    <a href="/app/fbr-payload-field-mapping/FBR%20Payload%20Field%20Mapping" target="_blank">FBR Payload Mapping</a>
+                    <a href="/app/fbr-payload-field" target="_blank">FBR Payload Field</a>
+                    <a href="/app/fbr-payload-source-field" target="_blank">FBR Payload Source Field</a>
                     <a href="/app/query-report/FBR%20Sales%20Detail" target="_blank">FBR Sales Detail Report</a>
                     <a href="/app/query-report/FBR%20Sales%20Summary" target="_blank">FBR Sales Summary Report</a>
                 </div>
@@ -73,6 +76,19 @@ bench restart</pre>
                 </div>
                 <div style="font-size:13px;color:#475569;">
                     Browser console helper: <code>clear_fbr_scenario_cache()</code>
+                </div>
+            </div>
+
+            <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;background:#fff;margin-top:16px;box-shadow:0 2px 8px rgba(16,24,40,0.04);">
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+                    <div>
+                        <div style="font-weight:700;font-size:15px;color:#1a202c;">Actual FBR Payload Fields</div>
+                        <div style="font-size:12px;color:#64748b;">Loaded from <b>/assets/fbr_integration/scenario_docs/SNxxx.json</b> sample payloads.</div>
+                    </div>
+                    <a href="/app/fbr-payload-field" target="_blank" style="font-size:12px;font-weight:700;">Open FBR Payload Field</a>
+                </div>
+                <div id="fbr_payload_fields_grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;">
+                    <div style="color:#64748b;font-size:13px;">Loading payload fields from scenario JSON...</div>
                 </div>
             </div>
 
@@ -92,6 +108,9 @@ bench restart</pre>
     setTimeout(() => {
         const gridContainer = document.getElementById("fbr_scenario_grid");
         const searchInput = document.getElementById("fbr_scenario_search");
+        const payloadFieldsContainer = document.getElementById(
+            "fbr_payload_fields_grid"
+        );
         let allScenarios = [];
 
         async function loadScenarios() {
@@ -102,9 +121,76 @@ bench restart</pre>
                 if (!resp.ok) throw new Error("Failed to load scenarios");
                 allScenarios = await resp.json();
                 renderScenarios(allScenarios);
+                loadPayloadFields(allScenarios);
             } catch (err) {
                 gridContainer.innerHTML = `<div style="grid-column:1/-1;color:#c53030;font-size:13px;padding:12px;">Error loading scenarios: ${err.message}</div>`;
             }
+        }
+
+        async function loadPayloadFields(scenarios) {
+            const headerFields = new Map();
+            const itemFields = new Map();
+
+            try {
+                await Promise.all(
+                    scenarios.map(async (scenario) => {
+                        const resp = await fetch(
+                            `/assets/fbr_integration/scenario_docs/${scenario.id}.json`
+                        );
+                        if (!resp.ok) return;
+                        const data = await resp.json();
+                        const sample = data.sample || {};
+
+                        Object.keys(sample).forEach((fieldname) => {
+                            if (fieldname !== "items") {
+                                headerFields.set(fieldname, true);
+                            }
+                        });
+
+                        (sample.items || []).forEach((item) => {
+                            Object.keys(item || {}).forEach((fieldname) => {
+                                itemFields.set(fieldname, true);
+                            });
+                        });
+                    })
+                );
+
+                renderPayloadFields(headerFields, itemFields);
+            } catch (err) {
+                payloadFieldsContainer.innerHTML = `<div style="grid-column:1/-1;color:#c53030;font-size:13px;padding:12px;">Error loading payload fields: ${err.message}</div>`;
+            }
+        }
+
+        function renderPayloadFields(headerFields, itemFields) {
+            const renderList = (title, fields, section) => {
+                const names = Array.from(fields.keys()).sort();
+                return `
+                    <div style="border:1px solid #dbe4ee;border-radius:10px;padding:12px;background:#f8fafc;">
+                        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px;">
+                            <div style="font-weight:700;color:#1f2937;">${title}</div>
+                            <span style="font-size:11px;background:#e2e8f0;color:#334155;padding:2px 7px;border-radius:999px;">${
+                                names.length
+                            } fields</span>
+                        </div>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                            ${names
+                                .map(
+                                    (fieldname) =>
+                                        `<a href="/app/fbr-payload-field/${encodeURIComponent(
+                                            fieldname
+                                        )}" target="_blank" title="${section}" style="font-size:12px;background:#fff;border:1px solid #cbd5e1;color:#0f172a;border-radius:999px;padding:3px 8px;text-decoration:none;">${frappe.utils.escape_html(
+                                            fieldname
+                                        )}</a>`
+                                )
+                                .join("")}
+                        </div>
+                    </div>
+                `;
+            };
+
+            payloadFieldsContainer.innerHTML =
+                renderList("Header Payload Fields", headerFields, "Header") +
+                renderList("Item Payload Fields", itemFields, "Item");
         }
 
         function renderScenarios(scenarios) {

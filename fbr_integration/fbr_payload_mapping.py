@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import frappe
 from frappe.utils import getdate
 
@@ -375,6 +378,52 @@ def _payload_field_doctype_available():
 	return frappe.db.exists("DocType", PAYLOAD_FIELD_DOCTYPE)
 
 
+def get_default_payload_field_map():
+	return {row["payload_field"]: row for row in DEFAULT_PAYLOAD_FIELD_MAPPINGS if row.get("payload_field")}
+
+
+def get_json_payload_fields():
+	fields = []
+	seen = set()
+	scenario_dir = Path(frappe.get_app_path("fbr_integration")) / "public" / "scenario_docs"
+
+	for path in sorted(scenario_dir.glob("SN*.json")):
+		try:
+			sample = json.loads(path.read_text()).get("sample") or {}
+		except Exception:
+			continue
+
+		for payload_field in sample:
+			if payload_field == "items":
+				continue
+			key = ("Header", payload_field)
+			if key not in seen:
+				fields.append(
+					{
+						"payload_section": "Header",
+						"payload_field": payload_field,
+						"description": "From FBR scenario JSON sample header.",
+					}
+				)
+				seen.add(key)
+
+		for item in sample.get("items") or []:
+			for payload_field in item:
+				key = ("Item", payload_field)
+				if key in seen:
+					continue
+				fields.append(
+					{
+						"payload_section": "Item",
+						"payload_field": payload_field,
+						"description": "From FBR scenario JSON sample item.",
+					}
+				)
+				seen.add(key)
+
+	return fields
+
+
 def _source_field_link_name(source_doctype, source_field):
 	if not source_doctype or not source_field:
 		return ""
@@ -449,15 +498,24 @@ def sync_payload_fields():
 	if not _payload_field_doctype_available():
 		return
 
+	default_rows = get_default_payload_field_map()
+	rows = get_json_payload_fields()
+	seen = {row["payload_field"] for row in rows}
 	for row in DEFAULT_PAYLOAD_FIELD_MAPPINGS:
+		if row.get("payload_field") not in seen:
+			rows.append(row)
+			seen.add(row.get("payload_field"))
+
+	for row in rows:
 		payload_field = row.get("payload_field")
 		if not payload_field:
 			continue
 
+		default_row = default_rows.get(payload_field) or {}
 		values = {
 			"payload_section": row.get("payload_section"),
 			"payload_field": payload_field,
-			"description": row.get("description"),
+			"description": default_row.get("description") or row.get("description"),
 		}
 		if frappe.db.exists(PAYLOAD_FIELD_DOCTYPE, payload_field):
 			frappe.db.set_value(PAYLOAD_FIELD_DOCTYPE, payload_field, values, update_modified=False)
