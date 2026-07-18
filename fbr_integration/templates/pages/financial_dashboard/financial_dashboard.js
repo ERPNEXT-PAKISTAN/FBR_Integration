@@ -72,7 +72,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function number(value) {
-        return frappe.format(value || 0, { fieldtype: "Float", precision: 2 });
+        return Math.round(Number(value || 0)).toLocaleString();
     }
 
     function pct(value) {

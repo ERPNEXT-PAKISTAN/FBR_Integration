@@ -250,9 +250,22 @@
 
 .fd-table-wrap th {
     border-top: 0;
-    color: var(--fd-muted);
+    border-bottom: 0 !important;
+    background: #0f766e;
+    color: #ffffff;
     font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
+}
+
+.fd-table-wrap thead th:first-child {
+    border-top-left-radius: 10px;
+    text-align: left;
+}
+
+.fd-table-wrap thead th:last-child {
+    border-top-right-radius: 10px;
 }
 
 .fd-table-wrap td,
@@ -719,7 +732,7 @@
 }
 
 .fd-expense-groups-table thead th {
-    background: #155eef;
+    background: #0f766e;
 }
 
 .fd-expense-hierarchy-table thead th {
