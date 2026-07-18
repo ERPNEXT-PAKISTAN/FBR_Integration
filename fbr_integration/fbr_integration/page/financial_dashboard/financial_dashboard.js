@@ -162,7 +162,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             labels.forEach((element, index) => {
                 if (values[index] !== undefined) {
                     element.textContent = chartNumber(values[index]);
-                    orientChartLabel(element, config.type);
+                    orientChartLabel(element, config.type, node);
                 }
             });
             attempts += 1;
@@ -178,14 +178,14 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 if (/^-?\d+(\.\d+)?[KMBT]$/.test(element.textContent || "")) {
                     if (values[index] !== undefined) {
                         element.textContent = chartNumber(values[index]);
-                        orientChartLabel(element, config.type);
+                        orientChartLabel(element, config.type, node);
                     }
                 }
             });
         }, 500);
     }
 
-    function orientChartLabel(element, type) {
+    function orientChartLabel(element, type, node) {
         if (type !== "bar") {
             element.removeAttribute("transform");
             element.setAttribute("text-anchor", "middle");
@@ -198,6 +198,38 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         element.setAttribute("dominant-baseline", "middle");
         element.setAttribute("dx", "-6");
         element.setAttribute("dy", "0");
+        window.requestAnimationFrame(() =>
+            fitBarLabelInsideChart(element, node)
+        );
+    }
+
+    function fitBarLabelInsideChart(element, node, attempt = 0) {
+        if (!element?.isConnected || !node?.isConnected || attempt > 2) return;
+        const svg = node.querySelector("svg");
+        if (!svg) return;
+        const chartBox = svg.getBoundingClientRect();
+        const labelBox = element.getBoundingClientRect();
+        if (!chartBox.height || !labelBox.height) return;
+
+        const safeTop = chartBox.top + 12;
+        const safeBottom = chartBox.bottom - 42;
+        const availableHeight = Math.max(safeBottom - safeTop, 40);
+        if (labelBox.height > availableHeight && attempt === 0) {
+            element.style.fontSize = "9px";
+        }
+
+        let dx = Number(element.getAttribute("dx") || 0);
+        if (labelBox.bottom > safeBottom) {
+            dx += labelBox.bottom - safeBottom + 6;
+        }
+        if (labelBox.top < safeTop) {
+            dx -= safeTop - labelBox.top + 6;
+        }
+        element.setAttribute("dx", String(Math.round(dx)));
+
+        window.requestAnimationFrame(() =>
+            fitBarLabelInsideChart(element, node, attempt + 1)
+        );
     }
 
     function relabelAllCharts() {
@@ -209,7 +241,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             labels.forEach((element, index) => {
                 if (values[index] !== undefined) {
                     element.textContent = chartNumber(values[index]);
-                    orientChartLabel(element, type);
+                    orientChartLabel(element, type, node);
                 }
             });
         });
