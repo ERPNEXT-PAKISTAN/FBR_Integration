@@ -1211,6 +1211,7 @@ def get_sales_return_invoices(company, from_date, to_date):
 			name,
 			posting_date,
 			customer_name,
+			COALESCE(return_against, '') AS return_against,
 			COALESCE(custom_fbr_source_invoice_no, '') AS custom_fbr_source_invoice_no,
 			COALESCE(custom_fbr_invoice_no, '') AS custom_fbr_invoice_no,
 			COALESCE(base_net_total, 0) AS exclusive,
