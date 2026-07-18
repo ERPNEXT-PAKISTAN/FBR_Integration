@@ -426,7 +426,11 @@ def _expense_main_group_totals(company, from_date, to_date):
 def _purchase_totals(company, from_date, to_date):
 	return frappe.db.sql(
 		"""
-		SELECT COUNT(*) AS purchase_count, COALESCE(SUM(base_grand_total), 0) AS purchase_total
+		SELECT
+			COUNT(*) AS purchase_count,
+			COALESCE(SUM(base_net_total), 0) AS purchase_exclusive,
+			COALESCE(SUM(base_total_taxes_and_charges), 0) AS purchase_tax,
+			COALESCE(SUM(base_grand_total), 0) AS purchase_total
 		FROM `tabPurchase Invoice`
 		WHERE company = %s
 		  AND posting_date BETWEEN %s AND %s
@@ -520,6 +524,8 @@ def fiscal_year_kpi_block_data(company=None):
 		},
 		"purchases": {
 			"purchase_count": int(purchases.purchase_count or 0),
+			"purchase_exclusive": round(purchases.purchase_exclusive or 0, 0),
+			"purchase_tax": round(purchases.purchase_tax or 0, 0),
 			"purchase_total": round(purchases.purchase_total or 0, 0),
 		},
 		"trend": _sales_purchase_trend(company, from_date, to_date),
