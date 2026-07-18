@@ -45,11 +45,18 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function money(value) {
-        return frappe.format(value || 0, {
-            fieldtype: "Currency",
-            options: state.currency,
-            precision: 0,
-        });
+        const amount = Math.round(Number(value || 0));
+        if (typeof format_currency === "function") {
+            return format_currency(amount, state.currency, 0).replace(
+                /([.,])00\b/g,
+                ""
+            );
+        }
+        return amount.toLocaleString();
+    }
+
+    function chartNumber(value) {
+        return Math.round(Number(value || 0)).toLocaleString();
     }
 
     function number(value) {
@@ -87,10 +94,18 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     function renderChart(selector, labelSelector, config, labelRows = []) {
         const node = resetChart(selector);
         if (node && typeof frappe.Chart !== "undefined") {
+            const axisOptions = ["bar", "line"].includes(config.type)
+                ? {
+                      ...(config.axisOptions || {}),
+                      shortenYAxisNumbers: 0,
+                      numberFormatter: chartNumber,
+                  }
+                : config.axisOptions;
             const chartConfig = ["bar", "line"].includes(config.type)
                 ? {
                       valuesOverPoints: 1,
                       ...config,
+                      axisOptions,
                       barOptions: {
                           ...(config.barOptions || {}),
                           spaceRatio: 0.08,
