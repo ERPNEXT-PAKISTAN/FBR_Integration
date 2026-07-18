@@ -1,37 +1,58 @@
 <div class="fd-shell">
     <section class="fd-hero">
-        <div>
-            <div class="fd-eyebrow">FBR Integration · Executive Finance</div>
-            <h1>Financial Dashboard</h1>
-            <p id="fdPeriodLabel">
-                Tax Year 2025-2026 · 01-07-2025 to 30-06-2026
-            </p>
-        </div>
-        <div class="fd-actions">
-            <select id="fdCompany" class="form-control"></select>
-            <div class="fd-date-pair">
-                <input type="date" id="fdFromDate" class="form-control" />
-                <span>to</span>
-                <input type="date" id="fdToDate" class="form-control" />
+        <div class="fd-hero-top">
+            <div>
+                <div class="fd-eyebrow">
+                    FBR Integration · Executive Finance
+                </div>
+                <h1>Financial Dashboard</h1>
+                <p id="fdPeriodLabel">
+                    Tax Year 2025-2026 · 01-07-2025 to 30-06-2026
+                </p>
             </div>
-            <select id="fdGroupBy" class="form-control">
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-            </select>
-            <button class="btn btn-primary" id="fdRefresh">Refresh</button>
+            <div class="fd-actions">
+                <select id="fdCompany" class="form-control"></select>
+                <div class="fd-date-pair">
+                    <input type="date" id="fdFromDate" class="form-control" />
+                    <span>to</span>
+                    <input type="date" id="fdToDate" class="form-control" />
+                </div>
+                <select id="fdGroupBy" class="form-control">
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+                <button class="btn btn-primary" id="fdRefresh">Refresh</button>
+            </div>
         </div>
-    </section>
 
-    <section class="fd-presets">
-        <button class="fd-preset active" data-preset="tax_year">
-            Tax Year 2025-2026
-        </button>
-        <button class="fd-preset" data-preset="this_month">This Month</button>
-        <button class="fd-preset" data-preset="this_quarter">
-            This Quarter
-        </button>
-        <button class="fd-preset" data-preset="today">Today</button>
+        <div class="fd-hero-controls">
+            <section class="fd-presets">
+                <button class="fd-preset active" data-preset="tax_year">
+                    Tax Year 2025-2026
+                </button>
+                <button class="fd-preset" data-preset="this_month">
+                    This Month
+                </button>
+                <button class="fd-preset" data-preset="this_quarter">
+                    This Quarter
+                </button>
+                <button class="fd-preset" data-preset="today">Today</button>
+            </section>
+
+            <section class="fd-tabs">
+                <button class="fd-tab active" data-tab="overview">
+                    Overview
+                </button>
+                <button class="fd-tab" data-tab="tax-year">Tax Year</button>
+                <button class="fd-tab" data-tab="sales">Sales</button>
+                <button class="fd-tab" data-tab="purchases">Purchases</button>
+                <button class="fd-tab" data-tab="expenses">Expenses</button>
+                <button class="fd-tab" data-tab="stock">Stock</button>
+                <button class="fd-tab" data-tab="reports">Reports</button>
+                <button class="fd-tab" data-tab="ratios">Ratios</button>
+            </section>
+        </div>
     </section>
 
     <section class="fd-kpis">
@@ -59,17 +80,6 @@
             <span>Purchase Activity</span><strong id="fdPurchaseCount">0</strong
             ><small id="fdPurchaseTotal">0</small>
         </div>
-    </section>
-
-    <section class="fd-tabs">
-        <button class="fd-tab active" data-tab="overview">Overview</button>
-        <button class="fd-tab" data-tab="tax-year">Tax Year</button>
-        <button class="fd-tab" data-tab="sales">Sales</button>
-        <button class="fd-tab" data-tab="purchases">Purchases</button>
-        <button class="fd-tab" data-tab="expenses">Expenses</button>
-        <button class="fd-tab" data-tab="stock">Stock</button>
-        <button class="fd-tab" data-tab="reports">Reports</button>
-        <button class="fd-tab" data-tab="ratios">Ratios</button>
     </section>
 
     <section class="fd-tab-panel active" id="fd-tab-overview">

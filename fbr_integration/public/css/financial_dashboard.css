@@ -749,3 +749,79 @@
         grid-template-columns: 1fr;
     }
 }
+
+.fd-hero {
+    display: block;
+    padding: 18px;
+}
+
+.fd-hero-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.fd-hero-controls {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.fd-hero .fd-presets,
+.fd-hero .fd-tabs {
+    margin: 0;
+}
+
+.fd-hero .fd-preset,
+.fd-hero .fd-tab {
+    padding: 7px 13px;
+    font-size: 12px;
+    line-height: 1.15;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.fd-hero .fd-actions {
+    grid-template-columns: minmax(190px, 1fr) minmax(250px, 1.1fr) 120px auto;
+    min-width: 0;
+    width: min(760px, 100%);
+    align-items: center;
+}
+
+.fd-hero .fd-actions .form-control,
+.fd-hero .fd-actions .btn {
+    height: 34px;
+    min-height: 34px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 12px;
+}
+
+.fd-hero .fd-date-pair {
+    grid-template-columns: 1fr auto 1fr;
+}
+
+.fd-hero .fd-date-pair span {
+    font-size: 11px;
+}
+
+.fd-kpis {
+    margin-top: 18px;
+}
+
+@media (max-width: 1200px) {
+    .fd-hero-top {
+        display: grid;
+    }
+
+    .fd-hero .fd-actions {
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .fd-hero .fd-actions {
+        grid-template-columns: 1fr;
+    }
+}
