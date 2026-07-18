@@ -67,6 +67,7 @@ after_migrate = [
 	"fbr_integration.print_format_sync.sync_print_formats",
 	"fbr_integration.patches.remove_sales_invoice_update_stock_default.execute",
 	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
+	"fbr_integration.patches.set_sales_invoice_update_after_submit_fields.execute",
 ]
 
 # Fixtures: ship custom fields + print formats + reports + workspace/dashboard (recommended)
@@ -96,7 +97,13 @@ fixtures = [
 			[
 				"doc_type",
 				"in",
-				["Sales Invoice", "Sales Invoice Item", "Delivery Note", "Delivery Note Item"],
+				[
+					"Sales Invoice",
+					"Sales Invoice Item",
+					"Sales Taxes and Charges",
+					"Delivery Note",
+					"Delivery Note Item",
+				],
 			]
 		],
 	},

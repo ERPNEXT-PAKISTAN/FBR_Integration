@@ -379,6 +379,64 @@ def get_revenue_sources(company, from_date, to_date):
 	return result
 
 
+@frappe.whitelist()
+def get_customer_group_sales(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	customer_group_expr = (
+		"COALESCE(NULLIF(si.customer_group, ''), NULLIF(customer.customer_group, ''), 'No Customer Group')"
+		if frappe.db.has_column("Sales Invoice", "customer_group")
+		else "COALESCE(NULLIF(customer.customer_group, ''), 'No Customer Group')"
+	)
+	return frappe.db.sql(
+		f"""
+		SELECT
+			{customer_group_expr} AS customer_group,
+			COALESCE(SUM(si.base_net_total), 0) AS amount,
+			COUNT(si.name) AS invoice_count
+		FROM `tabSales Invoice` si
+		LEFT JOIN `tabCustomer` customer ON si.customer = customer.name
+		WHERE si.company = %s
+		  AND si.docstatus = 1
+		  AND si.posting_date BETWEEN %s AND %s
+		GROUP BY customer_group
+		HAVING amount <> 0
+		ORDER BY amount DESC
+		LIMIT 15
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def get_supplier_group_purchases(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	supplier_group_expr = (
+		"COALESCE(NULLIF(pi.supplier_group, ''), NULLIF(supplier.supplier_group, ''), 'No Supplier Group')"
+		if frappe.db.has_column("Purchase Invoice", "supplier_group")
+		else "COALESCE(NULLIF(supplier.supplier_group, ''), 'No Supplier Group')"
+	)
+	return frappe.db.sql(
+		f"""
+		SELECT
+			{supplier_group_expr} AS supplier_group,
+			COALESCE(SUM(pi.base_net_total), 0) AS amount,
+			COUNT(pi.name) AS invoice_count
+		FROM `tabPurchase Invoice` pi
+		LEFT JOIN `tabSupplier` supplier ON pi.supplier = supplier.name
+		WHERE pi.company = %s
+		  AND pi.docstatus = 1
+		  AND pi.posting_date BETWEEN %s AND %s
+		GROUP BY supplier_group
+		HAVING amount <> 0
+		ORDER BY amount DESC
+		LIMIT 15
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+
+
 def _get_pl_accounts_tree(company, root_type):
 	"""Get accounts for root_type (Income/Expense) in tree order: name, account_name, parent_account, lft, is_group, include_in_gross."""
 	return frappe.db.sql(
@@ -1738,6 +1796,8 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 	stock_by_item_group = get_stock_by_item_group(company)
 	warehouses = get_warehouses(company)
 	revenue_sources = get_revenue_sources(company, from_date, to_date)
+	customer_group_sales = get_customer_group_sales(company, from_date, to_date)
+	supplier_group_purchases = get_supplier_group_purchases(company, from_date, to_date)
 	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
 	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
 	tax_period_summary = get_tax_period_summary(company, from_date, to_date, group_by)
@@ -1766,6 +1826,8 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 		"stock_by_item_group": stock_by_item_group,
 		"warehouses": warehouses,
 		"revenue_sources": revenue_sources,
+		"customer_group_sales": customer_group_sales,
+		"supplier_group_purchases": supplier_group_purchases,
 		"sales_summary": sales_summary,
 		"purchases_summary": purchases_summary,
 		"tax_period_summary": tax_period_summary,

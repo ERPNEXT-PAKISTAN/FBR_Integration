@@ -576,6 +576,64 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             },
             []
         );
+
+        const customerGroupSales = data.customer_group_sales || [];
+        renderChart(
+            "#fdCustomerGroupSalesChart",
+            "#fdCustomerGroupSalesLabels",
+            {
+                type: "bar",
+                height: 320,
+                data: {
+                    labels: customerGroupSales.map(
+                        (row) => row.customer_group || __("No Customer Group")
+                    ),
+                    datasets: [
+                        {
+                            name: __("Sales"),
+                            values: customerGroupSales.map(
+                                (row) => row.amount || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: [chartBlue],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
+            },
+            customerGroupSales.map((row) => ({
+                label: row.customer_group || __("No Customer Group"),
+                value: row.amount || 0,
+            }))
+        );
+
+        const supplierGroupPurchases = data.supplier_group_purchases || [];
+        renderChart(
+            "#fdSupplierGroupPurchaseChart",
+            "#fdSupplierGroupPurchaseLabels",
+            {
+                type: "bar",
+                height: 320,
+                data: {
+                    labels: supplierGroupPurchases.map(
+                        (row) => row.supplier_group || __("No Supplier Group")
+                    ),
+                    datasets: [
+                        {
+                            name: __("Purchases"),
+                            values: supplierGroupPurchases.map(
+                                (row) => row.amount || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: [chartGreen],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
+            },
+            supplierGroupPurchases.map((row) => ({
+                label: row.supplier_group || __("No Supplier Group"),
+                value: row.amount || 0,
+            }))
+        );
     }
 
     function renderDashboard(data) {
