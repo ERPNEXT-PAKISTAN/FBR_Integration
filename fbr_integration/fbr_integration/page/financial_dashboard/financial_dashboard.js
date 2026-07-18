@@ -501,6 +501,48 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(selector).html((html ? html + totalRow : "") || rowEmpty(5));
     }
 
+    function renderSalesReturnRows(selector, rows) {
+        const totals = (rows || []).reduce(
+            (sum, row) => {
+                sum.exclusive += Number(row.exclusive || 0);
+                sum.tax += Number(row.tax || 0);
+                sum.inclusive += Number(row.inclusive || 0);
+                return sum;
+            },
+            { exclusive: 0, tax: 0, inclusive: 0 }
+        );
+        const html = (rows || [])
+            .map(
+                (row) =>
+                    `<tr><td><a href="/app/sales-invoice/${escape(
+                        row.name
+                    )}" target="_blank">${escape(
+                        row.name
+                    )}</a></td><td>${escape(
+                        fmtDate(row.posting_date)
+                    )}</td><td>${escape(
+                        row.customer_name || "-"
+                    )}</td><td>${escape(
+                        row.custom_fbr_source_invoice_no || "-"
+                    )}</td><td>${escape(
+                        row.custom_fbr_invoice_no || "-"
+                    )}</td><td class="text-right">${money(
+                        row.exclusive || 0
+                    )}</td><td class="text-right">${money(
+                        row.tax || 0
+                    )}</td><td class="text-right">${money(
+                        row.inclusive || 0
+                    )}</td></tr>`
+            )
+            .join("");
+        const totalRow = `<tr class="fd-total-row"><td>Total</td><td></td><td></td><td></td><td></td><td class="text-right">${money(
+            totals.exclusive
+        )}</td><td class="text-right">${money(
+            totals.tax
+        )}</td><td class="text-right">${money(totals.inclusive)}</td></tr>`;
+        $(selector).html((html ? html + totalRow : "") || rowEmpty(8));
+    }
+
     function renderTaxAccountRows(selector, rows) {
         const totalDebit = (rows || []).reduce(
             (sum, row) => sum + Number(row.debit || 0),
@@ -1183,6 +1225,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         renderSalesInvoiceStatus(data);
 
         renderSimpleRows("#fdSalesRows", data.sales_summary, "sales");
+        renderSalesReturnRows("#fdSalesReturnRows", data.sales_returns || []);
         renderSimpleRows("#fdPurchaseRows", data.purchases_summary, "purchase");
         renderAging("#fdReceivablesRows", data.receivables, "customer");
         renderAging("#fdPayablesRows", data.payables, "supplier");

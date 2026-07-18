@@ -1203,6 +1203,33 @@ def get_sales_summary(company, from_date, to_date, group_by="monthly"):
 
 
 @frappe.whitelist()
+def get_sales_return_invoices(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	return frappe.db.sql(
+		"""
+		SELECT
+			name,
+			posting_date,
+			customer_name,
+			COALESCE(custom_fbr_source_invoice_no, '') AS custom_fbr_source_invoice_no,
+			COALESCE(custom_fbr_invoice_no, '') AS custom_fbr_invoice_no,
+			COALESCE(base_net_total, 0) AS exclusive,
+			COALESCE(base_total_taxes_and_charges, 0) AS tax,
+			COALESCE(base_grand_total, 0) AS inclusive
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND docstatus = 1
+		  AND is_return = 1
+		  AND posting_date BETWEEN %s AND %s
+		ORDER BY posting_date DESC, modified DESC
+		LIMIT 50
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
 def get_purchases_summary(company, from_date, to_date, group_by="monthly"):
 	"""Purchase invoices by period with exclusive, tax, inclusive and change columns."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
@@ -1790,7 +1817,7 @@ def _status_group_rows(company, from_date, to_date, fieldname, item_field=False,
 		{join}
 		WHERE si.company = %s
 		  AND si.posting_date BETWEEN %s AND %s
-		  AND si.docstatus < 2
+		  AND si.docstatus IN (0, 1)
 		GROUP BY label
 		ORDER BY inclusive DESC
 		LIMIT {cint(limit)}
@@ -1826,7 +1853,7 @@ def _item_tax_template_status_rows(company, from_date, to_date):
 		) accounts ON accounts.parent = sii.item_tax_template
 		WHERE si.company = %s
 		  AND si.posting_date BETWEEN %s AND %s
-		  AND si.docstatus < 2
+		  AND si.docstatus IN (0, 1)
 		GROUP BY item_tax_template, account_head
 		HAVING exclusive <> 0 OR tax <> 0 OR inclusive <> 0
 		ORDER BY tax DESC, inclusive DESC
@@ -1849,7 +1876,6 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 			COUNT(*) AS total_invoices,
 			SUM(CASE WHEN docstatus = 0 THEN 1 ELSE 0 END) AS draft_count,
 			SUM(CASE WHEN docstatus = 1 THEN 1 ELSE 0 END) AS submitted_count,
-			SUM(CASE WHEN docstatus = 2 THEN 1 ELSE 0 END) AS cancelled_count,
 			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') != '' THEN 1 ELSE 0 END) AS fbr_submitted_count,
 			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') = '' THEN 1 ELSE 0 END) AS fbr_pending_count,
 			SUM(CASE WHEN docstatus = 1 AND LOWER(COALESCE(custom_fbr_invoice_status, '')) LIKE '%%fail%%' THEN 1 ELSE 0 END) AS fbr_failed_count,
@@ -1859,6 +1885,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 		FROM `tabSales Invoice`
 		WHERE company = %s
 		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus IN (0, 1)
 		""",
 		(company, from_date, to_date),
 		as_dict=True,
@@ -1871,7 +1898,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 		FROM `tabSales Invoice`
 		WHERE company = %s
 		  AND posting_date BETWEEN %s AND %s
-		  AND docstatus < 2
+		  AND docstatus IN (0, 1)
 		GROUP BY label
 		ORDER BY value DESC
 		""",
@@ -1883,7 +1910,6 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 		SELECT
 			CASE
 				WHEN docstatus = 0 THEN 'Draft'
-				WHEN docstatus = 2 THEN 'Cancelled'
 				WHEN COALESCE(custom_fbr_invoice_no, '') != '' THEN 'Submitted to FBR'
 				WHEN LOWER(COALESCE(custom_fbr_invoice_status, '')) LIKE '%%fail%%' THEN 'Failed'
 				ELSE 'Pending FBR'
@@ -1892,6 +1918,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 		FROM `tabSales Invoice`
 		WHERE company = %s
 		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus IN (0, 1)
 		GROUP BY label
 		ORDER BY value DESC
 		""",
@@ -1917,6 +1944,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 		FROM `tabSales Invoice`
 		WHERE company = %s
 		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus IN (0, 1)
 		ORDER BY posting_date DESC, modified DESC
 		LIMIT 20
 		""",
@@ -1929,7 +1957,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 			"total_invoices": cint(summary.total_invoices),
 			"draft_count": cint(summary.draft_count),
 			"submitted_count": cint(summary.submitted_count),
-			"cancelled_count": cint(summary.cancelled_count),
+			"cancelled_count": 0,
 			"fbr_submitted_count": cint(summary.fbr_submitted_count),
 			"fbr_pending_count": cint(summary.fbr_pending_count),
 			"fbr_failed_count": cint(summary.fbr_failed_count),
@@ -1977,6 +2005,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 	customer_group_sales = get_customer_group_sales(company, from_date, to_date)
 	supplier_group_purchases = get_supplier_group_purchases(company, from_date, to_date)
 	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
+	sales_returns = get_sales_return_invoices(company, from_date, to_date)
 	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
 	tax_period_summary = get_tax_period_summary(company, from_date, to_date, group_by)
 	sales_tax_summary = get_sales_tax_summary(company, from_date, to_date)
@@ -2008,6 +2037,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 		"customer_group_sales": customer_group_sales,
 		"supplier_group_purchases": supplier_group_purchases,
 		"sales_summary": sales_summary,
+		"sales_returns": sales_returns,
 		"purchases_summary": purchases_summary,
 		"tax_period_summary": tax_period_summary,
 		"sales_tax_summary": sales_tax_summary,
