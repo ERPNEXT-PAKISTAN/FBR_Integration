@@ -109,17 +109,17 @@
 
 .fd-kpis {
     display: grid;
-    grid-template-columns: repeat(6, minmax(150px, 1fr));
-    gap: 14px;
-    margin-bottom: 18px;
+    grid-template-columns: repeat(6, minmax(135px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
 }
 
 .fd-kpi {
     position: relative;
     overflow: hidden;
-    min-height: 132px;
-    border-radius: 18px;
-    padding: 18px;
+    min-height: 106px;
+    border-radius: 15px;
+    padding: 13px 14px;
     background: var(--fd-card);
     border: 1px solid var(--fd-border);
     box-shadow: var(--fd-shadow);
@@ -130,8 +130,8 @@
     position: absolute;
     right: -28px;
     top: -28px;
-    width: 92px;
-    height: 92px;
+    width: 74px;
+    height: 74px;
     border-radius: 50%;
     background: currentColor;
     opacity: 0.1;
@@ -141,14 +141,14 @@
 .fd-kpi small {
     display: block;
     color: var(--fd-muted);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 650;
 }
 
 .fd-kpi strong {
     display: block;
-    margin: 12px 0 10px;
-    font-size: 18px;
+    margin: 8px 0 7px;
+    font-size: clamp(14px, 1.35vw, 17px);
     line-height: 1.15;
 }
 
@@ -463,7 +463,7 @@
 
 .fd-ratio strong {
     margin-top: 3px;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.15;
 }
 

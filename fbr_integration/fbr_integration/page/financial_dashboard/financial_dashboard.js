@@ -134,6 +134,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             if (["bar", "line"].includes(config.type)) {
                 state.chartLabels.set(selector, {
                     node,
+                    type: chartConfig.type,
                     values: (chartConfig.data?.datasets || []).flatMap(
                         (dataset) => dataset.values || []
                     ),
@@ -161,6 +162,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             labels.forEach((element, index) => {
                 if (values[index] !== undefined) {
                     element.textContent = chartNumber(values[index]);
+                    orientChartLabel(element, config.type);
                 }
             });
             attempts += 1;
@@ -176,14 +178,30 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 if (/^-?\d+(\.\d+)?[KMBT]$/.test(element.textContent || "")) {
                     if (values[index] !== undefined) {
                         element.textContent = chartNumber(values[index]);
+                        orientChartLabel(element, config.type);
                     }
                 }
             });
         }, 500);
     }
 
+    function orientChartLabel(element, type) {
+        if (type !== "bar") {
+            element.removeAttribute("transform");
+            element.setAttribute("text-anchor", "middle");
+            return;
+        }
+        const x = Number(element.getAttribute("x") || 0);
+        const y = Number(element.getAttribute("y") || 0);
+        element.setAttribute("transform", `rotate(-90 ${x} ${y})`);
+        element.setAttribute("text-anchor", "start");
+        element.setAttribute("dominant-baseline", "middle");
+        element.setAttribute("dx", "4");
+        element.setAttribute("dy", "0");
+    }
+
     function relabelAllCharts() {
-        state.chartLabels.forEach(({ node, values }) => {
+        state.chartLabels.forEach(({ node, type, values }) => {
             if (!node || !node.isConnected) return;
             const labels = node.querySelectorAll(
                 "text.data-point-value, [class*='data-point-value']"
@@ -191,6 +209,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             labels.forEach((element, index) => {
                 if (values[index] !== undefined) {
                     element.textContent = chartNumber(values[index]);
+                    orientChartLabel(element, type);
                 }
             });
         });
