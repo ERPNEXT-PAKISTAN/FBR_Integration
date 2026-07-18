@@ -470,7 +470,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             "#fdRevenueSourceChart",
             null,
             {
-                type: "pie",
+                type: "bar",
                 height: 280,
                 data: {
                     labels: (data.revenue_sources || []).map(
@@ -485,18 +485,16 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     ],
                 },
                 colors: chartColors,
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
-            (data.revenue_sources || []).map((row) => ({
-                label: row.item_group,
-                value: row.amount,
-            }))
+            []
         );
 
         renderChart(
             "#fdExpenseChart",
             null,
             {
-                type: "pie",
+                type: "bar",
                 height: 280,
                 data: {
                     labels: data.expense_breakdown?.labels || [],
@@ -505,11 +503,9 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     ],
                 },
                 colors: [chartBlue, chartGreen],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
-            datasetRows(
-                data.expense_breakdown?.labels || [],
-                data.expense_breakdown?.values || []
-            )
+            []
         );
         renderChart(
             "#fdExpensesTabChart",
