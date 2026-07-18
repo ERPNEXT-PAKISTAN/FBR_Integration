@@ -1,7 +1,15 @@
 const FBR_MAPPING_TABLES = ["header_mappings", "item_mappings", "mappings"];
 
 function get_allowed_doctypes() {
-    return ["Sales Invoice", "Sales Invoice Item", "Address"];
+    return [
+        "Sales Invoice",
+        "Sales Invoice Item",
+        "Address",
+        "Customer",
+        "Company",
+        "Item",
+        "Item Tax Template",
+    ];
 }
 
 function set_grid_queries(frm) {

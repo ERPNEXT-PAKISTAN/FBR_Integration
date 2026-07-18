@@ -5,7 +5,23 @@ MAPPING_DOCTYPE = "FBR Payload Field Mapping"
 DETAIL_DOCTYPE = "FBR Payload Field Mapping Detail"
 SOURCE_FIELD_DOCTYPE = "FBR Payload Source Field"
 MAPPING_TABLE_FIELDS = ("header_mappings", "item_mappings", "mappings")
-SOURCE_FIELD_DOCTYPES = ("Sales Invoice", "Sales Invoice Item", "Address")
+SOURCE_FIELD_DOCTYPES = (
+	"Sales Invoice",
+	"Sales Invoice Item",
+	"Address",
+	"Customer",
+	"Company",
+	"Item",
+	"Item Tax Template",
+)
+HEADER_LINKED_DOCTYPE_FIELDS = {
+	"Customer": "customer",
+	"Company": "company",
+}
+ITEM_LINKED_DOCTYPE_FIELDS = {
+	"Item": "item_code",
+	"Item Tax Template": "item_tax_template",
+}
 
 
 DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
@@ -532,6 +548,15 @@ def _get_address_doc(doc, payload_field):
 		return None
 
 
+def _get_linked_doc(source_doctype, source_name):
+	if not source_name:
+		return None
+	try:
+		return frappe.get_doc(source_doctype, source_name)
+	except Exception:
+		return None
+
+
 def _get_source_value(row, doc, item=None):
 	source_doctype = (getattr(row, "source_doctype", None) or "").strip()
 	source_field = get_source_fieldname(source_doctype, (getattr(row, "source_field", None) or "").strip())
@@ -545,6 +570,15 @@ def _get_source_value(row, doc, item=None):
 		source_doc = item
 	elif source_doctype == "Address":
 		source_doc = _get_address_doc(doc, payload_field)
+	elif source_doctype in HEADER_LINKED_DOCTYPE_FIELDS:
+		source_doc = _get_linked_doc(
+			source_doctype, getattr(doc, HEADER_LINKED_DOCTYPE_FIELDS[source_doctype], None)
+		)
+	elif source_doctype in ITEM_LINKED_DOCTYPE_FIELDS:
+		source_doc = _get_linked_doc(
+			source_doctype,
+			getattr(item, ITEM_LINKED_DOCTYPE_FIELDS[source_doctype], None) if item else None,
+		)
 	else:
 		return None
 
