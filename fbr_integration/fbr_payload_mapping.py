@@ -525,3 +525,17 @@ def get_doctype_field_options(doctype):
 		label = field.label or field.fieldname
 		fields.append({"value": field.fieldname, "label": f"{field.fieldname} - {label}"})
 	return fields
+
+
+@frappe.whitelist()
+def search_doctype_fields(doctype=None, source_doctype=None, txt=None, **kwargs):
+	selected_doctype = source_doctype or doctype
+	search_text = (txt or "").lower()
+	fields = get_doctype_field_options(selected_doctype)
+	if search_text:
+		fields = [
+			field
+			for field in fields
+			if search_text in field.get("value", "").lower() or search_text in field.get("label", "").lower()
+		]
+	return fields

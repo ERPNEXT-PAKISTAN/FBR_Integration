@@ -47,7 +47,7 @@
   },
   {
    "fieldname": "source_field",
-   "fieldtype": "Select",
+   "fieldtype": "Autocomplete",
    "in_list_view": 1,
    "label": "Source Field"
   },
