@@ -56,7 +56,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function chartNumber(value) {
-        return Math.round(Number(value || 0)).toLocaleString();
+        return String(Math.round(Number(value || 0)));
     }
 
     function roundedChartData(data = {}) {
@@ -146,20 +146,33 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const values = (config.data?.datasets || []).flatMap(
             (dataset) => dataset.values || []
         );
+        let attempts = 0;
         const applyFullLabels = () => {
-            $(node)
-                .find("text.data-point-value, .data-point-value")
-                .each((index, element) => {
+            const labels = node.querySelectorAll(
+                "text.data-point-value, [class*='data-point-value']"
+            );
+            labels.forEach((element, index) => {
+                if (values[index] !== undefined) {
+                    element.textContent = chartNumber(values[index]);
+                }
+            });
+            attempts += 1;
+            if (attempts < 25) {
+                window.setTimeout(applyFullLabels, 250);
+            }
+        };
+        applyFullLabels();
+        window.setTimeout(applyFullLabels, 0);
+        window.setTimeout(applyFullLabels, 80);
+        window.setTimeout(() => {
+            node.querySelectorAll("svg text").forEach((element, index) => {
+                if (/^-?\d+(\.\d+)?[KMBT]$/.test(element.textContent || "")) {
                     if (values[index] !== undefined) {
                         element.textContent = chartNumber(values[index]);
                     }
-                });
-        };
-        [80, 250, 700, 1200, 2200, 4000].forEach((delay) =>
-            window.setTimeout(() => {
-                applyFullLabels();
-            }, delay)
-        );
+                }
+            });
+        }, 500);
     }
 
     function renderExternalSliceLabels(node, rows) {
