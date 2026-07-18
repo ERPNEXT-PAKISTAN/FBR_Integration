@@ -701,13 +701,47 @@
 .fd-tree-wrap th.text-right {
     width: 38%;
     min-width: 0;
-    text-align: left !important;
+    text-align: right !important;
 }
 
 .fd-total-row td {
     border-top: 2px solid #d0d5dd !important;
     background: #f8fafc;
     font-weight: 850;
+}
+
+.fd-expense-groups-table thead th,
+.fd-expense-hierarchy-table thead th {
+    border-bottom: 0 !important;
+    color: #ffffff;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+}
+
+.fd-expense-groups-table thead th {
+    background: #155eef;
+}
+
+.fd-expense-hierarchy-table thead th {
+    background: #0f766e;
+}
+
+.fd-expense-groups-table thead th:first-child,
+.fd-expense-hierarchy-table thead th:first-child {
+    border-top-left-radius: 10px;
+    text-align: left;
+}
+
+.fd-expense-groups-table thead th:last-child,
+.fd-expense-hierarchy-table thead th:last-child {
+    border-top-right-radius: 10px;
+    text-align: right !important;
+}
+
+.fd-expense-group-total td {
+    background: #dbeafe !important;
+    color: #0f172a;
+    font-weight: 950;
 }
 
 .fd-mini-select {

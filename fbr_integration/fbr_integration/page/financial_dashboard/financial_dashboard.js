@@ -569,9 +569,19 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 )
                 .join("") || rowEmpty(2)
         );
+        const expenseGroupRows = (data.expense_hierarchy || []).filter(
+            (row) => row.is_group
+        );
+        const expenseGroupTotal = expenseGroupRows
+            .filter((row) => Number(row.indent || 0) === 0)
+            .reduce((sum, row) => sum + Number(row.value || 0), 0);
+        const expenseGroupTotalRow = expenseGroupTotal
+            ? `<tr class="fd-expense-group-total fd-total-row"><td>Total Expenses</td><td class="text-right">${money(
+                  expenseGroupTotal
+              )}</td></tr>`
+            : "";
         $("#fdExpenseGroupRows").html(
-            (data.expense_hierarchy || [])
-                .filter((row) => row.is_group)
+            expenseGroupRows
                 .map((row) => {
                     const indent = Number(row.indent || 0);
                     return `<tr class="fd-expense-group-row fd-expense-group-level-${Math.min(
@@ -583,7 +593,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         row.value
                     )}</td></tr>`;
                 })
-                .join("") || rowEmpty(2)
+                .join("") + expenseGroupTotalRow || rowEmpty(2)
         );
         $("#fdExpenseHierarchyRows").html(
             (data.expense_hierarchy || [])
