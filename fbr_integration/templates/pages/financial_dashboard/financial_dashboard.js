@@ -552,9 +552,23 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 )
                 .join("") || rowEmpty(2)
         );
-        $("#fdExpenseHierarchyRows").html(
+        $("#fdExpenseGroupRows").html(
             (data.expense_hierarchy || [])
                 .filter((row) => row.is_group)
+                .map((row) => {
+                    const indent = Number(row.indent || 0);
+                    return `<tr class="fd-tree-group"><td style="padding-left: ${
+                        8 + indent * 18
+                    }px">${escape(
+                        row.account
+                    )}</td><td class="text-right">${money(
+                        row.value
+                    )}</td></tr>`;
+                })
+                .join("") || rowEmpty(2)
+        );
+        $("#fdExpenseHierarchyRows").html(
+            (data.expense_hierarchy || [])
                 .map((row) => {
                     const indent = Number(row.indent || 0);
                     return `<tr class="${
