@@ -1,4 +1,6 @@
-function show_fbr_payload_json() {
+frappe.provide("fbr_integration.payload_reference");
+
+window.fbr_integration.payload_reference.show_payload_json = function () {
     frappe.call({
         method: "fbr_integration.fbr_payload_mapping.get_current_payload_sample",
         args: { scenario_id: "SN002" },
@@ -15,11 +17,16 @@ function show_fbr_payload_json() {
             });
         },
     });
-}
+};
 
-function add_fbr_payload_json_button(frm) {
-    frm.add_custom_button(__("View Payload JSON"), show_fbr_payload_json);
-}
+window.fbr_integration.payload_reference.add_form_button = function (frm) {
+    if (frm.__fbr_payload_json_button_added) return;
+    frm.__fbr_payload_json_button_added = true;
+    frm.add_custom_button(
+        __("View Payload JSON"),
+        window.fbr_integration.payload_reference.show_payload_json
+    );
+};
 
 [
     "FBR Payload Field Mapping",
@@ -28,7 +35,7 @@ function add_fbr_payload_json_button(frm) {
 ].forEach((doctype) => {
     frappe.ui.form.on(doctype, {
         refresh(frm) {
-            add_fbr_payload_json_button(frm);
+            window.fbr_integration.payload_reference.add_form_button(frm);
         },
     });
 });

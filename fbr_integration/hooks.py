@@ -39,6 +39,21 @@ doctype_js = {
 	"FBR Payload Source Field": "public/js/fbr_payload_reference.js",
 }
 
+doctype_list_js = {
+	"FBR Payload Field Mapping": [
+		"public/js/fbr_payload_reference.js",
+		"public/js/fbr_payload_reference_list.js",
+	],
+	"FBR Payload Field": [
+		"public/js/fbr_payload_reference.js",
+		"public/js/fbr_payload_reference_list.js",
+	],
+	"FBR Payload Source Field": [
+		"public/js/fbr_payload_reference.js",
+		"public/js/fbr_payload_reference_list.js",
+	],
+}
+
 # Purple button CSS (you already have fbr.css)
 app_include_css = ["/assets/fbr_integration/css/fbr.css"]
 
