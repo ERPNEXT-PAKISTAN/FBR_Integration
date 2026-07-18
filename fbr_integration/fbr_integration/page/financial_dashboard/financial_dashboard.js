@@ -79,12 +79,15 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     function renderChart(selector, labelSelector, config, labelRows = []) {
         const node = resetChart(selector);
         if (node && typeof frappe.Chart !== "undefined") {
+            const chartConfig = ["bar", "line"].includes(config.type)
+                ? { valuesOverPoints: 1, ...config }
+                : config;
             new frappe.Chart(node, {
-                ...config,
+                ...chartConfig,
                 tooltipOptions: { formatTooltipY: (d) => money(d) },
             });
         }
-        renderChartLabels(labelSelector, labelRows);
+        if (labelSelector) renderChartLabels(labelSelector, labelRows);
     }
 
     function renderChartLabels(selector, rows) {
@@ -198,14 +201,9 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const labels = trend.labels || [];
         const salesValues = trend.revenue || [];
         const purchaseValues = trend.expense || [];
-        const salesPurchaseLabels = labels.flatMap((label, index) => [
-            { label: `${label} Sales`, value: salesValues[index] || 0 },
-            { label: `${label} Purchases`, value: purchaseValues[index] || 0 },
-        ]);
-
         renderChart(
             "#fdOverviewSalesPurchaseChart",
-            "#fdOverviewSalesPurchaseLabels",
+            null,
             {
                 type: "bar",
                 height: 300,
@@ -220,12 +218,12 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
                 barOptions: { stacked: 0 },
             },
-            salesPurchaseLabels
+            []
         );
 
         renderChart(
             "#fdTrendChart",
-            "#fdTrendLabels",
+            null,
             {
                 type: "line",
                 height: 280,
@@ -240,12 +238,12 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
                 lineOptions: { regionFill: 1 },
             },
-            salesPurchaseLabels
+            []
         );
 
         renderChart(
             "#fdSalesChart",
-            "#fdSalesLabels",
+            null,
             {
                 type: "bar",
                 height: 300,
@@ -256,12 +254,12 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 colors: ["#0f9f6e"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
             },
-            datasetRows(labels, salesValues)
+            []
         );
 
         renderChart(
             "#fdPurchaseChart",
-            "#fdPurchaseLabels",
+            null,
             {
                 type: "bar",
                 height: 300,
@@ -274,7 +272,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 colors: ["#155eef"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
             },
-            datasetRows(labels, purchaseValues)
+            []
         );
     }
 
@@ -315,7 +313,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
 
         renderChart(
             "#fdCashFlowChart",
-            "#fdCashFlowLabels",
+            null,
             {
                 type: "bar",
                 height: 280,
@@ -331,10 +329,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 colors: ["#2563eb"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
             },
-            datasetRows(
-                data.cash_flow?.labels || [],
-                data.cash_flow?.values || []
-            )
+            []
         );
 
         renderChart(

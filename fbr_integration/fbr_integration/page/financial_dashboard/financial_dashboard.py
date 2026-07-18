@@ -160,35 +160,43 @@ def get_trend_data(company, from_date, to_date, group_by="monthly"):
 @frappe.whitelist()
 def get_expense_breakdown(company, from_date, to_date):
 	from_date, to_date = _get_dates(company, from_date, to_date)
-	rows = frappe.db.sql(
+	groups = frappe.db.sql(
 		"""
-		SELECT
-			CASE
-				WHEN LOWER(COALESCE(parent.account_name, '')) LIKE '%%indirect%%'
-					OR LOWER(acc.account_name) LIKE '%%indirect%%'
-					THEN 'Indirect Expenses'
-				WHEN LOWER(COALESCE(parent.account_name, '')) LIKE '%%direct%%'
-					OR LOWER(acc.account_name) LIKE '%%direct%%'
-					THEN 'Direct Expenses'
-				WHEN COALESCE(acc.include_in_gross, 0) = 1
-					THEN 'Direct Expenses'
-				ELSE 'Indirect Expenses'
-			END AS label,
-			SUM(gle.debit) - SUM(gle.credit) AS value
-		FROM `tabGL Entry` gle
-		INNER JOIN `tabAccount` acc ON gle.account = acc.name
-		LEFT JOIN `tabAccount` parent ON acc.parent_account = parent.name
-		WHERE gle.company = %s
-		  AND acc.root_type = 'Expense'
-		  AND gle.posting_date BETWEEN %s AND %s
-		  AND gle.is_cancelled = 0
-		GROUP BY label
-		HAVING value > 0
-		ORDER BY value DESC
+		SELECT name, account_name, lft, rgt
+		FROM `tabAccount`
+		WHERE company = %s
+		  AND root_type = 'Expense'
+		  AND is_group = 1
+		  AND LOWER(account_name) IN ('direct expenses', 'indirect expenses')
+		ORDER BY lft
 		""",
-		(company, from_date, to_date),
+		(company,),
 		as_dict=True,
 	)
+
+	rows = []
+	for group in groups:
+		row = frappe.db.sql(
+			"""
+			SELECT COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS value
+			FROM `tabGL Entry` gle
+			INNER JOIN `tabAccount` acc ON gle.account = acc.name
+			WHERE gle.company = %s
+			  AND acc.root_type = 'Expense'
+			  AND acc.is_group = 0
+			  AND acc.lft > %s
+			  AND acc.rgt < %s
+			  AND gle.posting_date BETWEEN %s AND %s
+			  AND gle.is_cancelled = 0
+			""",
+			(company, group.lft, group.rgt, from_date, to_date),
+			as_dict=True,
+		)[0]
+		value = row.value or 0
+		if value > 0:
+			rows.append({"label": group.account_name, "value": value})
+
+	rows.sort(key=lambda row: row["value"], reverse=True)
 	labels = [r["label"] for r in rows]
 	values = [round(r["value"] or 0, 0) for r in rows]
 	return {"labels": labels, "values": values}
@@ -847,7 +855,7 @@ def get_trial_balance(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_aging_receivables(company, report_date=None):
-	"""Top customer receivables from unpaid Sales Invoices."""
+	"""Customer receivable closing balances from GL."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
 		frappe.throw("Company is required")
@@ -855,16 +863,21 @@ def get_aging_receivables(company, report_date=None):
 	return frappe.db.sql(
 		"""
 		SELECT
-			si.customer,
-			COALESCE(si.customer_name, si.customer) AS customer_name,
-			SUM(si.outstanding_amount) AS outstanding,
-			MAX(DATEDIFF(%s, COALESCE(si.due_date, si.posting_date))) AS age
-		FROM `tabSales Invoice` si
-		WHERE si.company = %s
-		  AND si.docstatus = 1
-		  AND si.posting_date <= %s
-		  AND si.outstanding_amount > 0
-		GROUP BY si.customer, si.customer_name
+			gle.party AS customer,
+			COALESCE(c.customer_name, gle.party) AS customer_name,
+			SUM(gle.debit) - SUM(gle.credit) AS outstanding,
+			MIN(DATEDIFF(%s, gle.posting_date)) AS age
+		FROM `tabGL Entry` gle
+		INNER JOIN `tabAccount` acc ON gle.account = acc.name
+		LEFT JOIN `tabCustomer` c ON gle.party = c.name
+		WHERE gle.company = %s
+		  AND gle.party_type = 'Customer'
+		  AND gle.party IS NOT NULL
+		  AND acc.account_type = 'Receivable'
+		  AND gle.posting_date <= %s
+		  AND gle.is_cancelled = 0
+		GROUP BY gle.party, c.customer_name
+		HAVING outstanding > 0
 		ORDER BY outstanding DESC
 		LIMIT 10
 		""",
@@ -875,7 +888,7 @@ def get_aging_receivables(company, report_date=None):
 
 @frappe.whitelist()
 def get_aging_payables(company, report_date=None):
-	"""Top supplier payables from unpaid Purchase Invoices."""
+	"""Supplier payable closing balances from GL."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
 		frappe.throw("Company is required")
@@ -883,16 +896,21 @@ def get_aging_payables(company, report_date=None):
 	return frappe.db.sql(
 		"""
 		SELECT
-			pi.supplier,
-			COALESCE(pi.supplier_name, pi.supplier) AS supplier_name,
-			SUM(pi.outstanding_amount) AS outstanding,
-			MAX(DATEDIFF(%s, COALESCE(pi.due_date, pi.posting_date))) AS age
-		FROM `tabPurchase Invoice` pi
-		WHERE pi.company = %s
-		  AND pi.docstatus = 1
-		  AND pi.posting_date <= %s
-		  AND pi.outstanding_amount > 0
-		GROUP BY pi.supplier, pi.supplier_name
+			gle.party AS supplier,
+			COALESCE(s.supplier_name, gle.party) AS supplier_name,
+			SUM(gle.credit) - SUM(gle.debit) AS outstanding,
+			MIN(DATEDIFF(%s, gle.posting_date)) AS age
+		FROM `tabGL Entry` gle
+		INNER JOIN `tabAccount` acc ON gle.account = acc.name
+		LEFT JOIN `tabSupplier` s ON gle.party = s.name
+		WHERE gle.company = %s
+		  AND gle.party_type = 'Supplier'
+		  AND gle.party IS NOT NULL
+		  AND acc.account_type = 'Payable'
+		  AND gle.posting_date <= %s
+		  AND gle.is_cancelled = 0
+		GROUP BY gle.party, s.supplier_name
+		HAVING outstanding > 0
 		ORDER BY outstanding DESC
 		LIMIT 10
 		""",
