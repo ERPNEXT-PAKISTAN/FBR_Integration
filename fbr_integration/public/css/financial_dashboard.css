@@ -431,6 +431,12 @@
     overflow: hidden;
     border: 0;
     color: #fff;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
+    min-height: 74px;
+    padding: 12px 14px;
 }
 
 .fd-ratio::after {
@@ -449,11 +455,35 @@
     color: rgba(255, 255, 255, 0.82);
 }
 
+.fd-ratio span,
+.fd-ratio strong,
+.fd-ratio small {
+    grid-column: 1;
+}
+
+.fd-ratio strong {
+    margin-top: 3px;
+    font-size: 14px;
+    line-height: 1.15;
+}
+
 .fd-ratio b {
-    display: block;
-    margin: 8px 0 4px;
-    font-size: 24px;
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    font-size: 20px;
     font-weight: 850;
+    line-height: 1;
+    text-align: right;
+}
+
+.fd-ratio small {
+    margin-top: 2px;
+    font-size: 10px;
+    line-height: 1.2;
 }
 
 .fd-ratio-blue {
