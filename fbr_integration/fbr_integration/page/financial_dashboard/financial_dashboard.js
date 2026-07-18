@@ -520,11 +520,15 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         row.name
                     )}</a></td><td>${escape(
                         fmtDate(row.posting_date)
-                    )}</td><td>${escape(
-                        row.customer_name || "-"
-                    )}</td><td>${escape(
-                        row.return_against || "-"
-                    )}</td><td>${escape(
+                    )}</td><td>${escape(row.customer_name || "-")}</td><td>${
+                        row.return_against
+                            ? `<a href="/app/sales-invoice/${escape(
+                                  row.return_against
+                              )}" target="_blank">${escape(
+                                  row.return_against
+                              )}</a>`
+                            : "-"
+                    }</td><td>${escape(
                         row.custom_fbr_source_invoice_no || "-"
                     )}</td><td>${escape(
                         row.custom_fbr_invoice_no || "-"
@@ -537,7 +541,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     )}</td></tr>`
             )
             .join("");
-        const totalRow = `<tr class="fd-total-row"><td>Total</td><td></td><td></td><td></td><td></td><td></td><td class="text-right">${money(
+        const totalRow = `<tr class="fd-total-row"><td colspan="6">Total</td><td class="text-right">${money(
             totals.exclusive
         )}</td><td class="text-right">${money(
             totals.tax

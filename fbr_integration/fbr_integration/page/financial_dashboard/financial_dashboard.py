@@ -1208,21 +1208,26 @@ def get_sales_return_invoices(company, from_date, to_date):
 	return frappe.db.sql(
 		"""
 		SELECT
-			name,
-			posting_date,
-			customer_name,
-			COALESCE(return_against, '') AS return_against,
-			COALESCE(custom_fbr_source_invoice_no, '') AS custom_fbr_source_invoice_no,
-			COALESCE(custom_fbr_invoice_no, '') AS custom_fbr_invoice_no,
-			COALESCE(base_net_total, 0) AS exclusive,
-			COALESCE(base_total_taxes_and_charges, 0) AS tax,
-			COALESCE(base_grand_total, 0) AS inclusive
-		FROM `tabSales Invoice`
-		WHERE company = %s
-		  AND docstatus = 1
-		  AND is_return = 1
-		  AND posting_date BETWEEN %s AND %s
-		ORDER BY posting_date DESC, modified DESC
+			si.name,
+			si.posting_date,
+			si.customer_name,
+			COALESCE(si.return_against, '') AS return_against,
+			COALESCE(
+				NULLIF(si.custom_fbr_source_invoice_no, ''),
+				NULLIF(source.custom_fbr_invoice_no, ''),
+				''
+			) AS custom_fbr_source_invoice_no,
+			COALESCE(si.custom_fbr_invoice_no, '') AS custom_fbr_invoice_no,
+			COALESCE(si.base_net_total, 0) AS exclusive,
+			COALESCE(si.base_total_taxes_and_charges, 0) AS tax,
+			COALESCE(si.base_grand_total, 0) AS inclusive
+		FROM `tabSales Invoice` si
+		LEFT JOIN `tabSales Invoice` source ON source.name = si.return_against
+		WHERE si.company = %s
+		  AND si.docstatus = 1
+		  AND si.is_return = 1
+		  AND si.posting_date BETWEEN %s AND %s
+		ORDER BY si.posting_date DESC, si.modified DESC
 		LIMIT 50
 		""",
 		(company, from_date, to_date),
