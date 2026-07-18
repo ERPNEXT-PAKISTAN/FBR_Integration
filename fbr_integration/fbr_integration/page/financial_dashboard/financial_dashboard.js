@@ -530,8 +530,6 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                             : "-"
                     }</td><td>${escape(
                         row.custom_fbr_source_invoice_no || "-"
-                    )}</td><td>${escape(
-                        row.custom_fbr_invoice_no || "-"
                     )}</td><td class="text-right">${money(
                         row.exclusive || 0
                     )}</td><td class="text-right">${money(
@@ -541,14 +539,14 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     )}</td></tr>`
             )
             .join("");
-        const totalRow = `<tr class="fd-total-row"><td colspan="6">Total</td><td class="text-right">${money(
+        const totalRow = `<tr class="fd-total-row"><td colspan="5">Total</td><td class="text-right">${money(
             totals.exclusive
         )}</td><td class="text-right">${money(
             totals.tax
         )}</td><td class="text-right">${money(totals.inclusive)}</td></tr>`;
         $(selector).html(
             (html ? html + totalRow : "") ||
-                rowEmpty(9, "No sales returns in selected period")
+                rowEmpty(8, "No sales returns in selected period")
         );
     }
 
