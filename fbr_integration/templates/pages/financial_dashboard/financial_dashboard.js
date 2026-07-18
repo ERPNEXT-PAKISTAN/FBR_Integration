@@ -666,6 +666,179 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         );
     }
 
+    function renderStatusSummaryTable(selector, rows, labelTitle = "Label") {
+        const totals = (rows || []).reduce(
+            (sum, row) => ({
+                invoice_count:
+                    sum.invoice_count + Number(row.invoice_count || 0),
+                exclusive: sum.exclusive + Number(row.exclusive || 0),
+                tax: sum.tax + Number(row.tax || 0),
+                inclusive: sum.inclusive + Number(row.inclusive || 0),
+            }),
+            { invoice_count: 0, exclusive: 0, tax: 0, inclusive: 0 }
+        );
+        const html = (rows || [])
+            .map(
+                (row) =>
+                    `<tr><td>${escape(
+                        row.label || labelTitle
+                    )}</td><td class="text-right">${number(
+                        row.invoice_count || 0
+                    )}</td><td class="text-right">${money(
+                        row.exclusive || 0
+                    )}</td><td class="text-right">${money(
+                        row.tax || 0
+                    )}</td><td class="text-right">${money(
+                        row.inclusive || 0
+                    )}</td></tr>`
+            )
+            .join("");
+        const totalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${number(
+            totals.invoice_count
+        )}</td><td class="text-right">${money(
+            totals.exclusive
+        )}</td><td class="text-right">${money(
+            totals.tax
+        )}</td><td class="text-right">${money(totals.inclusive)}</td></tr>`;
+        $(selector).html((html ? html + totalRow : "") || rowEmpty(5));
+    }
+
+    function renderStatusMiniTable(selector, rows) {
+        const total = (rows || []).reduce(
+            (sum, row) => sum + Number(row.inclusive || 0),
+            0
+        );
+        const html = (rows || [])
+            .slice(0, 12)
+            .map(
+                (row) =>
+                    `<tr><td>${escape(
+                        row.label || "Not Set"
+                    )}<br><small>${number(
+                        row.invoice_count || 0
+                    )} invoices</small></td><td class="text-right">${money(
+                        row.inclusive || 0
+                    )}</td></tr>`
+            )
+            .join("");
+        const totalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${money(
+            total
+        )}</td></tr>`;
+        $(selector).html((html ? html + totalRow : "") || rowEmpty(2));
+    }
+
+    function renderSalesInvoiceStatus(data) {
+        const status = data.sales_invoice_status || {};
+        const summary = status.summary || {};
+        const total = Number(summary.total_invoices || 0);
+        const fbrSubmitted = Number(summary.fbr_submitted_count || 0);
+        const compliance = total ? (fbrSubmitted / total) * 100 : 0;
+        $("#fdStatusTotal").text(number(total));
+        $("#fdStatusSubmitted").text(number(summary.submitted_count || 0));
+        $("#fdStatusDraft").text(number(summary.draft_count || 0));
+        $("#fdStatusFailed").text(number(summary.fbr_failed_count || 0));
+        $("#fdStatusCompliance").text(`${compliance.toFixed(0)}%`);
+        $("#fdStatusExclusive").html(money(summary.exclusive_sales || 0));
+        $("#fdStatusTaxes").html(money(summary.taxes || 0));
+        $("#fdStatusInclusive").html(money(summary.inclusive_sales || 0));
+
+        renderChart(
+            "#fdInvoiceStatusChart",
+            "#fdInvoiceStatusLabels",
+            {
+                type: "pie",
+                height: 260,
+                data: {
+                    labels: (status.status_mix || []).map(
+                        (row) => row.label || "-"
+                    ),
+                    datasets: [
+                        {
+                            values: (status.status_mix || []).map(
+                                (row) => row.value || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: chartColors,
+            },
+            (status.status_mix || []).map((row) => ({
+                label: row.label || "-",
+                value: row.value || 0,
+            }))
+        );
+        renderChart(
+            "#fdFbrStatusChart",
+            "#fdFbrStatusLabels",
+            {
+                type: "pie",
+                height: 260,
+                data: {
+                    labels: (status.fbr_status_mix || []).map(
+                        (row) => row.label || "-"
+                    ),
+                    datasets: [
+                        {
+                            values: (status.fbr_status_mix || []).map(
+                                (row) => row.value || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: chartColors,
+            },
+            (status.fbr_status_mix || []).map((row) => ({
+                label: row.label || "-",
+                value: row.value || 0,
+            }))
+        );
+
+        renderStatusSummaryTable(
+            "#fdStatusTaxPayerRows",
+            status.tax_payer_type || [],
+            "Tax Payer Type"
+        );
+        renderStatusMiniTable(
+            "#fdStatusProvinceRows",
+            status.buyer_province || []
+        );
+        renderStatusMiniTable(
+            "#fdStatusScenarioRows",
+            status.scenario_detail || []
+        );
+        renderStatusMiniTable("#fdStatusSaleTypeRows", status.sale_type || []);
+        renderStatusMiniTable("#fdStatusSroRows", status.sro_schedule || []);
+        $("#fdStatusInvoiceRows").html(
+            (status.recent_invoices || [])
+                .map(
+                    (row) =>
+                        `<tr><td><a href="/app/sales-invoice/${encodeURIComponent(
+                            row.name
+                        )}" target="_blank">${escape(
+                            row.name
+                        )}</a></td><td>${fmtDate(
+                            row.posting_date
+                        )}</td><td>${escape(
+                            row.customer_name || "-"
+                        )}</td><td>${escape(
+                            row.status || "-"
+                        )}</td><td>${escape(
+                            row.fbr_status ||
+                                (row.fbr_invoice_no
+                                    ? "Submitted to FBR"
+                                    : "Pending FBR")
+                        )}</td><td>${escape(
+                            row.custom_tax_payer_type || "-"
+                        )}</td><td>${escape(
+                            row.custom_buyer_province || "-"
+                        )}</td><td class="text-right">${money(
+                            row.inclusive || 0
+                        )}</td></tr>`
+                )
+                .join("") || rowEmpty(8)
+        );
+    }
+
     function renderDashboard(data) {
         state.lastData = data;
         state.currency = data.currency || state.currency;
@@ -868,6 +1041,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         );
         renderStock(data.stock_by_item_group || []);
         renderWarehouseOptions(data.warehouses || []);
+        renderSalesInvoiceStatus(data);
 
         renderSimpleRows("#fdSalesRows", data.sales_summary, "sales");
         renderSimpleRows("#fdPurchaseRows", data.purchases_summary, "purchase");

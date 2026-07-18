@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import frappe
-from frappe.utils import add_to_date, cint, get_first_day, get_last_day, getdate
+from frappe.utils import add_to_date, cint, get_first_day, get_last_day, getdate, nowdate
 
 DEFAULT_TAX_YEAR_FROM_DATE = "2025-07-01"
 DEFAULT_TAX_YEAR_TO_DATE = "2026-06-30"
@@ -1774,6 +1774,142 @@ def get_invoice_activity(company, from_date, to_date):
 	}
 
 
+def _status_group_rows(company, from_date, to_date, fieldname, item_field=False, limit=20):
+	table = "`tabSales Invoice Item` sii" if item_field else "`tabSales Invoice` si"
+	join = "INNER JOIN `tabSales Invoice` si ON sii.parent = si.name" if item_field else ""
+	label_expr = f"COALESCE(NULLIF({fieldname}, ''), 'Not Set')"
+	return frappe.db.sql(
+		f"""
+		SELECT
+			{label_expr} AS label,
+			COUNT(DISTINCT si.name) AS invoice_count,
+			COALESCE(SUM({"sii.base_net_amount" if item_field else "si.base_net_total"}), 0) AS exclusive,
+			COALESCE(SUM({"COALESCE(sii.custom_total_tax_amount, 0)" if item_field else "si.base_total_taxes_and_charges"}), 0) AS tax,
+			COALESCE(SUM({"COALESCE(sii.custom_tax_inclusive_amount, sii.base_net_amount)" if item_field else "si.base_grand_total"}), 0) AS inclusive
+		FROM {table}
+		{join}
+		WHERE si.company = %s
+		  AND si.posting_date BETWEEN %s AND %s
+		  AND si.docstatus < 2
+		GROUP BY label
+		ORDER BY inclusive DESC
+		LIMIT {cint(limit)}
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def get_sales_invoice_status_report(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	summary = frappe.db.sql(
+		"""
+		SELECT
+			COUNT(*) AS total_invoices,
+			SUM(CASE WHEN docstatus = 0 THEN 1 ELSE 0 END) AS draft_count,
+			SUM(CASE WHEN docstatus = 1 THEN 1 ELSE 0 END) AS submitted_count,
+			SUM(CASE WHEN docstatus = 2 THEN 1 ELSE 0 END) AS cancelled_count,
+			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') != '' THEN 1 ELSE 0 END) AS fbr_submitted_count,
+			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') = '' THEN 1 ELSE 0 END) AS fbr_pending_count,
+			SUM(CASE WHEN docstatus = 1 AND LOWER(COALESCE(custom_fbr_invoice_status, '')) LIKE '%%fail%%' THEN 1 ELSE 0 END) AS fbr_failed_count,
+			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_net_total ELSE 0 END), 0) AS exclusive_sales,
+			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_total_taxes_and_charges ELSE 0 END), 0) AS taxes,
+			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_grand_total ELSE 0 END), 0) AS inclusive_sales
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)[0]
+
+	status_mix = frappe.db.sql(
+		"""
+		SELECT COALESCE(NULLIF(status, ''), 'No Status') AS label,
+			COUNT(*) AS value
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus < 2
+		GROUP BY label
+		ORDER BY value DESC
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	fbr_status_mix = frappe.db.sql(
+		"""
+		SELECT
+			CASE
+				WHEN docstatus = 0 THEN 'Draft'
+				WHEN docstatus = 2 THEN 'Cancelled'
+				WHEN COALESCE(custom_fbr_invoice_no, '') != '' THEN 'Submitted to FBR'
+				WHEN LOWER(COALESCE(custom_fbr_invoice_status, '')) LIKE '%%fail%%' THEN 'Failed'
+				ELSE 'Pending FBR'
+			END AS label,
+			COUNT(*) AS value
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		GROUP BY label
+		ORDER BY value DESC
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	recent_invoices = frappe.db.sql(
+		"""
+		SELECT
+			name,
+			posting_date,
+			customer_name,
+			status,
+			COALESCE(custom_fbr_invoice_status, '') AS fbr_status,
+			COALESCE(custom_fbr_invoice_no, '') AS fbr_invoice_no,
+			COALESCE(base_net_total, 0) AS exclusive,
+			COALESCE(base_total_taxes_and_charges, 0) AS taxes,
+			COALESCE(base_grand_total, 0) AS inclusive,
+			COALESCE(custom_tax_payer_type, '') AS custom_tax_payer_type,
+			COALESCE(custom_buyer_province, '') AS custom_buyer_province,
+			COALESCE(custom_scenario_detail, '') AS custom_scenario_detail
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		ORDER BY posting_date DESC, modified DESC
+		LIMIT 20
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+
+	return {
+		"summary": {
+			"total_invoices": cint(summary.total_invoices),
+			"draft_count": cint(summary.draft_count),
+			"submitted_count": cint(summary.submitted_count),
+			"cancelled_count": cint(summary.cancelled_count),
+			"fbr_submitted_count": cint(summary.fbr_submitted_count),
+			"fbr_pending_count": cint(summary.fbr_pending_count),
+			"fbr_failed_count": cint(summary.fbr_failed_count),
+			"exclusive_sales": round(summary.exclusive_sales or 0, 0),
+			"taxes": round(summary.taxes or 0, 0),
+			"inclusive_sales": round(summary.inclusive_sales or 0, 0),
+		},
+		"generated_on": nowdate(),
+		"status_mix": status_mix,
+		"fbr_status_mix": fbr_status_mix,
+		"tax_payer_type": _status_group_rows(company, from_date, to_date, "si.custom_tax_payer_type"),
+		"buyer_province": _status_group_rows(company, from_date, to_date, "si.custom_buyer_province"),
+		"scenario_detail": _status_group_rows(company, from_date, to_date, "si.custom_scenario_detail"),
+		"sale_type": _status_group_rows(company, from_date, to_date, "sii.custom_sale_type", item_field=True),
+		"sro_schedule": _status_group_rows(
+			company, from_date, to_date, "sii.custom_sro_schedule_no", item_field=True
+		),
+		"recent_invoices": recent_invoices,
+	}
+
+
 @frappe.whitelist()
 def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"):
 	if not from_date or not to_date:
@@ -1806,6 +1942,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 	tax_account_reports = get_tax_account_reports(company, from_date, to_date)
 	ratios = get_ratio_analysis(company, from_date, to_date)
 	activity = get_invoice_activity(company, from_date, to_date)
+	sales_invoice_status = get_sales_invoice_status_report(company, from_date, to_date)
 	receivables = get_aging_receivables(company, to_date)
 	payables = get_aging_payables(company, to_date)
 
@@ -1836,6 +1973,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 		"tax_account_reports": tax_account_reports,
 		"ratios": ratios,
 		"activity": activity,
+		"sales_invoice_status": sales_invoice_status,
 		"receivables": receivables[:8] if isinstance(receivables, list) else [],
 		"payables": payables[:8] if isinstance(payables, list) else [],
 	}

@@ -64,6 +64,7 @@
                             Expenses
                         </button>
                         <button class="fd-tab" data-tab="stock">Stock</button>
+                        <button class="fd-tab" data-tab="status">Status</button>
                         <button class="fd-tab" data-tab="reports">
                             Reports
                         </button>
@@ -561,6 +562,155 @@
                             </tr>
                         </thead>
                         <tbody id="fdStockRows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="fd-tab-panel" id="fd-tab-status">
+        <div class="fd-status-banner">
+            <div>
+                <span>FBR Digital Invoicing</span>
+                <strong>Sales Invoice Status Monitor</strong>
+                <p>
+                    Invoice status, FBR status, tax classification, province,
+                    scenario, sale type and SRO summary
+                </p>
+            </div>
+            <b id="fdStatusCompliance">0%</b>
+        </div>
+        <div class="fd-status-kpis">
+            <div class="fd-status-kpi fd-status-kpi-green">
+                <span>Total Invoices</span><strong id="fdStatusTotal">0</strong>
+            </div>
+            <div class="fd-status-kpi fd-status-kpi-blue">
+                <span>Submitted</span><strong id="fdStatusSubmitted">0</strong>
+            </div>
+            <div class="fd-status-kpi fd-status-kpi-amber">
+                <span>Draft</span><strong id="fdStatusDraft">0</strong>
+            </div>
+            <div class="fd-status-kpi fd-status-kpi-red">
+                <span>Failed</span><strong id="fdStatusFailed">0</strong>
+            </div>
+        </div>
+        <div class="fd-grid fd-grid-3 fd-mt">
+            <div class="fd-card">
+                <h3>Exclusive Sales</h3>
+                <strong class="fd-status-money" id="fdStatusExclusive"
+                    >0</strong
+                >
+            </div>
+            <div class="fd-card">
+                <h3>Taxes</h3>
+                <strong class="fd-status-money" id="fdStatusTaxes">0</strong>
+            </div>
+            <div class="fd-card">
+                <h3>Inclusive Sales</h3>
+                <strong class="fd-status-money" id="fdStatusInclusive"
+                    >0</strong
+                >
+            </div>
+        </div>
+        <div class="fd-grid fd-grid-2 fd-mt">
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <h3>Invoice Status Mix</h3>
+                </div>
+                <div
+                    id="fdInvoiceStatusChart"
+                    class="fd-chart fd-chart-compact"
+                ></div>
+                <div id="fdInvoiceStatusLabels" class="fd-chart-labels"></div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <h3>FBR Status Mix</h3>
+                </div>
+                <div
+                    id="fdFbrStatusChart"
+                    class="fd-chart fd-chart-compact"
+                ></div>
+                <div id="fdFbrStatusLabels" class="fd-chart-labels"></div>
+            </div>
+            <div class="fd-card fd-card-wide">
+                <div class="fd-card-head">
+                    <h3>Tax Type by Tax Payer Type</h3>
+                </div>
+                <div class="fd-table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tax Payer Type</th>
+                                <th class="text-right">Invoices</th>
+                                <th class="text-right">Exclusive</th>
+                                <th class="text-right">Tax</th>
+                                <th class="text-right">Inclusive</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fdStatusTaxPayerRows"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <h3>Buyer Province</h3>
+                </div>
+                <div class="fd-table-wrap">
+                    <table class="table">
+                        <tbody id="fdStatusProvinceRows"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <h3>Scenario Detail</h3>
+                </div>
+                <div class="fd-table-wrap">
+                    <table class="table">
+                        <tbody id="fdStatusScenarioRows"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <h3>Sale Type</h3>
+                </div>
+                <div class="fd-table-wrap">
+                    <table class="table">
+                        <tbody id="fdStatusSaleTypeRows"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <h3>SRO Schedule No</h3>
+                </div>
+                <div class="fd-table-wrap">
+                    <table class="table">
+                        <tbody id="fdStatusSroRows"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="fd-card fd-card-wide">
+                <div class="fd-card-head">
+                    <h3>Recent Sales Invoice Status</h3>
+                </div>
+                <div class="fd-table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Invoice</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>FBR Status</th>
+                                <th>Tax Payer</th>
+                                <th>Province</th>
+                                <th class="text-right">Inclusive</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fdStatusInvoiceRows"></tbody>
                     </table>
                 </div>
             </div>
