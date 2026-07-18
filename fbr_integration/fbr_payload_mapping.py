@@ -3,6 +3,7 @@ from frappe.utils import getdate
 
 MAPPING_DOCTYPE = "FBR Payload Field Mapping"
 DETAIL_DOCTYPE = "FBR Payload Field Mapping Detail"
+PAYLOAD_FIELD_DOCTYPE = "FBR Payload Field"
 SOURCE_FIELD_DOCTYPE = "FBR Payload Source Field"
 MAPPING_TABLE_FIELDS = ("header_mappings", "item_mappings", "mappings")
 SOURCE_FIELD_DOCTYPES = (
@@ -370,6 +371,10 @@ def _source_field_doctype_available():
 	return frappe.db.exists("DocType", SOURCE_FIELD_DOCTYPE)
 
 
+def _payload_field_doctype_available():
+	return frappe.db.exists("DocType", PAYLOAD_FIELD_DOCTYPE)
+
+
 def _source_field_link_name(source_doctype, source_field):
 	if not source_doctype or not source_field:
 		return ""
@@ -440,6 +445,32 @@ def sync_payload_source_fields():
 	frappe.clear_cache(doctype=SOURCE_FIELD_DOCTYPE)
 
 
+def sync_payload_fields():
+	if not _payload_field_doctype_available():
+		return
+
+	for row in DEFAULT_PAYLOAD_FIELD_MAPPINGS:
+		payload_field = row.get("payload_field")
+		if not payload_field:
+			continue
+
+		values = {
+			"payload_section": row.get("payload_section"),
+			"payload_field": payload_field,
+			"description": row.get("description"),
+		}
+		if frappe.db.exists(PAYLOAD_FIELD_DOCTYPE, payload_field):
+			frappe.db.set_value(PAYLOAD_FIELD_DOCTYPE, payload_field, values, update_modified=False)
+			continue
+
+		doc = frappe.new_doc(PAYLOAD_FIELD_DOCTYPE)
+		doc.update(values)
+		doc.insert(ignore_permissions=True)
+
+	frappe.db.commit()
+	frappe.clear_cache(doctype=PAYLOAD_FIELD_DOCTYPE)
+
+
 def _table_field_for_section(section):
 	return "item_mappings" if section == "Item" else "header_mappings"
 
@@ -473,6 +504,7 @@ def sync_payload_field_mappings():
 	if not _doctype_available():
 		return
 
+	sync_payload_fields()
 	sync_payload_source_fields()
 	_move_legacy_rows_to_section_tables()
 	settings = frappe.get_single(MAPPING_DOCTYPE)
@@ -532,6 +564,57 @@ def _get_settings_rows():
 		if getattr(row, "enabled", 0) and row.payload_field:
 			rows[(row.payload_section, row.payload_field)] = row
 	return rows
+
+
+def get_enabled_mapping_rows(section=None):
+	try:
+		if not _doctype_available():
+			return []
+		settings = frappe.get_cached_doc(MAPPING_DOCTYPE)
+	except Exception:
+		return []
+
+	if not getattr(settings, "enabled", 0):
+		return []
+
+	rows = []
+	for row in _iter_mapping_rows(settings):
+		if not getattr(row, "enabled", 0) or not row.payload_field:
+			continue
+		if section and row.payload_section != section:
+			continue
+		rows.append(row)
+	return rows
+
+
+def apply_extra_payload_mappings(payload, doc, section="Header", existing_fields=None):
+	existing_fields = set(existing_fields or payload.keys())
+	for row in get_enabled_mapping_rows(section):
+		payload_field = (getattr(row, "payload_field", None) or "").strip()
+		if not payload_field or payload_field in existing_fields:
+			continue
+
+		value = _get_source_value(row, doc)
+		if value in (None, ""):
+			continue
+		payload[payload_field] = apply_mapping_transform(value, getattr(row, "transform", None))
+
+	return payload
+
+
+def apply_extra_item_payload_mappings(item_payload, doc, item, existing_fields=None):
+	existing_fields = set(existing_fields or item_payload.keys())
+	for row in get_enabled_mapping_rows("Item"):
+		payload_field = (getattr(row, "payload_field", None) or "").strip()
+		if not payload_field or payload_field in existing_fields:
+			continue
+
+		value = _get_source_value(row, doc, item=item)
+		if value in (None, ""):
+			continue
+		item_payload[payload_field] = apply_mapping_transform(value, getattr(row, "transform", None))
+
+	return item_payload
 
 
 def _get_address_doc(doc, payload_field):

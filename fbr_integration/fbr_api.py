@@ -7,7 +7,11 @@ import requests
 import urllib3
 from frappe.utils import cint
 
-from fbr_integration.fbr_payload_mapping import resolve_payload_value
+from fbr_integration.fbr_payload_mapping import (
+	apply_extra_item_payload_mappings,
+	apply_extra_payload_mappings,
+	resolve_payload_value,
+)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -621,28 +625,9 @@ def send_invoice_to_fbr(doc, method=None):
 				"sroItemSerialNo", sro_item_sno_val, doc, item=item, section="Item"
 			),
 		}
+		apply_extra_item_payload_mappings(item_payload, doc, item, existing_fields=item_payload.keys())
 
-		items_list.append(
-			{
-				"hsCode": item_payload["hsCode"],
-				"productDescription": item_payload["productDescription"],
-				"rate": item_payload["rate"],
-				"uoM": item_payload["uoM"],
-				"quantity": item_payload["quantity"],
-				"totalValues": item_payload["totalValues"],
-				"valueSalesExcludingST": item_payload["valueSalesExcludingST"],
-				"fixedNotifiedValueOrRetailPrice": item_payload["fixedNotifiedValueOrRetailPrice"],
-				"salesTaxApplicable": item_payload["salesTaxApplicable"],
-				"salesTaxWithheldAtSource": item_payload["salesTaxWithheldAtSource"],
-				"extraTax": item_payload["extraTax"],
-				"furtherTax": item_payload["furtherTax"],
-				"sroScheduleNo": item_payload["sroScheduleNo"],
-				"fedPayable": item_payload["fedPayable"],
-				"discount": item_payload["discount"],
-				"saleType": item_payload["saleType"],
-				"sroItemSerialNo": item_payload["sroItemSerialNo"],
-			}
-		)
+		items_list.append(item_payload)
 
 	payload = {
 		"invoiceType": resolve_payload_value("invoiceType", safe_fbr_text(doc.custom_invoice_type), doc),
@@ -679,6 +664,8 @@ def send_invoice_to_fbr(doc, method=None):
 			"referencedInvoiceNo", safe_str(source_invoice_no), doc
 		)
 		payload["sourceInvoiceNo"] = resolve_payload_value("sourceInvoiceNo", source_invoice_no, doc)
+
+	apply_extra_payload_mappings(payload, doc, existing_fields=payload.keys())
 
 	# Debug log — visible in bench logs to help diagnose FBR rejections
 	frappe.log_error(

@@ -33,9 +33,10 @@
   },
   {
    "fieldname": "payload_field",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "FBR Payload Field",
+   "options": "FBR Payload Field",
    "reqd": 1
   },
   {

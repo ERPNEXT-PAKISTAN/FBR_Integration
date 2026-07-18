@@ -12,9 +12,24 @@ function get_allowed_doctypes() {
     ];
 }
 
+function get_payload_section(row) {
+    if (row.payload_section) return row.payload_section;
+    if (row.parentfield === "item_mappings") return "Item";
+    return "Header";
+}
+
 function set_grid_queries(frm) {
     FBR_MAPPING_TABLES.forEach((table_field) => {
         if (!frm.fields_dict[table_field]) return;
+
+        frm.set_query("payload_field", table_field, (doc, cdt, cdn) => {
+            const row = locals[cdt][cdn];
+            return {
+                filters: {
+                    payload_section: get_payload_section(row),
+                },
+            };
+        });
 
         frm.set_query("source_doctype", table_field, () => ({
             filters: {
