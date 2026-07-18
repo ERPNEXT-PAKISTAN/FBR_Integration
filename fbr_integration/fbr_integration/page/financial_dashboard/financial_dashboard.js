@@ -331,6 +331,56 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(selector).html((html ? html + totalRow : "") || rowEmpty(3));
     }
 
+    function renderInvoiceTaxRows(selector, rows) {
+        const total = (rows || []).reduce(
+            (sum, row) => sum + Number(row.tax_amount || 0),
+            0
+        );
+        const html = (rows || [])
+            .map(
+                (row) =>
+                    `<tr><td>${escape(row.account_head)}</td><td>${escape(
+                        row.description
+                    )}</td><td class="text-right">${number(
+                        row.rate
+                    )}%</td><td class="text-right">${money(
+                        row.tax_amount
+                    )}</td><td class="text-right">${number(
+                        row.invoice_count
+                    )}</td></tr>`
+            )
+            .join("");
+        const totalRow = `<tr class="fd-total-row"><td colspan="3">Total</td><td class="text-right">${money(
+            total
+        )}</td><td></td></tr>`;
+        $(selector).html((html ? html + totalRow : "") || rowEmpty(5));
+    }
+
+    function renderTaxAccountRows(selector, rows) {
+        const html = (rows || [])
+            .map((row) => {
+                const indent = Number(row.indent || 0);
+                return `<tr class="${
+                    row.is_group ? "fd-tree-group" : ""
+                }"><td style="padding-left: ${8 + indent * 18}px">${escape(
+                    row.account
+                )}</td><td class="text-right">${money(
+                    row.debit
+                )}</td><td class="text-right">${money(
+                    row.credit
+                )}</td><td class="text-right">${money(row.balance)}</td></tr>`;
+            })
+            .join("");
+        $(selector).html(html || rowEmpty(4));
+    }
+
+    function taxRowLabel(row) {
+        const rate = Number(row.rate || 0);
+        return `${row.description || row.account_head || "-"} ${
+            rate ? `(${number(rate)}%)` : ""
+        }`.trim();
+    }
+
     function renderRatioRows(rows) {
         const html = (rows || [])
             .map((row, index) => {
@@ -626,6 +676,60 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         renderSimpleRows("#fdPurchaseRows", data.purchases_summary, "purchase");
         renderAging("#fdReceivablesRows", data.receivables, "customer");
         renderAging("#fdPayablesRows", data.payables, "supplier");
+        renderInvoiceTaxRows("#fdSalesTaxRows", data.sales_tax_summary);
+        renderInvoiceTaxRows("#fdPurchaseTaxRows", data.purchase_tax_summary);
+        renderChart(
+            "#fdSalesTaxChart",
+            null,
+            {
+                type: "bar",
+                height: 240,
+                data: {
+                    labels: (data.sales_tax_summary || []).map(taxRowLabel),
+                    datasets: [
+                        {
+                            name: __("Sales Tax"),
+                            values: (data.sales_tax_summary || []).map(
+                                (row) => row.tax_amount || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: [chartBlue],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
+            },
+            []
+        );
+        renderChart(
+            "#fdPurchaseTaxChart",
+            null,
+            {
+                type: "bar",
+                height: 240,
+                data: {
+                    labels: (data.purchase_tax_summary || []).map(taxRowLabel),
+                    datasets: [
+                        {
+                            name: __("Purchase Tax"),
+                            values: (data.purchase_tax_summary || []).map(
+                                (row) => row.tax_amount || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: [chartGreen],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
+            },
+            []
+        );
+        renderTaxAccountRows(
+            "#fdWithholdingTaxRows",
+            data.tax_account_reports?.withholding_income_taxes || []
+        );
+        renderTaxAccountRows(
+            "#fdDutiesTaxRows",
+            data.tax_account_reports?.duties_and_taxes || []
+        );
 
         const salesByPeriod = Object.fromEntries(
             (data.sales_summary || []).map((row) => [
@@ -660,6 +764,58 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     }">${money(net)}</td></tr>`;
                 })
                 .join("") || rowEmpty(4)
+        );
+        $("#fdTaxPeriodRows").html(
+            (data.tax_period_summary || [])
+                .map((row) => {
+                    const net = row.net_tax || 0;
+                    return `<tr><td>${escape(
+                        row.period
+                    )}</td><td class="text-right">${money(
+                        row.sales_tax
+                    )}</td><td class="text-right">${money(
+                        row.purchase_tax
+                    )}</td><td class="text-right ${
+                        net >= 0 ? "fd-good" : "fd-bad"
+                    }">${money(net)}</td></tr>`;
+                })
+                .join("") || rowEmpty(4)
+        );
+        renderChart(
+            "#fdTaxPeriodChart",
+            null,
+            {
+                type: "bar",
+                height: 260,
+                data: {
+                    labels: (data.tax_period_summary || []).map(
+                        (row) => row.period || "-"
+                    ),
+                    datasets: [
+                        {
+                            name: __("Sales Tax"),
+                            values: (data.tax_period_summary || []).map(
+                                (row) => row.sales_tax || 0
+                            ),
+                        },
+                        {
+                            name: __("Purchase Tax"),
+                            values: (data.tax_period_summary || []).map(
+                                (row) => row.purchase_tax || 0
+                            ),
+                        },
+                        {
+                            name: __("Net Tax"),
+                            values: (data.tax_period_summary || []).map(
+                                (row) => row.net_tax || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: [chartBlue, chartGreen, "#f6a623"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
+            },
+            []
         );
 
         renderRatioRows(data.ratios);

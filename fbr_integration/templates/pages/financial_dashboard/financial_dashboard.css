@@ -717,6 +717,16 @@
     text-align: right !important;
 }
 
+.fd-tree-wrap .fd-tax-account-table td:first-child,
+.fd-tree-wrap .fd-tax-account-table th:first-child {
+    width: 40%;
+}
+
+.fd-tree-wrap .fd-tax-account-table td.text-right,
+.fd-tree-wrap .fd-tax-account-table th.text-right {
+    width: 20%;
+}
+
 .fd-total-row td {
     border-top: 2px solid #d0d5dd !important;
     background: #f8fafc;

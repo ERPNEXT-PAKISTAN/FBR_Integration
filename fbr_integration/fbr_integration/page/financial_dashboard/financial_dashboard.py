@@ -1129,6 +1129,14 @@ def _period_shift(period_str, group_by, months_delta):
 		return None
 
 
+def _period_expr(date_field, group_by):
+	if group_by == "yearly":
+		return f"YEAR({date_field})"
+	if group_by == "quarterly":
+		return f"CONCAT(YEAR({date_field}), '-Q', QUARTER({date_field}))"
+	return f"DATE_FORMAT({date_field}, '%%Y-%%m')"
+
+
 @frappe.whitelist()
 def get_sales_summary(company, from_date, to_date, group_by="monthly"):
 	"""Sales (Income) by period with comparative columns (previous, change %, monthly/quarterly/yearly change)."""
@@ -1236,6 +1244,185 @@ def _summary_row(r, group_by, by_period):
 def get_expenses_summary(company, from_date, to_date, group_by="monthly"):
 	"""Expenses by period: monthly, quarterly, or yearly."""
 	return get_purchases_summary(company, from_date, to_date, group_by)
+
+
+def _invoice_tax_rows(company, from_date, to_date, parent_doctype, tax_doctype):
+	parent_table = f"`tab{parent_doctype}`"
+	tax_table = f"`tab{tax_doctype}`"
+	return frappe.db.sql(
+		f"""
+		SELECT
+			COALESCE(NULLIF(tax.account_head, ''), 'No Tax Account') AS account_head,
+			COALESCE(NULLIF(tax.description, ''), NULLIF(tax.account_head, ''), 'No Description') AS description,
+			COALESCE(tax.rate, 0) AS rate,
+			COALESCE(SUM(tax.base_tax_amount_after_discount_amount), 0) AS tax_amount,
+			COUNT(DISTINCT parent.name) AS invoice_count
+		FROM {tax_table} tax
+		INNER JOIN {parent_table} parent ON tax.parent = parent.name
+		WHERE parent.company = %s
+		  AND parent.docstatus = 1
+		  AND parent.posting_date BETWEEN %s AND %s
+		GROUP BY account_head, description, rate
+		HAVING tax_amount <> 0
+		ORDER BY ABS(tax_amount) DESC
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def get_sales_tax_summary(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	return _invoice_tax_rows(company, from_date, to_date, "Sales Invoice", "Sales Taxes and Charges")
+
+
+@frappe.whitelist()
+def get_purchase_tax_summary(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	return _invoice_tax_rows(company, from_date, to_date, "Purchase Invoice", "Purchase Taxes and Charges")
+
+
+@frappe.whitelist()
+def get_tax_period_summary(company, from_date, to_date, group_by="monthly"):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	sales_period_expr = _period_expr("si.posting_date", group_by)
+	purchase_period_expr = _period_expr("pi.posting_date", group_by)
+	sales_rows = frappe.db.sql(
+		f"""
+		SELECT {sales_period_expr} AS period,
+			COALESCE(SUM(stc.base_tax_amount_after_discount_amount), 0) AS amount
+		FROM `tabSales Taxes and Charges` stc
+		INNER JOIN `tabSales Invoice` si ON stc.parent = si.name
+		WHERE si.company = %s
+		  AND si.docstatus = 1
+		  AND si.posting_date BETWEEN %s AND %s
+		GROUP BY period
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	purchase_rows = frappe.db.sql(
+		f"""
+		SELECT {purchase_period_expr} AS period,
+			COALESCE(SUM(ptc.base_tax_amount_after_discount_amount), 0) AS amount
+		FROM `tabPurchase Taxes and Charges` ptc
+		INNER JOIN `tabPurchase Invoice` pi ON ptc.parent = pi.name
+		WHERE pi.company = %s
+		  AND pi.docstatus = 1
+		  AND pi.posting_date BETWEEN %s AND %s
+		GROUP BY period
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	sales_by_period = {str(row.period): row.amount or 0 for row in sales_rows}
+	purchases_by_period = {str(row.period): row.amount or 0 for row in purchase_rows}
+	periods = sorted(set(sales_by_period) | set(purchases_by_period))
+	return [
+		{
+			"period": period,
+			"sales_tax": round(sales_by_period.get(period, 0), 0),
+			"purchase_tax": round(purchases_by_period.get(period, 0), 0),
+			"net_tax": round(sales_by_period.get(period, 0) - purchases_by_period.get(period, 0), 0),
+		}
+		for period in periods
+	]
+
+
+def _tax_account_tree(company, from_date, to_date, account_name, root_type):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	root = frappe.db.sql(
+		"""
+		SELECT name, account_name, lft, rgt
+		FROM `tabAccount`
+		WHERE company = %s
+		  AND root_type = %s
+		  AND LOWER(account_name) = LOWER(%s)
+		  AND disabled = 0
+		ORDER BY lft
+		LIMIT 1
+		""",
+		(company, root_type, account_name),
+		as_dict=True,
+	)
+	if not root:
+		return []
+
+	root = root[0]
+	accounts = frappe.db.sql(
+		"""
+		SELECT name, account_name, parent_account, is_group, lft, rgt
+		FROM `tabAccount`
+		WHERE company = %s
+		  AND lft >= %s
+		  AND rgt <= %s
+		  AND disabled = 0
+		ORDER BY lft
+		""",
+		(company, root.lft, root.rgt),
+		as_dict=True,
+	)
+	movements = frappe.db.sql(
+		"""
+		SELECT account,
+			COALESCE(SUM(debit), 0) AS debit,
+			COALESCE(SUM(credit), 0) AS credit
+		FROM `tabGL Entry`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		  AND is_cancelled = 0
+		GROUP BY account
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	movement_map = {row.account: row for row in movements}
+	account_map = {account.name: account for account in accounts}
+	for account in accounts:
+		movement = movement_map.get(account.name, {})
+		account.debit = movement.get("debit") or 0
+		account.credit = movement.get("credit") or 0
+
+	for account in reversed(accounts):
+		parent = account_map.get(account.parent_account)
+		if parent:
+			parent.debit = (parent.get("debit") or 0) + (account.get("debit") or 0)
+			parent.credit = (parent.get("credit") or 0) + (account.get("credit") or 0)
+
+	rows = []
+	for account in accounts:
+		debit = account.get("debit") or 0
+		credit = account.get("credit") or 0
+		if account.name != root.name and not debit and not credit and not account.is_group:
+			continue
+		indent = 0
+		parent = account_map.get(account.parent_account)
+		while parent and parent.name != root.name:
+			indent += 1
+			parent = account_map.get(parent.parent_account)
+		balance = credit - debit if root_type == "Liability" else debit - credit
+		rows.append(
+			{
+				"account": account.account_name,
+				"debit": round(debit, 0),
+				"credit": round(credit, 0),
+				"balance": round(balance, 0),
+				"is_group": account.is_group,
+				"indent": indent,
+			}
+		)
+	return rows
+
+
+@frappe.whitelist()
+def get_tax_account_reports(company, from_date, to_date):
+	return {
+		"withholding_income_taxes": _tax_account_tree(
+			company, from_date, to_date, "Withholding Income Taxes", "Asset"
+		),
+		"duties_and_taxes": _tax_account_tree(company, from_date, to_date, "Duties and Taxes", "Liability"),
+	}
 
 
 @frappe.whitelist()
@@ -1579,6 +1766,10 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 	revenue_sources = get_revenue_sources(company, from_date, to_date)
 	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
 	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
+	tax_period_summary = get_tax_period_summary(company, from_date, to_date, group_by)
+	sales_tax_summary = get_sales_tax_summary(company, from_date, to_date)
+	purchase_tax_summary = get_purchase_tax_summary(company, from_date, to_date)
+	tax_account_reports = get_tax_account_reports(company, from_date, to_date)
 	ratios = get_ratio_analysis(company, from_date, to_date)
 	activity = get_invoice_activity(company, from_date, to_date)
 	receivables = get_aging_receivables(company, to_date)
@@ -1603,6 +1794,10 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 		"revenue_sources": revenue_sources,
 		"sales_summary": sales_summary,
 		"purchases_summary": purchases_summary,
+		"tax_period_summary": tax_period_summary,
+		"sales_tax_summary": sales_tax_summary,
+		"purchase_tax_summary": purchase_tax_summary,
+		"tax_account_reports": tax_account_reports,
 		"ratios": ratios,
 		"activity": activity,
 		"receivables": receivables[:8] if isinstance(receivables, list) else [],
