@@ -3,7 +3,9 @@ from frappe.utils import getdate
 
 MAPPING_DOCTYPE = "FBR Payload Field Mapping"
 DETAIL_DOCTYPE = "FBR Payload Field Mapping Detail"
+SOURCE_FIELD_DOCTYPE = "FBR Payload Source Field"
 MAPPING_TABLE_FIELDS = ("header_mappings", "item_mappings", "mappings")
+SOURCE_FIELD_DOCTYPES = ("Sales Invoice", "Sales Invoice Item", "Address")
 
 
 DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
@@ -348,6 +350,80 @@ def _doctype_available():
 	return frappe.db.exists("DocType", MAPPING_DOCTYPE)
 
 
+def _source_field_doctype_available():
+	return frappe.db.exists("DocType", SOURCE_FIELD_DOCTYPE)
+
+
+def _source_field_link_name(source_doctype, source_field):
+	if not source_doctype or not source_field:
+		return ""
+	if "." in source_field and source_field.startswith(f"{source_doctype}."):
+		return source_field
+	return f"{source_doctype}.{source_field}"
+
+
+def get_source_fieldname(source_doctype, source_field):
+	if not source_field:
+		return ""
+	if "." in source_field and source_field.startswith(f"{source_doctype}."):
+		return source_field.split(".", 1)[1]
+	return source_field
+
+
+def sync_payload_source_fields():
+	if not _source_field_doctype_available():
+		return
+
+	blocked = {"Section Break", "Column Break", "Tab Break", "HTML", "Button", "Table", "Fold"}
+	for source_doctype in SOURCE_FIELD_DOCTYPES:
+		if not frappe.db.exists("DocType", source_doctype):
+			continue
+
+		rows = [
+			{
+				"name": _source_field_link_name(source_doctype, "name"),
+				"source_doctype": source_doctype,
+				"fieldname": "name",
+				"label": "Document Name",
+				"fieldtype": "Data",
+			}
+		]
+		for field in frappe.get_meta(source_doctype).fields:
+			if field.fieldtype in blocked or not field.fieldname:
+				continue
+			rows.append(
+				{
+					"name": _source_field_link_name(source_doctype, field.fieldname),
+					"source_doctype": source_doctype,
+					"fieldname": field.fieldname,
+					"label": field.label or field.fieldname,
+					"fieldtype": field.fieldtype,
+				}
+			)
+
+		for row in rows:
+			if frappe.db.exists(SOURCE_FIELD_DOCTYPE, row["name"]):
+				frappe.db.set_value(
+					SOURCE_FIELD_DOCTYPE,
+					row["name"],
+					{
+						"source_doctype": row["source_doctype"],
+						"fieldname": row["fieldname"],
+						"label": row["label"],
+						"fieldtype": row["fieldtype"],
+					},
+					update_modified=False,
+				)
+				continue
+
+			doc = frappe.new_doc(SOURCE_FIELD_DOCTYPE)
+			doc.update(row)
+			doc.insert(ignore_permissions=True)
+
+	frappe.db.commit()
+	frappe.clear_cache(doctype=SOURCE_FIELD_DOCTYPE)
+
+
 def _table_field_for_section(section):
 	return "item_mappings" if section == "Item" else "header_mappings"
 
@@ -381,9 +457,16 @@ def sync_payload_field_mappings():
 	if not _doctype_available():
 		return
 
+	sync_payload_source_fields()
 	_move_legacy_rows_to_section_tables()
 	settings = frappe.get_single(MAPPING_DOCTYPE)
 	settings.enabled = 1 if settings.enabled is None else settings.enabled
+	for mapping_row in _iter_mapping_rows(settings):
+		if mapping_row.source_doctype and mapping_row.source_field:
+			mapping_row.source_field = _source_field_link_name(
+				mapping_row.source_doctype, mapping_row.source_field
+			)
+
 	existing = {(row.payload_section, row.payload_field) for row in _iter_mapping_rows(settings)}
 
 	for row in DEFAULT_PAYLOAD_FIELD_MAPPINGS:
@@ -397,7 +480,7 @@ def sync_payload_field_mappings():
 				"payload_section": row["payload_section"],
 				"payload_field": row["payload_field"],
 				"source_doctype": row.get("source_doctype"),
-				"source_field": row.get("source_field"),
+				"source_field": _source_field_link_name(row.get("source_doctype"), row.get("source_field")),
 				"transform": row.get("transform") or "Raw",
 				"current_source": _current_source(row),
 				"description": row.get("description"),
@@ -411,7 +494,7 @@ def sync_payload_field_mappings():
 
 def _current_source(row):
 	source_doctype = row.get("source_doctype") or ""
-	source_field = row.get("source_field") or ""
+	source_field = get_source_fieldname(source_doctype, row.get("source_field") or "")
 	if not source_doctype or not source_field:
 		return "Computed / Constant"
 	return f"{source_doctype}.{source_field}"
@@ -451,7 +534,7 @@ def _get_address_doc(doc, payload_field):
 
 def _get_source_value(row, doc, item=None):
 	source_doctype = (getattr(row, "source_doctype", None) or "").strip()
-	source_field = (getattr(row, "source_field", None) or "").strip()
+	source_field = get_source_fieldname(source_doctype, (getattr(row, "source_field", None) or "").strip())
 	payload_field = (getattr(row, "payload_field", None) or "").strip()
 	if not source_doctype or not source_field:
 		return None
@@ -517,13 +600,18 @@ def get_doctype_field_options(doctype):
 
 	blocked = {"Section Break", "Column Break", "Tab Break", "HTML", "Button", "Table", "Fold"}
 	fields = [
-		{"value": "name", "label": "name - Document Name"},
+		{"value": _source_field_link_name(doctype, "name"), "label": "name - Document Name"},
 	]
 	for field in meta.fields:
 		if field.fieldtype in blocked or not field.fieldname:
 			continue
 		label = field.label or field.fieldname
-		fields.append({"value": field.fieldname, "label": f"{field.fieldname} - {label}"})
+		fields.append(
+			{
+				"value": _source_field_link_name(doctype, field.fieldname),
+				"label": f"{field.fieldname} - {label}",
+			}
+		)
 	return fields
 
 

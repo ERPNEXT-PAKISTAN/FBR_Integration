@@ -47,9 +47,10 @@
   },
   {
    "fieldname": "source_field",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Source Field"
+   "label": "Source Field",
+   "options": "FBR Payload Source Field"
   },
   {
    "default": "Raw",
