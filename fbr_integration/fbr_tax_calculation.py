@@ -102,6 +102,45 @@ def disable_update_stock_for_delivery_note_invoice(doc, method=None):
 			return
 
 
+def restore_submitted_sales_tax_rows(doc, method=None):
+	"""Keep submitted Sales Invoice tax rows from being dropped during updates.
+
+	ERPNext v15 compares submitted child table rows by index during
+	`on_update_after_submit`. If the browser sends fewer `taxes` rows than the saved
+	invoice has, ERPNext raises IndexError before it can repost accounting entries.
+	Restore missing existing rows, then let ERPNext recalculate amounts normally.
+	"""
+	if doc.doctype != "Sales Invoice" or doc.docstatus != 1 or not doc.name:
+		return
+
+	existing_taxes = frappe.get_all(
+		"Sales Taxes and Charges",
+		filters={"parent": doc.name, "parenttype": "Sales Invoice", "parentfield": "taxes"},
+		fields=["*"],
+		order_by="idx asc",
+		ignore_permissions=True,
+	)
+	if not existing_taxes:
+		return
+
+	current_tax_names = {tax.name for tax in doc.get("taxes") or [] if tax.name}
+	missing_taxes = [tax for tax in existing_taxes if tax.name not in current_tax_names]
+	if not missing_taxes:
+		return
+
+	for tax in missing_taxes:
+		row = doc.append("taxes", {})
+		for fieldname, value in tax.items():
+			if fieldname in {"doctype", "parent", "parenttype", "parentfield", "creation", "modified"}:
+				continue
+			row.set(fieldname, value)
+
+	if not doc.taxes_and_charges:
+		doc.taxes_and_charges = frappe.db.get_value("Sales Invoice", doc.name, "taxes_and_charges")
+
+	doc.calculate_taxes_and_totals()
+
+
 def get_effective_invoice_tax_scenario(doc):
 	detail = (getattr(doc, "custom_scenario_detail", None) or "").strip()
 	if detail:
