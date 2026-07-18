@@ -80,9 +80,17 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const node = resetChart(selector);
         if (node && typeof frappe.Chart !== "undefined") {
             const chartConfig = ["bar", "line"].includes(config.type)
-                ? { valuesOverPoints: 1, ...config }
+                ? {
+                      valuesOverPoints: 1,
+                      ...config,
+                      barOptions: {
+                          ...(config.barOptions || {}),
+                          spaceRatio: 0.08,
+                      },
+                  }
                 : config;
             new frappe.Chart(node, {
+                showLegend: 0,
                 ...chartConfig,
                 tooltipOptions: { formatTooltipY: (d) => money(d) },
             });
@@ -391,6 +399,21 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         ).toFixed(1)}%</td></tr>`
                 )
                 .join("") || rowEmpty(3)
+        );
+        $("#fdExpenseRows").html(
+            datasetRows(
+                data.expense_breakdown?.labels || [],
+                data.expense_breakdown?.values || []
+            )
+                .map(
+                    (row) =>
+                        `<tr><td>${escape(
+                            row.label
+                        )}</td><td class="text-right">${money(
+                            row.value
+                        )}</td></tr>`
+                )
+                .join("") || rowEmpty(2)
         );
 
         renderSimpleRows("#fdSalesRows", data.sales_summary, "sales");

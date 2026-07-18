@@ -488,3 +488,37 @@
         grid-template-columns: 1fr;
     }
 }
+
+.fd-chart .chart-legend {
+    display: none !important;
+}
+
+.fd-chart .data-point-value {
+    font-size: 10px;
+    font-weight: 750;
+    fill: #111827;
+}
+
+.fd-chart-side .fd-chart-label {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    border-radius: 10px;
+    padding: 9px 11px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--fd-border);
+}
+
+.fd-chart-side .fd-chart-label i {
+    display: none;
+}
+
+.fd-chart-side .fd-chart-label b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fd-chart-side .fd-chart-label em {
+    text-align: right;
+    color: var(--fd-text);
+}
