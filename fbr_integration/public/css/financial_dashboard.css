@@ -292,7 +292,10 @@
 
 .fd-report-grid a {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
     min-height: 76px;
     padding: 16px;
     border: 1px solid var(--fd-border);
@@ -303,11 +306,29 @@
     box-shadow: var(--fd-shadow);
 }
 
+.fd-report-grid a span {
+    color: var(--fd-muted);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.fd-report-grid a strong {
+    color: inherit;
+    font-size: 14px;
+    line-height: 1.25;
+}
+
 .fd-report-grid a:hover {
     color: #fff;
     text-decoration: none;
     background: var(--fd-primary);
     border-color: var(--fd-primary);
+}
+
+.fd-report-grid a:hover span {
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .fd-ratio-grid {
