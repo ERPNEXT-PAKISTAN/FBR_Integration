@@ -11,14 +11,17 @@ doc_events = {
 	"Sales Invoice": {
 		"before_validate": [
 			"fbr_integration.fbr_tax_calculation.disable_update_stock_for_delivery_note_invoice",
+			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
 		],
 		"validate": [
+			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
 			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",
 		],
 		"before_save": [
 			"fbr_integration.fbr_tax_calculation.restore_submitted_sales_tax_rows",
+			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
 			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",

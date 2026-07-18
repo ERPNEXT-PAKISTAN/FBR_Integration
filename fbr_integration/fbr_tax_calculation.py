@@ -92,6 +92,33 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 			item.custom_fbr_uom = item_defaults.get("custom_fbr_uom")
 
 
+def sync_return_source_invoice_no(doc, method=None):
+	"""Copy source FBR invoice number to return invoices.
+
+	When a Sales Return is created against a submitted Sales Invoice, ERPNext sets
+	`return_against` to the source invoice name. FBR needs the original FBR invoice
+	number, so keep `custom_fbr_source_invoice_no` aligned with the source invoice's
+	`custom_fbr_invoice_no`.
+	"""
+	if doc.doctype != "Sales Invoice":
+		return
+
+	if not getattr(doc, "is_return", 0):
+		return
+
+	if not hasattr(doc, "custom_fbr_source_invoice_no"):
+		return
+
+	return_against = (getattr(doc, "return_against", None) or "").strip()
+	if not return_against:
+		return
+
+	source_fbr_no = (
+		frappe.db.get_value("Sales Invoice", return_against, "custom_fbr_invoice_no") or ""
+	).strip()
+	doc.custom_fbr_source_invoice_no = source_fbr_no
+
+
 def disable_update_stock_for_delivery_note_invoice(doc, method=None):
 	if doc.doctype != "Sales Invoice" or not getattr(doc, "update_stock", 0):
 		return
