@@ -101,6 +101,20 @@ fixtures = [
 		],
 	},
 	{"dt": "Print Format", "filters": [["module", "=", "FBR Integration"]]},
+	{
+		"dt": "Report",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Sales Invoice Summary",
+					"Purchase Receipts Summary",
+					"Purchase Invoice Summary",
+				],
+			]
+		],
+	},
 	{"dt": "Workspace", "filters": [["name", "in", ["FBR Pakistan"]]]},
 	{"dt": "Dashboard", "filters": [["module", "=", "FBR Integration"]]},
 	# Master / seed data — auto-imported on bench migrate

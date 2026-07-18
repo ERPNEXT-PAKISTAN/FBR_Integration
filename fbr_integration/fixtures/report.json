@@ -1,0 +1,160 @@
+[
+ {
+  "name": "Sales Invoice Summary",
+  "docstatus": 0,
+  "idx": 0,
+  "report_name": "Sales Invoice Summary",
+  "ref_doctype": "Sales Invoice",
+  "reference_report": null,
+  "is_standard": "No",
+  "module": "FBR Integration",
+  "report_type": "Script Report",
+  "letter_head": null,
+  "add_total_row": 1,
+  "disabled": 0,
+  "prepared_report": 0,
+  "add_translate_data": 0,
+  "timeout": 0,
+  "query": null,
+  "report_script": "columns=[\n{\"fieldname\":\"sales_invoice\",\"label\":\"Sales Invoice\",\"fieldtype\":\"Link\",\"options\":\"Sales Invoice\",\"width\":190},\n{\"fieldname\":\"posting_date\",\"label\":\"Posting Date\",\"fieldtype\":\"Date\",\"width\":120},\n{\"fieldname\":\"customer\",\"label\":\"Customer\",\"fieldtype\":\"Link\",\"options\":\"Customer\",\"width\":250},\n{\"fieldname\":\"customer_group\",\"label\":\"Customer Group\",\"fieldtype\":\"Link\",\"options\":\"Customer Group\",\"width\":200},\n{\"fieldname\":\"territory\",\"label\":\"Territory\",\"fieldtype\":\"Link\",\"options\":\"Territory\",\"width\":170},\n{\"fieldname\":\"net_total\",\"label\":\"Net Total\",\"fieldtype\":\"Currency\",\"width\":120},\n{\"fieldname\":\"sales_tax\",\"label\":\"Sales Tax\",\"fieldtype\":\"Currency\",\"width\":120},\n{\"fieldname\":\"grand_total\",\"label\":\"Grand Total\",\"fieldtype\":\"Currency\",\"width\":120}]\nconditions=[\"si.docstatus=1\",\"si.posting_date BETWEEN %(from_date)s AND %(to_date)s\"]\nparams={\"from_date\":filters.get(\"from_date\"),\"to_date\":filters.get(\"to_date\")}\nif filters.get(\"customer\"): conditions.append(\"si.customer=%(customer)s\"); params[\"customer\"]=filters.get(\"customer\")\nif filters.get(\"customer_group\"): conditions.append(\"c.customer_group=%(customer_group)s\"); params[\"customer_group\"]=filters.get(\"customer_group\")\nif filters.get(\"net_total\"): conditions.append(\"ROUND(si.net_total)=ROUND(%(net_total)s)\"); params[\"net_total\"]=filters.get(\"net_total\")\nif filters.get(\"sales_tax\"): conditions.append(\"ROUND(si.total_taxes_and_charges)=ROUND(%(sales_tax)s)\"); params[\"sales_tax\"]=filters.get(\"sales_tax\")\nif filters.get(\"grand_total\"): conditions.append(\"ROUND(si.grand_total)=ROUND(%(grand_total)s)\"); params[\"grand_total\"]=filters.get(\"grand_total\")\ndata=frappe.db.sql(f'''SELECT si.name sales_invoice,si.posting_date,si.customer,c.customer_group,si.territory,si.net_total,si.total_taxes_and_charges sales_tax,si.grand_total FROM `tabSales Invoice` si LEFT JOIN `tabCustomer` c ON c.name=si.customer WHERE {' AND '.join(conditions)} ORDER BY si.posting_date DESC,si.name DESC''',params,as_dict=True)\nreport_summary=[{\"label\":\"Net Total\",\"value\":sum(d.net_total for d in data),\"datatype\":\"Currency\"},{\"label\":\"Sales Tax\",\"value\":sum(d.sales_tax for d in data),\"datatype\":\"Currency\"},{\"label\":\"Grand Total\",\"value\":sum(d.grand_total for d in data),\"datatype\":\"Currency\"}]\ndata=(columns,data,None,None,report_summary,1)",
+  "javascript": "frappe.query_reports[\"Sales Invoice Summary\"]={filters:[\n{fieldname:\"customer_group\",label:\"Customer Group\",fieldtype:\"Link\",options:\"Customer Group\"},\n{fieldname:\"customer\",label:\"Customer\",fieldtype:\"Link\",options:\"Customer\"},\n{fieldname:\"net_total\",label:\"Find Net Total\",fieldtype:\"Currency\"},\n{fieldname:\"sales_tax\",label:\"Find Sales Tax\",fieldtype:\"Currency\"},\n{fieldname:\"grand_total\",label:\"Find Grand Total\",fieldtype:\"Currency\"},\n{fieldname:\"from_date\",label:\"From Date\",fieldtype:\"Date\",default:frappe.datetime.year_start(),reqd:1},\n{fieldname:\"to_date\",label:\"To Date\",fieldtype:\"Date\",default:frappe.datetime.get_today(),reqd:1}\n]};",
+  "json": null,
+  "doctype": "Report",
+  "columns": [],
+  "roles": [
+   {
+    "name": "oag4hhdo55",
+    "docstatus": 0,
+    "idx": 1,
+    "role": "Accounts Manager",
+    "parent": "Sales Invoice Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   },
+   {
+    "name": "oaghv50ihj",
+    "docstatus": 0,
+    "idx": 2,
+    "role": "Accounts User",
+    "parent": "Sales Invoice Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   }
+  ],
+  "filters": []
+ },
+ {
+  "name": "Purchase Receipts Summary",
+  "docstatus": 0,
+  "idx": 0,
+  "report_name": "Purchase Receipts Summary",
+  "ref_doctype": "Purchase Receipt",
+  "reference_report": null,
+  "is_standard": "No",
+  "module": "FBR Integration",
+  "report_type": "Script Report",
+  "letter_head": null,
+  "add_total_row": 1,
+  "disabled": 0,
+  "prepared_report": 0,
+  "add_translate_data": 0,
+  "timeout": 0,
+  "query": "",
+  "report_script": "columns=[\n{\"fieldname\":\"purchase_receipt\",\"label\":\"Purchase Receipt\",\"fieldtype\":\"Link\",\"options\":\"Purchase Receipt\",\"width\":200},\n{\"fieldname\":\"posting_date\",\"label\":\"Posting Date\",\"fieldtype\":\"Date\",\"width\":130},\n{\"fieldname\":\"supplier\",\"label\":\"Supplier\",\"fieldtype\":\"Link\",\"options\":\"Supplier\",\"width\":290},\n{\"fieldname\":\"supplier_group\",\"label\":\"Supplier Group\",\"fieldtype\":\"Link\",\"options\":\"Supplier Group\",\"width\":240},\n{\"fieldname\":\"net_total\",\"label\":\"Net Total\",\"fieldtype\":\"Currency\",\"width\":150},\n{\"fieldname\":\"tax_amount\",\"label\":\"Tax Amount\",\"fieldtype\":\"Currency\",\"width\":140},\n{\"fieldname\":\"grand_total\",\"label\":\"Grand Total\",\"fieldtype\":\"Currency\",\"width\":150}\n]\n\nconditions=[\"pr.docstatus=1\",\"pr.posting_date BETWEEN %(from_date)s AND %(to_date)s\"]\n\nparams={\n    \"from_date\":filters.get(\"from_date\"),\n    \"to_date\":filters.get(\"to_date\")\n}\n\nif filters.get(\"supplier\"):\n    conditions.append(\"pr.supplier=%(supplier)s\")\n    params[\"supplier\"]=filters.get(\"supplier\")\n\nif filters.get(\"supplier_group\"):\n    conditions.append(\"s.supplier_group=%(supplier_group)s\")\n    params[\"supplier_group\"]=filters.get(\"supplier_group\")\n\nif filters.get(\"net_total\"):\n    conditions.append(\"ROUND(pr.net_total)=ROUND(%(net_total)s)\")\n    params[\"net_total\"]=filters.get(\"net_total\")\n\nif filters.get(\"tax_amount\"):\n    conditions.append(\"ROUND(pr.total_taxes_and_charges)=ROUND(%(tax_amount)s)\")\n    params[\"tax_amount\"]=filters.get(\"tax_amount\")\n\nif filters.get(\"grand_total\"):\n    conditions.append(\"ROUND(pr.grand_total)=ROUND(%(grand_total)s)\")\n    params[\"grand_total\"]=filters.get(\"grand_total\")\n\ndata=frappe.db.sql(f\"\"\"\nSELECT\n    pr.name purchase_receipt,\n    pr.posting_date,\n    pr.supplier,\n    s.supplier_group,\n    pr.net_total,\n    pr.total_taxes_and_charges tax_amount,\n    pr.grand_total\nFROM `tabPurchase Receipt` pr\nLEFT JOIN `tabSupplier` s\n    ON s.name=pr.supplier\nWHERE {' AND '.join(conditions)}\nORDER BY pr.posting_date DESC,pr.name DESC\n\"\"\",params,as_dict=True)\n\nreport_summary=[\n{\"label\":\"Net Total\",\"value\":sum(d.net_total for d in data),\"datatype\":\"Currency\"},\n{\"label\":\"Tax Amount\",\"value\":sum(d.tax_amount for d in data),\"datatype\":\"Currency\"},\n{\"label\":\"Grand Total\",\"value\":sum(d.grand_total for d in data),\"datatype\":\"Currency\"}\n]\n\ndata=(columns,data,None,None,report_summary,1)",
+  "javascript": "frappe.query_reports[\"Purchase Receipts Summary\"]={filters:[{fieldname:\"supplier_group\",label:\"Supplier Group\",fieldtype:\"Link\",options:\"Supplier Group\"},{fieldname:\"supplier\",label:\"Supplier\",fieldtype:\"Link\",options:\"Supplier\"},{fieldname:\"net_total\",label:\"Find Net Total\",fieldtype:\"Currency\"},{fieldname:\"tax_amount\",label:\"Find Tax Amount\",fieldtype:\"Currency\"},{fieldname:\"grand_total\",label:\"Find Grand Total\",fieldtype:\"Currency\"},{fieldname:\"from_date\",label:\"From Date\",fieldtype:\"Date\",default:frappe.datetime.year_start(),reqd:1},{fieldname:\"to_date\",label:\"To Date\",fieldtype:\"Date\",default:frappe.datetime.get_today(),reqd:1}]};",
+  "json": null,
+  "doctype": "Report",
+  "columns": [],
+  "roles": [
+   {
+    "name": "hjqjuujaav",
+    "docstatus": 0,
+    "idx": 1,
+    "role": "Accounts Manager",
+    "parent": "Purchase Receipts Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   },
+   {
+    "name": "hjqlsf7kfv",
+    "docstatus": 0,
+    "idx": 2,
+    "role": "Accounts User",
+    "parent": "Purchase Receipts Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   },
+   {
+    "name": "hjqbbsjt0q",
+    "docstatus": 0,
+    "idx": 3,
+    "role": "Sales Manager",
+    "parent": "Purchase Receipts Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   }
+  ],
+  "filters": []
+ },
+ {
+  "name": "Purchase Invoice Summary",
+  "docstatus": 0,
+  "idx": 0,
+  "report_name": "Purchase Invoice Summary",
+  "ref_doctype": "Purchase Invoice",
+  "reference_report": null,
+  "is_standard": "No",
+  "module": "FBR Integration",
+  "report_type": "Script Report",
+  "letter_head": null,
+  "add_total_row": 1,
+  "disabled": 0,
+  "prepared_report": 0,
+  "add_translate_data": 0,
+  "timeout": 0,
+  "query": "",
+  "report_script": "columns=[\n{\"fieldname\":\"purchase_invoice\",\"label\":\"Purchase Invoice\",\"fieldtype\":\"Link\",\"options\":\"Purchase Invoice\",\"width\":200},\n{\"fieldname\":\"posting_date\",\"label\":\"Posting Date\",\"fieldtype\":\"Date\",\"width\":130},\n{\"fieldname\":\"supplier\",\"label\":\"Supplier\",\"fieldtype\":\"Link\",\"options\":\"Supplier\",\"width\":300},\n{\"fieldname\":\"supplier_group\",\"label\":\"Supplier Group\",\"fieldtype\":\"Link\",\"options\":\"Supplier Group\",\"width\":250},\n{\"fieldname\":\"net_total\",\"label\":\"Net Total\",\"fieldtype\":\"Currency\",\"width\":150},\n{\"fieldname\":\"tax_amount\",\"label\":\"Tax Amount\",\"fieldtype\":\"Currency\",\"width\":130},\n{\"fieldname\":\"grand_total\",\"label\":\"Grand Total\",\"fieldtype\":\"Currency\",\"width\":150}\n]\n\nconditions=[\"pi.docstatus=1\",\"pi.posting_date BETWEEN %(from_date)s AND %(to_date)s\"]\n\nparams={\n    \"from_date\":filters.get(\"from_date\"),\n    \"to_date\":filters.get(\"to_date\")\n}\n\nif filters.get(\"supplier\"):\n    conditions.append(\"pi.supplier=%(supplier)s\")\n    params[\"supplier\"]=filters.get(\"supplier\")\n\nif filters.get(\"supplier_group\"):\n    conditions.append(\"s.supplier_group=%(supplier_group)s\")\n    params[\"supplier_group\"]=filters.get(\"supplier_group\")\n\nif filters.get(\"net_total\"):\n    conditions.append(\"ROUND(pi.net_total)=ROUND(%(net_total)s)\")\n    params[\"net_total\"]=filters.get(\"net_total\")\n\nif filters.get(\"tax_amount\"):\n    conditions.append(\"ROUND(pi.total_taxes_and_charges)=ROUND(%(tax_amount)s)\")\n    params[\"tax_amount\"]=filters.get(\"tax_amount\")\n\nif filters.get(\"grand_total\"):\n    conditions.append(\"ROUND(pi.grand_total)=ROUND(%(grand_total)s)\")\n    params[\"grand_total\"]=filters.get(\"grand_total\")\n\ndata=frappe.db.sql(f\"\"\"\nSELECT\n    pi.name purchase_invoice,\n    pi.posting_date,\n    pi.supplier,\n    s.supplier_group,\n    pi.net_total,\n    pi.total_taxes_and_charges tax_amount,\n    pi.grand_total\nFROM `tabPurchase Invoice` pi\nLEFT JOIN `tabSupplier` s\n    ON s.name=pi.supplier\nWHERE {' AND '.join(conditions)}\nORDER BY pi.posting_date DESC,pi.name DESC\n\"\"\",params,as_dict=True)\n\nreport_summary=[\n{\"label\":\"Net Total\",\"value\":sum(d.net_total for d in data),\"datatype\":\"Currency\"},\n{\"label\":\"Tax Amount\",\"value\":sum(d.tax_amount for d in data),\"datatype\":\"Currency\"},\n{\"label\":\"Grand Total\",\"value\":sum(d.grand_total for d in data),\"datatype\":\"Currency\"}\n]\n\ndata=(columns,data,None,None,report_summary,1)",
+  "javascript": "frappe.query_reports[\"Purchase Invoice Summary\"]={filters:[{fieldname:\"supplier_group\",label:\"Supplier Group\",fieldtype:\"Link\",options:\"Supplier Group\"},{fieldname:\"supplier\",label:\"Supplier\",fieldtype:\"Link\",options:\"Supplier\"},{fieldname:\"net_total\",label:\"Find Net Total\",fieldtype:\"Currency\"},{fieldname:\"tax_amount\",label:\"Find Tax Amount\",fieldtype:\"Currency\"},{fieldname:\"grand_total\",label:\"Find Grand Total\",fieldtype:\"Currency\"},{fieldname:\"from_date\",label:\"From Date\",fieldtype:\"Date\",default:frappe.datetime.year_start(),reqd:1},{fieldname:\"to_date\",label:\"To Date\",fieldtype:\"Date\",default:frappe.datetime.get_today(),reqd:1}]};",
+  "json": null,
+  "doctype": "Report",
+  "columns": [],
+  "roles": [
+   {
+    "name": "kutih2q3ov",
+    "docstatus": 0,
+    "idx": 1,
+    "role": "Accounts Manager",
+    "parent": "Purchase Invoice Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   },
+   {
+    "name": "kutds4bfft",
+    "docstatus": 0,
+    "idx": 2,
+    "role": "Accounts User",
+    "parent": "Purchase Invoice Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   },
+   {
+    "name": "kuthqajs5o",
+    "docstatus": 0,
+    "idx": 3,
+    "role": "Sales Manager",
+    "parent": "Purchase Invoice Summary",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "doctype": "Has Role"
+   }
+  ],
+  "filters": []
+ }
+]
