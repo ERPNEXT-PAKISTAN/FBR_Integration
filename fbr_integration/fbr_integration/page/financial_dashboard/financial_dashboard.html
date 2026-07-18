@@ -87,27 +87,50 @@
                     class="fd-chart-labels"
                 ></div>
             </div>
-            <div class="fd-card">
+            <div class="fd-card fd-card-wide">
                 <div class="fd-card-head">
                     <div>
                         <h3>Revenue vs Expenses</h3>
                         <p>Dynamic trend for selected period</p>
                     </div>
                 </div>
-                <div id="fdTrendChart" class="fd-chart"></div>
+                <div
+                    id="fdTrendChart"
+                    class="fd-chart fd-chart-line-full"
+                ></div>
                 <div id="fdTrendLabels" class="fd-chart-labels"></div>
             </div>
-            <div class="fd-card">
-                <div class="fd-card-head">
-                    <div>
-                        <h3>Cash Flow View</h3>
-                        <p>Operating, investing, financing movement</p>
+        </div>
+
+        <div class="fd-overview-lower fd-mt">
+            <div class="fd-overview-stack">
+                <div class="fd-card">
+                    <div class="fd-card-head"><h3>Expense Breakdown</h3></div>
+                    <div
+                        id="fdExpenseChart"
+                        class="fd-chart fd-chart-compact"
+                    ></div>
+                    <div class="fd-table-wrap">
+                        <table class="table">
+                            <tbody id="fdExpenseRows"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div id="fdCashFlowChart" class="fd-chart"></div>
-                <div id="fdCashFlowLabels" class="fd-chart-labels"></div>
+                <div class="fd-card">
+                    <div class="fd-card-head">
+                        <div>
+                            <h3>Cash Flow View</h3>
+                            <p>Operating, investing, financing movement</p>
+                        </div>
+                    </div>
+                    <div
+                        id="fdCashFlowChart"
+                        class="fd-chart fd-chart-compact"
+                    ></div>
+                    <div id="fdCashFlowLabels" class="fd-chart-labels"></div>
+                </div>
             </div>
-            <div class="fd-card">
+            <div class="fd-card fd-overview-tall">
                 <div class="fd-card-head">
                     <h3>Top Revenue Sources by Item Group</h3>
                 </div>
@@ -115,15 +138,6 @@
                 <div class="fd-table-wrap">
                     <table class="table">
                         <tbody id="fdRevenueSources"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="fd-card">
-                <div class="fd-card-head"><h3>Expense Breakdown</h3></div>
-                <div id="fdExpenseChart" class="fd-chart"></div>
-                <div class="fd-table-wrap">
-                    <table class="table">
-                        <tbody id="fdExpenseRows"></tbody>
                     </table>
                 </div>
             </div>

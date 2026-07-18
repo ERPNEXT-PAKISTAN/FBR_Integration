@@ -718,3 +718,34 @@
     stroke: #ffffff;
     stroke-width: 2.8px;
 }
+
+.fd-overview-lower {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+.fd-overview-stack {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 16px;
+}
+
+.fd-overview-tall {
+    min-height: 100%;
+}
+
+.fd-chart-line-full {
+    min-height: 330px;
+}
+
+.fd-chart-compact {
+    min-height: 210px;
+}
+
+@media (max-width: 900px) {
+    .fd-overview-lower {
+        grid-template-columns: 1fr;
+    }
+}
