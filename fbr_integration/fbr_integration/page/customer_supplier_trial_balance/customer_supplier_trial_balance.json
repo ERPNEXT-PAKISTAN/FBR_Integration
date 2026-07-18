@@ -1,0 +1,27 @@
+{
+ "doctype": "Page",
+ "docstatus": 0,
+ "idx": 0,
+ "modified_by": "Administrator",
+ "module": "FBR Integration",
+ "name": "customer-supplier-trial-balance",
+ "owner": "Administrator",
+ "page_name": "customer-supplier-trial-balance",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Customer Supplier Trial Balance",
+ "content": null
+}

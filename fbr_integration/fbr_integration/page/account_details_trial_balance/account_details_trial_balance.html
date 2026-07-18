@@ -1,0 +1,74 @@
+<link id="theme_stylesheet" rel="stylesheet" href="/files/dashboard-themes.css" />
+<style>
+  /* Sticky table headers with light background */
+  .sticky-header th {
+    position: sticky;
+    top: 0;
+    background: #f9fafb;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+</style>
+
+<section id="account_details_dashboard_root" style="max-width:1600px;margin:20px auto;font-family:Segoe UI, system-ui, sans-serif;font-size:14px;">
+    <h2 style="margin-bottom:16px;font-size:24px;color:#1e293b;">Trial Balance</h2>
+
+    <!-- Filters & Buttons -->
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:16px;">
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+        From:
+        <input type="date" id="from_date" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:150px;font-size:14px;" />
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+        To:
+        <input type="date" id="to_date" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:150px;font-size:14px;" />
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+        Chart of Accounts:
+        <select id="chart_of_accounts_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+        Root Type:
+        <select id="root_type_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+        Account Type:
+        <select id="account_type_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+        Parent Account:
+        <select id="parent_account_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+        Account:
+        <select id="account_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="visibility:hidden;height:20px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="load_report" style="background:#1d4ed8;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">Load Report</button>
+          <button id="reset_filters_btn" style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;">Reset Filters</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="error_message" style="color:#ef4444;margin:10px 0;font-weight:600;font-size:14px;"></div>
+    <div id="loading_spinner" style="display:none;text-align:center;padding:20px;color:#1d4ed8;font-size:16px;">Loading data from server…</div>
+
+    <!-- Content Sections -->
+    <!-- 1. Parent Account Table -->
+    <div id="parent_account_table_container" style="margin:16px 0;"></div>
+
+    <!-- 2. Detail Account Table -->
+    <div id="detail_account_table_container" style="margin:16px 0;"></div>
+
+    <!-- Action Buttons -->
+    <div style="text-align:right;margin-top:20px;display:flex;justify-content:flex-end;gap:12px;">
+      <button id="export_csv_btn" style="padding:8px 16px;background:#0d9488;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;">Export CSV</button>
+      <button id="print_btn" style="padding:8px 16px;background:#7e22ce;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;">Print</button>
+      <button id="fullscreen_btn" style="padding:8px 16px;background:#0c4a6e;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;">Fullscreen</button>
+    </div>
+  </section>
+
+<!-- Dashboard Script -->
+<script src="AccountDetails.js"></script>
