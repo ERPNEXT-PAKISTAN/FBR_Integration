@@ -12,15 +12,17 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     const API =
         "fbr_integration.fbr_integration.page.financial_dashboard.financial_dashboard";
     const TAX_YEAR = { from_date: "2025-07-01", to_date: "2026-06-30" };
+    const chartBlue = "#2da9e1";
+    const chartGreen = "#47c878";
     const chartColors = [
-        "#0f766e",
-        "#2563eb",
-        "#d97706",
-        "#7c3aed",
-        "#be123c",
-        "#0891b2",
-        "#65a30d",
-        "#c2410c",
+        chartBlue,
+        chartGreen,
+        "#f6a623",
+        "#7e57c2",
+        "#ef5350",
+        "#26c6da",
+        "#9ccc65",
+        "#ff7043",
     ];
     const state = {
         company: frappe.defaults.get_user_default("Company") || "",
@@ -119,16 +121,25 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const values = (config.data?.datasets || []).flatMap(
             (dataset) => dataset.values || []
         );
-        [80, 250, 650].forEach((delay) =>
+        const applyFullLabels = () => {
+            $(node)
+                .find(".data-point-value")
+                .each((index, element) => {
+                    if (values[index] !== undefined) {
+                        element.textContent = money(values[index]);
+                    }
+                });
+        };
+        [50, 120, 250, 650, 1200, 2500].forEach((delay) =>
             window.setTimeout(() => {
-                $(node)
-                    .find(".data-point-value")
-                    .each((index, element) => {
-                        if (values[index] !== undefined)
-                            element.textContent = money(values[index]);
-                    });
+                applyFullLabels();
             }, delay)
         );
+        if (window.MutationObserver) {
+            const observer = new MutationObserver(applyFullLabels);
+            observer.observe(node, { childList: true, subtree: true });
+            window.setTimeout(() => observer.disconnect(), 3000);
+        }
     }
 
     function renderExternalSliceLabels(node, rows) {
@@ -341,7 +352,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { name: __("Purchases"), values: purchaseValues },
                     ],
                 },
-                colors: ["#0f766e", "#2563eb"],
+                colors: [chartBlue, chartGreen],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
                 barOptions: { stacked: 0 },
             },
@@ -361,7 +372,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { name: __("Expenses"), values: purchaseValues },
                     ],
                 },
-                colors: ["#0f766e", "#be123c"],
+                colors: [chartBlue, chartGreen],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
                 lineOptions: { regionFill: 1, showDots: 1 },
             },
@@ -378,7 +389,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     labels,
                     datasets: [{ name: __("Sales"), values: salesValues }],
                 },
-                colors: ["#0f766e"],
+                colors: [chartBlue],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -396,7 +407,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { name: __("Purchases"), values: purchaseValues },
                     ],
                 },
-                colors: ["#2563eb"],
+                colors: [chartGreen],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -454,7 +465,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         },
                     ],
                 },
-                colors: ["#0891b2"],
+                colors: [chartBlue],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -498,7 +509,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { values: data.expense_breakdown?.values || [] },
                     ],
                 },
-                colors: ["#be123c", "#d97706"],
+                colors: [chartBlue, chartGreen],
             },
             datasetRows(
                 data.expense_breakdown?.labels || [],
@@ -517,7 +528,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { values: data.expense_breakdown?.values || [] },
                     ],
                 },
-                colors: ["#be123c", "#d97706"],
+                colors: [chartBlue, chartGreen],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -646,7 +657,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         },
                     ],
                 },
-                colors: ["#7c3aed"],
+                colors: [chartBlue],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
