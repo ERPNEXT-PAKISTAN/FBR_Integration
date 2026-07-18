@@ -362,8 +362,17 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function renderSimpleRows(selector, rows, type) {
-        const html = (rows || [])
-            .slice(-12)
+        const visibleRows = (rows || []).slice(-12);
+        const totals = visibleRows.reduce(
+            (sum, row) => ({
+                exclusive: sum.exclusive + Number(row.exclusive || 0),
+                tax: sum.tax + Number(row.tax || 0),
+                inclusive:
+                    sum.inclusive + Number(row.inclusive || row.amount || 0),
+            }),
+            { exclusive: 0, tax: 0, inclusive: 0 }
+        );
+        const html = visibleRows
             .map((row) => {
                 const change = row.change || 0;
                 const netClass = change >= 0 ? "fd-good" : "fd-bad";
@@ -380,7 +389,17 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 )}</td></tr>`;
             })
             .join("");
-        $(selector).html(html || rowEmpty(5, `No ${type} rows found`));
+        const totalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${money(
+            totals.exclusive
+        )}</td><td class="text-right">${money(
+            totals.tax
+        )}</td><td class="text-right">${money(
+            totals.inclusive
+        )}</td><td></td></tr>`;
+        $(selector).html(
+            (html ? html + totalRow : "") ||
+                rowEmpty(5, `No ${type} rows found`)
+        );
     }
 
     function renderAging(selector, rows, labelField) {
@@ -927,37 +946,75 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 ...Object.keys(purchaseByPeriod),
             ])
         ).sort();
-        $("#fdTaxYearRows").html(
-            periods
-                .map((period) => {
-                    const sales = salesByPeriod[period] || 0;
-                    const purchases = purchaseByPeriod[period] || 0;
-                    const net = sales - purchases;
-                    return `<tr><td>${period}</td><td class="text-right">${money(
-                        sales
-                    )}</td><td class="text-right">${money(
-                        purchases
-                    )}</td><td class="text-right ${
-                        net >= 0 ? "fd-good" : "fd-bad"
-                    }">${money(net)}</td></tr>`;
-                })
-                .join("") || rowEmpty(4)
+        const taxYearTotals = periods.reduce(
+            (sum, period) => {
+                const sales = Number(salesByPeriod[period] || 0);
+                const purchases = Number(purchaseByPeriod[period] || 0);
+                sum.sales += sales;
+                sum.purchases += purchases;
+                sum.net += sales - purchases;
+                return sum;
+            },
+            { sales: 0, purchases: 0, net: 0 }
         );
+        const taxYearHtml = periods
+            .map((period) => {
+                const sales = salesByPeriod[period] || 0;
+                const purchases = purchaseByPeriod[period] || 0;
+                const net = sales - purchases;
+                return `<tr><td>${period}</td><td class="text-right">${money(
+                    sales
+                )}</td><td class="text-right">${money(
+                    purchases
+                )}</td><td class="text-right ${
+                    net >= 0 ? "fd-good" : "fd-bad"
+                }">${money(net)}</td></tr>`;
+            })
+            .join("");
+        const taxYearTotalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${money(
+            taxYearTotals.sales
+        )}</td><td class="text-right">${money(
+            taxYearTotals.purchases
+        )}</td><td class="text-right ${
+            taxYearTotals.net >= 0 ? "fd-good" : "fd-bad"
+        }">${money(taxYearTotals.net)}</td></tr>`;
+        $("#fdTaxYearRows").html(
+            (taxYearHtml ? taxYearHtml + taxYearTotalRow : "") || rowEmpty(4)
+        );
+        const taxPeriodRows = data.tax_period_summary || [];
+        const taxPeriodTotals = taxPeriodRows.reduce(
+            (sum, row) => {
+                sum.sales += Number(row.sales_tax || 0);
+                sum.purchases += Number(row.purchase_tax || 0);
+                sum.net += Number(row.net_tax || 0);
+                return sum;
+            },
+            { sales: 0, purchases: 0, net: 0 }
+        );
+        const taxPeriodHtml = taxPeriodRows
+            .map((row) => {
+                const net = row.net_tax || 0;
+                return `<tr><td>${escape(
+                    row.period
+                )}</td><td class="text-right">${money(
+                    row.sales_tax
+                )}</td><td class="text-right">${money(
+                    row.purchase_tax
+                )}</td><td class="text-right ${
+                    net >= 0 ? "fd-good" : "fd-bad"
+                }">${money(net)}</td></tr>`;
+            })
+            .join("");
+        const taxPeriodTotalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${money(
+            taxPeriodTotals.sales
+        )}</td><td class="text-right">${money(
+            taxPeriodTotals.purchases
+        )}</td><td class="text-right ${
+            taxPeriodTotals.net >= 0 ? "fd-good" : "fd-bad"
+        }">${money(taxPeriodTotals.net)}</td></tr>`;
         $("#fdTaxPeriodRows").html(
-            (data.tax_period_summary || [])
-                .map((row) => {
-                    const net = row.net_tax || 0;
-                    return `<tr><td>${escape(
-                        row.period
-                    )}</td><td class="text-right">${money(
-                        row.sales_tax
-                    )}</td><td class="text-right">${money(
-                        row.purchase_tax
-                    )}</td><td class="text-right ${
-                        net >= 0 ? "fd-good" : "fd-bad"
-                    }">${money(net)}</td></tr>`;
-                })
-                .join("") || rowEmpty(4)
+            (taxPeriodHtml ? taxPeriodHtml + taxPeriodTotalRow : "") ||
+                rowEmpty(4)
         );
         renderChart(
             "#fdTaxPeriodChart",
