@@ -3,6 +3,10 @@ from datetime import timedelta
 import frappe
 from frappe.utils import add_to_date, cint, get_first_day, get_last_day, getdate
 
+DEFAULT_TAX_YEAR_FROM_DATE = "2025-07-01"
+DEFAULT_TAX_YEAR_TO_DATE = "2026-06-30"
+DEFAULT_TAX_YEAR_LABEL = "Tax Year 2025-2026"
+
 
 @frappe.whitelist()
 def get_companies():
@@ -1268,3 +1272,109 @@ def get_ratio_analysis(company, from_date, to_date):
 		}
 	)
 	return ratios
+
+
+@frappe.whitelist()
+def get_tax_year_dates(reference_date=None):
+	"""Pakistan tax year: 1 July to 30 June."""
+	if not reference_date:
+		return {
+			"from_date": DEFAULT_TAX_YEAR_FROM_DATE,
+			"to_date": DEFAULT_TAX_YEAR_TO_DATE,
+			"label": DEFAULT_TAX_YEAR_LABEL,
+		}
+
+	reference = getdate(reference_date) if reference_date else getdate()
+	start_year = reference.year if reference.month >= 7 else reference.year - 1
+	return {
+		"from_date": f"{start_year}-07-01",
+		"to_date": f"{start_year + 1}-06-30",
+		"label": f"Tax Year {start_year}-{start_year + 1}",
+	}
+
+
+def _period_bounds_for_previous(from_date, to_date):
+	period_days = (to_date - from_date).days + 1
+	prev_to = from_date - timedelta(days=1)
+	prev_from = prev_to - timedelta(days=period_days - 1)
+	return prev_from, prev_to
+
+
+@frappe.whitelist()
+def get_invoice_activity(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+
+	def invoice_row(doctype, date_field="posting_date"):
+		return frappe.db.sql(
+			f"""
+			SELECT COUNT(*) AS count, COALESCE(SUM(grand_total), 0) AS total
+			FROM `tab{doctype}`
+			WHERE company = %s
+			  AND docstatus = 1
+			  AND {date_field} BETWEEN %s AND %s
+			""",
+			(company, from_date, to_date),
+			as_dict=True,
+		)[0]
+
+	sales = invoice_row("Sales Invoice")
+	purchase_invoices = invoice_row("Purchase Invoice")
+	purchase_receipts = invoice_row("Purchase Receipt")
+
+	return {
+		"sales_count": sales.count or 0,
+		"sales_total": sales.total or 0,
+		"purchase_invoice_count": purchase_invoices.count or 0,
+		"purchase_invoice_total": purchase_invoices.total or 0,
+		"purchase_receipt_count": purchase_receipts.count or 0,
+		"purchase_receipt_total": purchase_receipts.total or 0,
+	}
+
+
+@frappe.whitelist()
+def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"):
+	if not from_date or not to_date:
+		tax_year = get_tax_year_dates()
+		from_date = from_date or tax_year["from_date"]
+		to_date = to_date or tax_year["to_date"]
+
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	currency = frappe.get_cached_value("Company", company, "default_currency") or frappe.db.get_default(
+		"currency"
+	)
+	prev_from, prev_to = _period_bounds_for_previous(from_date, to_date)
+
+	summary = get_financial_summary(company, from_date, to_date)
+	previous_summary = get_financial_summary(company, prev_from, prev_to)
+	trend = get_trend_data(company, from_date, to_date, group_by)
+	cash_flow = get_cash_flow(company, from_date, to_date)
+	expense_breakdown = get_expense_breakdown(company, from_date, to_date)
+	revenue_sources = get_revenue_sources(company, from_date, to_date)
+	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
+	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
+	ratios = get_ratio_analysis(company, from_date, to_date)
+	activity = get_invoice_activity(company, from_date, to_date)
+	receivables = get_aging_receivables(company, to_date)
+	payables = get_aging_payables(company, to_date)
+
+	return {
+		"company": company,
+		"currency": currency,
+		"from_date": str(from_date),
+		"to_date": str(to_date),
+		"tax_year": get_tax_year_dates(to_date),
+		"period_label": f"{from_date.strftime('%d-%m-%Y')} to {to_date.strftime('%d-%m-%Y')}",
+		"previous_period_label": f"{prev_from.strftime('%d-%m-%Y')} to {prev_to.strftime('%d-%m-%Y')}",
+		"summary": summary,
+		"previous_summary": previous_summary,
+		"trend": trend,
+		"cash_flow": cash_flow,
+		"expense_breakdown": expense_breakdown,
+		"revenue_sources": revenue_sources,
+		"sales_summary": sales_summary,
+		"purchases_summary": purchases_summary,
+		"ratios": ratios,
+		"activity": activity,
+		"receivables": receivables[:8] if isinstance(receivables, list) else [],
+		"payables": payables[:8] if isinstance(payables, list) else [],
+	}
