@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils import add_to_date, getdate, nowdate
 
 
 @frappe.whitelist()
@@ -301,6 +302,184 @@ def customer_supplier_details_dashboard_api(
 			"party_types": sorted(party_type_set),
 			"accounts": sorted(account_set),
 		},
+	}
+
+
+def _last_completed_fiscal_year():
+	today = getdate(nowdate())
+	current_start_year = today.year if today.month >= 7 else today.year - 1
+	start_year = current_start_year - 1
+	return getdate(f"{start_year}-07-01"), getdate(f"{start_year + 1}-06-30")
+
+
+def _pct_change(current, previous):
+	if not previous:
+		return 0
+	return round((current - previous) / previous * 100, 1)
+
+
+def _company_currency(company):
+	return frappe.get_cached_value("Company", company, "default_currency") or frappe.db.get_default(
+		"currency"
+	)
+
+
+def _first_company(company=None):
+	if company:
+		return company
+	return (
+		frappe.defaults.get_user_default("Company")
+		or frappe.db.get_single_value("Global Defaults", "default_company")
+		or frappe.get_all("Company", pluck="name", limit=1)[0]
+	)
+
+
+def _income_expense_summary(company, from_date, to_date):
+	rows = frappe.db.sql(
+		"""
+		SELECT
+			acc.root_type,
+			COALESCE(SUM(gle.credit) - SUM(gle.debit), 0) AS income,
+			COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS expense
+		FROM `tabGL Entry` gle
+		INNER JOIN `tabAccount` acc ON gle.account = acc.name
+		WHERE gle.company = %s
+		  AND gle.posting_date BETWEEN %s AND %s
+		  AND gle.is_cancelled = 0
+		  AND acc.root_type IN ('Income', 'Expense')
+		GROUP BY acc.root_type
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	revenue = sum(row.income or 0 for row in rows if row.root_type == "Income")
+	expenses = sum(row.expense or 0 for row in rows if row.root_type == "Expense")
+	profit = revenue - expenses
+	margin = (profit / revenue * 100) if revenue else 0
+	return {
+		"revenue": round(revenue, 0),
+		"expenses": round(expenses, 0),
+		"profit": round(profit, 0),
+		"margin": round(margin, 1),
+	}
+
+
+def _sales_invoice_totals(company, from_date, to_date):
+	return frappe.db.sql(
+		"""
+		SELECT
+			COUNT(*) AS invoice_count,
+			SUM(CASE WHEN docstatus = 0 THEN 1 ELSE 0 END) AS draft_count,
+			SUM(CASE WHEN docstatus = 1 THEN 1 ELSE 0 END) AS submitted_count,
+			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') != '' THEN 1 ELSE 0 END) AS fbr_success_count,
+			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') = '' THEN 1 ELSE 0 END) AS fbr_pending_count,
+			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_net_total ELSE 0 END), 0) AS exclusive,
+			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_total_taxes_and_charges ELSE 0 END), 0) AS tax,
+			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_grand_total ELSE 0 END), 0) AS inclusive
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus IN (0, 1)
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)[0]
+
+
+def _purchase_totals(company, from_date, to_date):
+	return frappe.db.sql(
+		"""
+		SELECT COUNT(*) AS purchase_count, COALESCE(SUM(base_grand_total), 0) AS purchase_total
+		FROM `tabPurchase Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus = 1
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)[0]
+
+
+def _sales_purchase_trend(company, from_date, to_date):
+	sales_rows = frappe.db.sql(
+		"""
+		SELECT DATE_FORMAT(posting_date, '%%Y-%%m') AS period,
+			COALESCE(SUM(base_grand_total), 0) AS amount
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus = 1
+		GROUP BY period
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	purchase_rows = frappe.db.sql(
+		"""
+		SELECT DATE_FORMAT(posting_date, '%%Y-%%m') AS period,
+			COALESCE(SUM(base_grand_total), 0) AS amount
+		FROM `tabPurchase Invoice`
+		WHERE company = %s
+		  AND posting_date BETWEEN %s AND %s
+		  AND docstatus = 1
+		GROUP BY period
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	sales_by_period = {row.period: row.amount or 0 for row in sales_rows}
+	purchase_by_period = {row.period: row.amount or 0 for row in purchase_rows}
+	periods = []
+	cursor = getdate(from_date)
+	while cursor <= to_date:
+		periods.append(cursor.strftime("%Y-%m"))
+		cursor = add_to_date(cursor, months=1)
+	return {
+		"labels": periods,
+		"sales": [round(sales_by_period.get(period, 0), 0) for period in periods],
+		"purchases": [round(purchase_by_period.get(period, 0), 0) for period in periods],
+	}
+
+
+@frappe.whitelist()
+def fiscal_year_kpi_block_data(company=None):
+	company = _first_company(company)
+	from_date, to_date = _last_completed_fiscal_year()
+	prev_from = add_to_date(from_date, years=-1)
+	prev_to = add_to_date(to_date, years=-1)
+	current_summary = _income_expense_summary(company, from_date, to_date)
+	previous_summary = _income_expense_summary(company, prev_from, prev_to)
+	sales = _sales_invoice_totals(company, from_date, to_date)
+	purchases = _purchase_totals(company, from_date, to_date)
+
+	return {
+		"company": company,
+		"currency": _company_currency(company),
+		"from_date": str(from_date),
+		"to_date": str(to_date),
+		"period_label": f"{from_date.strftime('%d-%m-%Y')} to {to_date.strftime('%d-%m-%Y')}",
+		"summary": {
+			**current_summary,
+			"revenue_change": _pct_change(current_summary["revenue"], previous_summary["revenue"]),
+			"expenses_change": _pct_change(current_summary["expenses"], previous_summary["expenses"]),
+			"profit_change": _pct_change(current_summary["profit"], previous_summary["profit"]),
+			"margin_change": round(current_summary["margin"] - previous_summary["margin"], 1),
+		},
+		"sales": {
+			"invoice_count": int(sales.invoice_count or 0),
+			"draft_count": int(sales.draft_count or 0),
+			"submitted_count": int(sales.submitted_count or 0),
+			"fbr_success_count": int(sales.fbr_success_count or 0),
+			"fbr_pending_count": int(sales.fbr_pending_count or 0),
+			"exclusive": round(sales.exclusive or 0, 0),
+			"tax": round(sales.tax or 0, 0),
+			"inclusive": round(sales.inclusive or 0, 0),
+		},
+		"purchases": {
+			"purchase_count": int(purchases.purchase_count or 0),
+			"purchase_total": round(purchases.purchase_total or 0, 0),
+		},
+		"trend": _sales_purchase_trend(company, from_date, to_date),
 	}
 
 

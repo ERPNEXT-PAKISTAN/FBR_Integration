@@ -140,6 +140,7 @@ fixtures = [
 		],
 	},
 	{"dt": "Workspace", "filters": [["name", "in", ["FBR Pakistan"]]]},
+	{"dt": "Custom HTML Block", "filters": [["name", "in", ["FBR Fiscal Year KPI Summary"]]]},
 	{"dt": "Dashboard", "filters": [["module", "=", "FBR Integration"]]},
 	# Master / seed data — auto-imported on bench migrate
 	{"dt": "Buyer Province", "filters": [["name", "!=", ""]]},
