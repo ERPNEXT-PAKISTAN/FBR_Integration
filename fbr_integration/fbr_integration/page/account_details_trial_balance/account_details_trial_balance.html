@@ -10,44 +10,42 @@
   }
 </style>
 
-<section id="account_details_dashboard_root" style="max-width:1600px;margin:20px auto;font-family:Segoe UI, system-ui, sans-serif;font-size:14px;">
-    <h2 style="margin-bottom:16px;font-size:24px;color:#1e293b;">Trial Balance</h2>
-
+<section id="account_details_dashboard_root" style="max-width:1600px;margin:8px auto;font-family:Segoe UI, system-ui, sans-serif;font-size:12px;">
     <!-- Filters & Buttons -->
-    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:16px;">
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+    <div style="display:flex;flex-wrap:nowrap;gap:8px;align-items:end;margin-bottom:10px;overflow-x:auto;padding-bottom:4px;">
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
         From:
-        <input type="date" id="from_date" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:150px;font-size:14px;" />
+        <input type="date" id="from_date" style="padding:5px 7px;border:1px solid #ccc;border-radius:5px;width:125px;font-size:12px;height:30px;" />
       </label>
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
         To:
-        <input type="date" id="to_date" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:150px;font-size:14px;" />
+        <input type="date" id="to_date" style="padding:5px 7px;border:1px solid #ccc;border-radius:5px;width:125px;font-size:12px;height:30px;" />
       </label>
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
         Chart of Accounts:
-        <select id="chart_of_accounts_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+        <select id="chart_of_accounts_filter" style="padding:5px 7px;border:1px solid #ccc;border-radius:5px;width:145px;font-size:12px;height:30px;"></select>
       </label>
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
         Root Type:
-        <select id="root_type_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+        <select id="root_type_filter" style="padding:5px 7px;border:1px solid #ccc;border-radius:5px;width:145px;font-size:12px;height:30px;"></select>
       </label>
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
         Account Type:
-        <select id="account_type_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+        <select id="account_type_filter" style="padding:5px 7px;border:1px solid #ccc;border-radius:5px;width:145px;font-size:12px;height:30px;"></select>
       </label>
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
         Parent Account:
-        <select id="parent_account_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+        <select id="parent_account_filter" style="padding:5px 7px;border:1px solid #ccc;border-radius:5px;width:145px;font-size:12px;height:30px;"></select>
       </label>
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;">
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
         Account:
-        <select id="account_filter" style="padding:8px;border:1px solid #ccc;border-radius:6px;width:180px;font-size:14px;"></select>
+        <select id="account_filter" style="padding:5px 7px;border:1px solid #ccc;border-radius:5px;width:145px;font-size:12px;height:30px;"></select>
       </label>
       <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="visibility:hidden;height:20px;"></div>
-        <div style="display:flex;gap:8px;">
-          <button id="load_report" style="background:#1d4ed8;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">Load Report</button>
-          <button id="reset_filters_btn" style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;">Reset Filters</button>
+        <div style="visibility:hidden;height:16px;"></div>
+        <div style="display:flex;gap:6px;">
+          <button id="load_report" style="background:#1d4ed8;color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-weight:600;font-size:12px;height:30px;white-space:nowrap;">Load Report</button>
+          <button id="reset_filters_btn" style="background:#6b7280;color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:12px;height:30px;white-space:nowrap;">Reset Filters</button>
         </div>
       </div>
     </div>
