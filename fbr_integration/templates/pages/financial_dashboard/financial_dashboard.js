@@ -60,6 +60,38 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         return Math.round(Number(value || 0)).toLocaleString();
     }
 
+    function statusBadge(value, kind = "invoice") {
+        const label = value || "-";
+        const normalized = String(label).toLowerCase();
+        let theme = "neutral";
+        if (
+            normalized.includes("paid") ||
+            normalized.includes("submit") ||
+            normalized.includes("success") ||
+            normalized === "yes"
+        ) {
+            theme = "green";
+        } else if (
+            normalized.includes("draft") ||
+            normalized.includes("pending") ||
+            normalized.includes("unpaid") ||
+            normalized === "no"
+        ) {
+            theme = "amber";
+        } else if (
+            normalized.includes("fail") ||
+            normalized.includes("cancel") ||
+            normalized.includes("overdue")
+        ) {
+            theme = "red";
+        } else if (kind === "fbr" && normalized.includes("fbr")) {
+            theme = "blue";
+        }
+        return `<span class="fd-status-badge fd-status-badge-${theme}">${escape(
+            label
+        )}</span>`;
+    }
+
     function roundedChartData(data = {}) {
         return {
             ...data,
@@ -746,7 +778,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             "#fdInvoiceStatusChart",
             "#fdInvoiceStatusLabels",
             {
-                type: "pie",
+                type: "bar",
                 height: 260,
                 data: {
                     labels: (status.status_mix || []).map(
@@ -760,7 +792,8 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         },
                     ],
                 },
-                colors: chartColors,
+                colors: ["#22c55e", "#f59e0b", "#ef4444", "#3b82f6"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             (status.status_mix || []).map((row) => ({
                 label: row.label || "-",
@@ -771,7 +804,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             "#fdFbrStatusChart",
             "#fdFbrStatusLabels",
             {
-                type: "pie",
+                type: "bar",
                 height: 260,
                 data: {
                     labels: (status.fbr_status_mix || []).map(
@@ -785,7 +818,8 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         },
                     ],
                 },
-                colors: chartColors,
+                colors: ["#16a34a", "#f59e0b", "#ef4444", "#64748b"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             (status.fbr_status_mix || []).map((row) => ({
                 label: row.label || "-",
@@ -820,13 +854,18 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                             row.posting_date
                         )}</td><td>${escape(
                             row.customer_name || "-"
-                        )}</td><td>${escape(
-                            row.status || "-"
-                        )}</td><td>${escape(
+                        )}</td><td>${statusBadge(
+                            row.status || "-",
+                            "invoice"
+                        )}</td><td>${statusBadge(
                             row.fbr_status ||
                                 (row.fbr_invoice_no
                                     ? "Submitted to FBR"
-                                    : "Pending FBR")
+                                    : "Pending FBR"),
+                            "fbr"
+                        )}</td><td>${statusBadge(
+                            row.custom_fbr_responsed || "-",
+                            "fbr"
                         )}</td><td>${escape(
                             row.custom_tax_payer_type || "-"
                         )}</td><td>${escape(
@@ -835,7 +874,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                             row.inclusive || 0
                         )}</td></tr>`
                 )
-                .join("") || rowEmpty(8)
+                .join("") || rowEmpty(9)
         );
     }
 

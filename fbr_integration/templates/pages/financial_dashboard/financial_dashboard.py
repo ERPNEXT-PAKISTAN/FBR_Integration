@@ -1866,6 +1866,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 			customer_name,
 			status,
 			COALESCE(custom_fbr_invoice_status, '') AS fbr_status,
+			COALESCE(custom_fbr_responsed, '') AS custom_fbr_responsed,
 			COALESCE(custom_fbr_invoice_no, '') AS fbr_invoice_no,
 			COALESCE(base_net_total, 0) AS exclusive,
 			COALESCE(base_total_taxes_and_charges, 0) AS taxes,

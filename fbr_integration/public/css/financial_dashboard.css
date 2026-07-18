@@ -425,6 +425,53 @@
     font-size: 22px;
 }
 
+.fd-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 74px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.fd-status-badge-green {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fd-status-badge-blue {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.fd-status-badge-amber {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.fd-status-badge-red {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.fd-status-badge-neutral {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+#fd-tab-status .fd-chart-labels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#fd-tab-status .fd-chart-label {
+    min-height: 36px;
+    padding: 8px 10px;
+}
+
 .fd-ratio-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(150px, 1fr));
