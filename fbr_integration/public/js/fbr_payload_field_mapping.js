@@ -50,6 +50,10 @@ function apply_source_field_options(frm, cdt, cdn, options) {
     const row = locals[cdt][cdn];
     const option_values = (options || []).map((field) => field.value);
     const option_text = option_values.join("\n");
+    const docfield = frappe.meta.get_docfield(cdt, "source_field", cdn);
+    if (docfield) {
+        docfield.options = option_text;
+    }
 
     const grid = get_mapping_grid(frm, row.parentfield);
     const grid_field = grid && grid.get_field("source_field");
@@ -63,8 +67,7 @@ function apply_source_field_options(frm, cdt, cdn, options) {
         return;
     }
 
-    source_field.df.options = option_values;
-    source_field.set_data(options || []);
+    source_field.df.options = option_text;
     source_field.refresh();
 }
 
@@ -87,6 +90,23 @@ function load_source_field_options(frm, cdt, cdn) {
 frappe.ui.form.on("FBR Payload Field Mapping", {
     refresh(frm) {
         set_grid_queries(frm);
+        $(frm.wrapper).off("grid-row-render.fbr_payload_mapping");
+        $(frm.wrapper).on(
+            "grid-row-render.fbr_payload_mapping",
+            (event, grid_row) => {
+                if (
+                    grid_row.doc?.doctype ===
+                        "FBR Payload Field Mapping Detail" &&
+                    FBR_MAPPING_TABLES.includes(grid_row.doc.parentfield)
+                ) {
+                    load_source_field_options(
+                        frm,
+                        grid_row.doc.doctype,
+                        grid_row.doc.name
+                    );
+                }
+            }
+        );
     },
 });
 
