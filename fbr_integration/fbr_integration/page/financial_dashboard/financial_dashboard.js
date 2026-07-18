@@ -1478,22 +1478,8 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         }
     }
 
-    async function loadStatusDashboard() {
-        if (!state.company) return;
-        const status = await call("get_sales_invoice_status_report", {
-            company: state.company,
-            from_date: state.from_date,
-            to_date: state.to_date,
-        });
-        renderSalesInvoiceStatus(status || {});
-        scheduleRelabelAllCharts();
-    }
-
     async function refreshDashboard() {
         await loadDashboard();
-        if ($("#fd-tab-status").hasClass("active")) {
-            await loadStatusDashboard();
-        }
     }
 
     function applyPreset(preset) {
@@ -1523,7 +1509,12 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(`#fd-tab-${tab}`).addClass("active");
         scheduleRelabelAllCharts();
         if (tab === "status") {
-            loadStatusDashboard();
+            if (state.lastData) {
+                renderSalesInvoiceStatus(state.lastData);
+                scheduleRelabelAllCharts();
+            } else {
+                refreshDashboard();
+            }
         }
     });
 
