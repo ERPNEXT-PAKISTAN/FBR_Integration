@@ -799,12 +799,20 @@
     align-items: flex-start;
 }
 
+.fd-hero-right {
+    display: grid;
+    justify-items: end;
+    gap: 7px;
+    width: min(760px, 100%);
+}
+
 .fd-hero-controls {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 10px;
-    margin-top: 14px;
+    gap: 7px;
+    margin-top: 0;
+    width: 100%;
 }
 
 .fd-hero .fd-presets,
@@ -816,16 +824,29 @@
 
 .fd-hero .fd-preset,
 .fd-hero .fd-tab {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.96);
+    color: #0f172a;
     padding: 7px 13px;
     font-size: 12px;
     line-height: 1.15;
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
+.fd-hero .fd-preset:hover,
+.fd-hero .fd-tab:hover,
+.fd-hero .fd-preset.active,
+.fd-hero .fd-tab.active {
+    border-color: #fbbf24;
+    background: #fbbf24;
+    color: #111827;
+    box-shadow: 0 8px 18px rgba(251, 191, 36, 0.28);
+}
+
 .fd-hero .fd-actions {
     grid-template-columns: minmax(190px, 1fr) minmax(250px, 1.1fr) 120px auto;
     min-width: 0;
-    width: min(760px, 100%);
+    width: 100%;
     align-items: center;
 }
 
@@ -857,6 +878,11 @@
 
     .fd-hero-controls {
         align-items: flex-start;
+    }
+
+    .fd-hero-right {
+        justify-items: start;
+        width: 100%;
     }
 
     .fd-hero .fd-presets,
