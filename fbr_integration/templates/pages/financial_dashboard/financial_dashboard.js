@@ -94,8 +94,58 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 ...chartConfig,
                 tooltipOptions: { formatTooltipY: (d) => money(d) },
             });
+            if (["bar", "line"].includes(config.type)) {
+                window.setTimeout(
+                    () => formatAxisValueLabels(node, config),
+                    80
+                );
+            } else if (config.type === "pie") {
+                window.setTimeout(() => renderSliceLabels(node, labelRows), 80);
+            }
         }
         if (labelSelector) renderChartLabels(labelSelector, labelRows);
+    }
+
+    function formatAxisValueLabels(node, config) {
+        const values = (config.data?.datasets || []).flatMap(
+            (dataset) => dataset.values || []
+        );
+        $(node)
+            .find(".data-point-value")
+            .each((index, element) => {
+                if (values[index] !== undefined)
+                    element.textContent = money(values[index]);
+            });
+    }
+
+    function renderSliceLabels(node, rows) {
+        $(node).find(".fd-slice-labels").remove();
+        const total = (rows || []).reduce(
+            (sum, row) => sum + Number(row.value || 0),
+            0
+        );
+        if (!total) return;
+
+        let angle = -90;
+        const labels = $("<div class='fd-slice-labels'></div>").appendTo(node);
+        (rows || []).forEach((row) => {
+            const value = Number(row.value || 0);
+            if (value <= 0) return;
+            const portion = value / total;
+            const midAngle = angle + portion * 180;
+            const radians = (midAngle * Math.PI) / 180;
+            const radius = 31;
+            const left = 50 + Math.cos(radians) * radius;
+            const top = 50 + Math.sin(radians) * radius;
+            angle += portion * 360;
+            $(
+                `<span class="fd-slice-label"><b>${escape(
+                    row.label
+                )}</b><em>${money(value)}</em></span>`
+            )
+                .css({ left: `${left}%`, top: `${top}%` })
+                .appendTo(labels);
+        });
     }
 
     function renderChartLabels(selector, rows) {
@@ -342,7 +392,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
 
         renderChart(
             "#fdRevenueSourceChart",
-            "#fdRevenueSourceLabels",
+            null,
             {
                 type: "pie",
                 height: 280,
@@ -368,10 +418,29 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
 
         renderChart(
             "#fdExpenseChart",
-            "#fdExpenseLabels",
+            null,
             {
-                type: "donut",
+                type: "pie",
                 height: 280,
+                data: {
+                    labels: data.expense_breakdown?.labels || [],
+                    datasets: [
+                        { values: data.expense_breakdown?.values || [] },
+                    ],
+                },
+                colors: ["#ef4444", "#f59e0b"],
+            },
+            datasetRows(
+                data.expense_breakdown?.labels || [],
+                data.expense_breakdown?.values || []
+            )
+        );
+        renderChart(
+            "#fdExpensesTabChart",
+            null,
+            {
+                type: "pie",
+                height: 320,
                 data: {
                     labels: data.expense_breakdown?.labels || [],
                     datasets: [
@@ -413,6 +482,20 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                             row.value
                         )}</td></tr>`
                 )
+                .join("") || rowEmpty(2)
+        );
+        $("#fdExpenseHierarchyRows").html(
+            (data.expense_hierarchy || [])
+                .map((row) => {
+                    const indent = Number(row.indent || 0);
+                    return `<tr class="${
+                        row.is_group ? "fd-tree-group" : ""
+                    }"><td style="padding-left: ${8 + indent * 18}px">${escape(
+                        row.account
+                    )}</td><td class="text-right">${money(
+                        row.value
+                    )}</td></tr>`;
+                })
                 .join("") || rowEmpty(2)
         );
 

@@ -66,6 +66,7 @@
         <button class="fd-tab" data-tab="tax-year">Tax Year</button>
         <button class="fd-tab" data-tab="sales">Sales</button>
         <button class="fd-tab" data-tab="purchases">Purchases</button>
+        <button class="fd-tab" data-tab="expenses">Expenses</button>
         <button class="fd-tab" data-tab="reports">Reports</button>
         <button class="fd-tab" data-tab="ratios">Ratios</button>
     </section>
@@ -109,13 +110,10 @@
                 <div class="fd-card-head">
                     <h3>Top Revenue Sources by Item Group</h3>
                 </div>
-                <div class="fd-chart-side">
-                    <div id="fdRevenueSourceChart" class="fd-chart"></div>
-                    <div
-                        id="fdRevenueSourceLabels"
-                        class="fd-chart-labels"
-                    ></div>
-                </div>
+                <div
+                    id="fdRevenueSourceChart"
+                    class="fd-chart fd-pie-chart"
+                ></div>
                 <div class="fd-table-wrap">
                     <table class="table">
                         <tbody id="fdRevenueSources"></tbody>
@@ -124,10 +122,7 @@
             </div>
             <div class="fd-card">
                 <div class="fd-card-head"><h3>Expense Breakdown</h3></div>
-                <div class="fd-chart-side">
-                    <div id="fdExpenseChart" class="fd-chart"></div>
-                    <div id="fdExpenseLabels" class="fd-chart-labels"></div>
-                </div>
+                <div id="fdExpenseChart" class="fd-chart fd-pie-chart"></div>
                 <div class="fd-table-wrap">
                     <table class="table">
                         <tbody id="fdExpenseRows"></tbody>
@@ -279,6 +274,44 @@
                             </tr>
                         </thead>
                         <tbody id="fdPayablesRows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="fd-tab-panel" id="fd-tab-expenses">
+        <div class="fd-grid fd-grid-2">
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <div>
+                        <h3>Expenses by Main Group</h3>
+                        <p>
+                            Direct and Indirect expenses from Chart of Accounts
+                        </p>
+                    </div>
+                </div>
+                <div id="fdExpensesTabChart" class="fd-chart"></div>
+            </div>
+            <div class="fd-card">
+                <div class="fd-card-head">
+                    <div>
+                        <h3>Expense Account Hierarchy</h3>
+                        <p>
+                            Expenses > Direct / Indirect > sub groups > detail
+                            accounts
+                        </p>
+                    </div>
+                </div>
+                <div class="fd-table-wrap fd-tree-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Account</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fdExpenseHierarchyRows"></tbody>
                     </table>
                 </div>
             </div>

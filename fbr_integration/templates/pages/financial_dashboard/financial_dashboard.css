@@ -522,3 +522,55 @@
     text-align: right;
     color: var(--fd-text);
 }
+
+.fd-pie-chart {
+    position: relative;
+    min-height: 320px;
+}
+
+.fd-slice-labels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.fd-slice-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    max-width: 116px;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(15, 23, 42, 0.45);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.18;
+}
+
+.fd-slice-label b,
+.fd-slice-label em {
+    display: block;
+}
+
+.fd-slice-label em {
+    margin-top: 3px;
+    font-style: normal;
+    font-size: 9px;
+    font-weight: 750;
+}
+
+.fd-tree-wrap {
+    max-height: 430px;
+    overflow: auto;
+}
+
+.fd-tree-group td {
+    background: #f8fafc;
+    font-weight: 850;
+}
+
+.fd-chart .data-point-value {
+    paint-order: stroke;
+    stroke: #fff;
+    stroke-width: 3px;
+    stroke-linejoin: round;
+}

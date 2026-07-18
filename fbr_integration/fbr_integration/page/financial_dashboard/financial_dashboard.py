@@ -203,6 +203,71 @@ def get_expense_breakdown(company, from_date, to_date):
 
 
 @frappe.whitelist()
+def get_expense_hierarchy(company, from_date, to_date):
+	"""Expense hierarchy from Chart of Accounts with period values."""
+	from_date, to_date = _get_dates(company, from_date, to_date)
+	accounts = frappe.db.sql(
+		"""
+		SELECT name, account_name, parent_account, is_group, lft, rgt
+		FROM `tabAccount`
+		WHERE company = %s
+		  AND root_type = 'Expense'
+		  AND disabled = 0
+		ORDER BY lft
+		""",
+		(company,),
+		as_dict=True,
+	)
+	values = frappe.db.sql(
+		"""
+		SELECT acc.name, COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS value
+		FROM `tabGL Entry` gle
+		INNER JOIN `tabAccount` acc ON gle.account = acc.name
+		WHERE gle.company = %s
+		  AND acc.root_type = 'Expense'
+		  AND acc.is_group = 0
+		  AND gle.posting_date BETWEEN %s AND %s
+		  AND gle.is_cancelled = 0
+		GROUP BY acc.name
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	value_map = {row.name: row.value or 0 for row in values}
+	account_map = {account.name: account for account in accounts}
+	for account in accounts:
+		account.value = value_map.get(account.name, 0)
+
+	for account in reversed(accounts):
+		parent = account_map.get(account.parent_account)
+		if parent:
+			parent.value = (parent.get("value") or 0) + (account.get("value") or 0)
+
+	root = next((account for account in accounts if not account.parent_account), None)
+	rows = []
+	for account in accounts:
+		if root and account.name == root.name:
+			continue
+		value = account.get("value") or 0
+		if value <= 0:
+			continue
+		indent = 0
+		parent = account_map.get(account.parent_account)
+		while parent and (not root or parent.name != root.name):
+			indent += 1
+			parent = account_map.get(parent.parent_account)
+		rows.append(
+			{
+				"account": account.account_name,
+				"value": round(value, 0),
+				"is_group": account.is_group,
+				"indent": indent,
+			}
+		)
+	return rows
+
+
+@frappe.whitelist()
 def get_cash_flow(company, from_date, to_date):
 	"""Cash flow summary for chart: Operating, Investing, Financing (linked to statement logic)."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
@@ -1464,6 +1529,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 	trend = get_trend_data(company, from_date, to_date, group_by)
 	cash_flow = get_cash_flow(company, from_date, to_date)
 	expense_breakdown = get_expense_breakdown(company, from_date, to_date)
+	expense_hierarchy = get_expense_hierarchy(company, from_date, to_date)
 	revenue_sources = get_revenue_sources(company, from_date, to_date)
 	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
 	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
@@ -1485,6 +1551,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 		"trend": trend,
 		"cash_flow": cash_flow,
 		"expense_breakdown": expense_breakdown,
+		"expense_hierarchy": expense_hierarchy,
 		"revenue_sources": revenue_sources,
 		"sales_summary": sales_summary,
 		"purchases_summary": purchases_summary,
