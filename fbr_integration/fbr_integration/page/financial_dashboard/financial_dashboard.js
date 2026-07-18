@@ -32,6 +32,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         currency: frappe.defaults.get_default("currency") || "PKR",
         lastData: null,
         warehouse: "",
+        chartLabels: new Map(),
     };
 
     function call(method, args = {}) {
@@ -131,6 +132,12 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 tooltipOptions: { formatTooltipY: (d) => money(d) },
             });
             if (["bar", "line"].includes(config.type)) {
+                state.chartLabels.set(selector, {
+                    node,
+                    values: (chartConfig.data?.datasets || []).flatMap(
+                        (dataset) => dataset.values || []
+                    ),
+                });
                 formatAxisValueLabels(node, chartConfig);
             } else if (config.type === "pie") {
                 window.setTimeout(
@@ -173,6 +180,26 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 }
             });
         }, 500);
+    }
+
+    function relabelAllCharts() {
+        state.chartLabels.forEach(({ node, values }) => {
+            if (!node || !node.isConnected) return;
+            const labels = node.querySelectorAll(
+                "text.data-point-value, [class*='data-point-value']"
+            );
+            labels.forEach((element, index) => {
+                if (values[index] !== undefined) {
+                    element.textContent = chartNumber(values[index]);
+                }
+            });
+        });
+    }
+
+    function scheduleRelabelAllCharts() {
+        [0, 80, 250, 700, 1200, 2200, 4000, 7000, 10000].forEach((delay) =>
+            window.setTimeout(relabelAllCharts, delay)
+        );
     }
 
     function renderExternalSliceLabels(node, rows) {
@@ -899,6 +926,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             warehouse: state.warehouse,
         });
         renderStock(rows || []);
+        scheduleRelabelAllCharts();
     }
 
     async function loadCompanies() {
@@ -927,6 +955,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 group_by: state.group_by,
             });
             renderDashboard(data || {});
+            scheduleRelabelAllCharts();
         } finally {
             setBusy(false);
         }
@@ -957,6 +986,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(this).addClass("active");
         $(".fd-tab-panel").removeClass("active");
         $(`#fd-tab-${tab}`).addClass("active");
+        scheduleRelabelAllCharts();
     });
 
     body.on("click", ".fd-preset", function () {
