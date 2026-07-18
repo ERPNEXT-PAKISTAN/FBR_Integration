@@ -846,31 +846,36 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             status.tax_payer_type || [],
             "Tax Payer Type"
         );
+        const itemTaxTemplateRows = status.item_tax_template || [];
+        const itemTaxChartRows = itemTaxTemplateRows.slice(0, 12);
         renderChart(
             "#fdStatusItemTaxTemplateChart",
-            null,
+            "#fdStatusItemTaxTemplateLabels",
             {
                 type: "bar",
                 height: 260,
                 data: {
-                    labels: (status.item_tax_template || []).map(
+                    labels: itemTaxChartRows.map(
                         (row) => row.item_tax_template || "Not Set"
                     ),
                     datasets: [
                         {
                             name: __("Tax Amount"),
-                            values: (status.item_tax_template || []).map(
-                                (row) => row.tax || 0
-                            ),
+                            values: itemTaxChartRows.map((row) => row.tax || 0),
                         },
                     ],
                 },
                 colors: ["#14b8a6"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
-            []
+            itemTaxChartRows.map((row) => ({
+                label: `${row.item_tax_template || "Not Set"} (${Number(
+                    row.percentage || 0
+                ).toFixed(2)}%)`,
+                value: row.tax || row.inclusive || 0,
+            }))
         );
-        const itemTaxTotals = (status.item_tax_template || []).reduce(
+        const itemTaxTotals = itemTaxTemplateRows.reduce(
             (sum, row) => {
                 sum.exclusive += Number(row.exclusive || 0);
                 sum.tax += Number(row.tax || 0);
@@ -879,7 +884,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             },
             { exclusive: 0, tax: 0, inclusive: 0 }
         );
-        const itemTaxHtml = (status.item_tax_template || [])
+        const itemTaxHtml = itemTaxTemplateRows
             .map(
                 (row) =>
                     `<tr><td>${escape(

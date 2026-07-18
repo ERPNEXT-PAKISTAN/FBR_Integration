@@ -382,9 +382,11 @@
 }
 
 .fd-status-kpi {
+    position: relative;
     min-height: 118px;
     padding: 18px;
     border: 1px solid var(--fd-border);
+    border-left: 5px solid currentColor;
     border-radius: 18px;
     background: #fff;
     box-shadow: var(--fd-shadow);
@@ -406,16 +408,36 @@
     color: #168250;
 }
 
+.fd-status-kpi-green {
+    color: #168250;
+    background: linear-gradient(135deg, #ffffff, #ecfdf3);
+}
+
 .fd-status-kpi-blue strong {
     color: #1d8fca;
+}
+
+.fd-status-kpi-blue {
+    color: #1d8fca;
+    background: linear-gradient(135deg, #ffffff, #eff6ff);
 }
 
 .fd-status-kpi-amber strong {
     color: #f59e0b;
 }
 
+.fd-status-kpi-amber {
+    color: #f59e0b;
+    background: linear-gradient(135deg, #ffffff, #fffbeb);
+}
+
 .fd-status-kpi-red strong {
     color: #dc3545;
+}
+
+.fd-status-kpi-red {
+    color: #dc3545;
+    background: linear-gradient(135deg, #ffffff, #fef2f2);
 }
 
 .fd-status-money {
@@ -426,6 +448,8 @@
 }
 
 .fd-status-money-card {
+    position: relative;
+    min-height: 88px;
     border-left: 5px solid currentColor;
 }
 
@@ -446,14 +470,19 @@
 }
 
 .fd-status-percent {
+    position: absolute;
+    top: 16px;
+    right: 16px;
     display: inline-flex;
-    margin-top: 8px;
+    max-width: 112px;
     padding: 4px 9px;
     border-radius: 999px;
     background: #ecfdf3;
     color: #166534;
     font-size: 11px;
     font-weight: 900;
+    line-height: 1.15;
+    text-align: center;
 }
 
 .fd-status-badge {
