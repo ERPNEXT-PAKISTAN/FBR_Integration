@@ -130,16 +130,11 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     }
                 });
         };
-        [50, 120, 250, 650, 1200, 2500].forEach((delay) =>
+        [120, 400, 900].forEach((delay) =>
             window.setTimeout(() => {
                 applyFullLabels();
             }, delay)
         );
-        if (window.MutationObserver) {
-            const observer = new MutationObserver(applyFullLabels);
-            observer.observe(node, { childList: true, subtree: true });
-            window.setTimeout(() => observer.disconnect(), 3000);
-        }
     }
 
     function renderExternalSliceLabels(node, rows) {
@@ -758,8 +753,6 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(this).addClass("active");
         $(".fd-tab-panel").removeClass("active");
         $(`#fd-tab-${tab}`).addClass("active");
-        if (state.lastData)
-            window.setTimeout(() => renderDashboard(state.lastData), 50);
     });
 
     body.on("click", ".fd-preset", function () {
