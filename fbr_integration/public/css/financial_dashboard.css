@@ -425,6 +425,37 @@
     font-size: 22px;
 }
 
+.fd-status-money-card {
+    border-left: 5px solid currentColor;
+}
+
+.fd-status-money-green {
+    color: #168250;
+}
+
+.fd-status-money-amber {
+    color: #d97706;
+}
+
+.fd-status-money-blue {
+    color: #1d8fca;
+}
+
+.fd-status-money-card .fd-status-money {
+    color: currentColor;
+}
+
+.fd-status-percent {
+    display: inline-flex;
+    margin-top: 8px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #ecfdf3;
+    color: #166534;
+    font-size: 11px;
+    font-weight: 900;
+}
+
 .fd-status-badge {
     display: inline-flex;
     align-items: center;
@@ -1019,7 +1050,7 @@
     display: grid;
     justify-items: end;
     gap: 7px;
-    width: min(760px, 100%);
+    width: min(930px, 100%);
 }
 
 .fd-hero-controls {
@@ -1033,9 +1064,14 @@
 
 .fd-hero .fd-presets,
 .fd-hero .fd-tabs {
-    justify-content: flex-end;
+    justify-content: flex-start;
     margin: 0;
     width: 100%;
+}
+
+.fd-hero .fd-tabs {
+    flex-wrap: nowrap;
+    gap: 7px;
 }
 
 .fd-hero .fd-preset,
@@ -1043,10 +1079,11 @@
     border-color: rgba(255, 255, 255, 0.75);
     background: rgba(255, 255, 255, 0.96);
     color: #0f172a;
-    padding: 7px 13px;
-    font-size: 12px;
+    padding: 7px 11px;
+    font-size: 11px;
     line-height: 1.15;
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    white-space: nowrap;
 }
 
 .fd-hero .fd-preset:hover,

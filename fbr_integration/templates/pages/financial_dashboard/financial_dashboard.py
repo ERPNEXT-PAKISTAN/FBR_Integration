@@ -1785,7 +1785,7 @@ def _status_group_rows(company, from_date, to_date, fieldname, item_field=False,
 			COUNT(DISTINCT si.name) AS invoice_count,
 			COALESCE(SUM({"sii.base_net_amount" if item_field else "si.base_net_total"}), 0) AS exclusive,
 			COALESCE(SUM({"COALESCE(sii.custom_total_tax_amount, 0)" if item_field else "si.base_total_taxes_and_charges"}), 0) AS tax,
-			COALESCE(SUM({"COALESCE(sii.custom_tax_inclusive_amount, sii.base_net_amount)" if item_field else "si.base_grand_total"}), 0) AS inclusive
+			COALESCE(SUM({"CASE WHEN COALESCE(sii.custom_tax_inclusive_amount, 0) > 0 THEN sii.custom_tax_inclusive_amount ELSE sii.base_net_amount + COALESCE(sii.custom_total_tax_amount, 0) END" if item_field else "si.base_grand_total"}), 0) AS inclusive
 		FROM {table}
 		{join}
 		WHERE si.company = %s
@@ -1798,6 +1798,46 @@ def _status_group_rows(company, from_date, to_date, fieldname, item_field=False,
 		(company, from_date, to_date),
 		as_dict=True,
 	)
+
+
+def _item_tax_template_status_rows(company, from_date, to_date):
+	rows = frappe.db.sql(
+		"""
+		SELECT
+			COALESCE(NULLIF(sii.item_tax_template, ''), 'Not Set') AS item_tax_template,
+			COALESCE(accounts.account_head, 'No GL Account') AS account_head,
+			COUNT(DISTINCT si.name) AS invoice_count,
+			COALESCE(SUM(sii.base_net_amount), 0) AS exclusive,
+			COALESCE(SUM(COALESCE(sii.custom_total_tax_amount, 0)), 0) AS tax,
+			COALESCE(SUM(
+				CASE
+					WHEN COALESCE(sii.custom_tax_inclusive_amount, 0) > 0
+					THEN sii.custom_tax_inclusive_amount
+					ELSE sii.base_net_amount + COALESCE(sii.custom_total_tax_amount, 0)
+				END
+			), 0) AS inclusive
+		FROM `tabSales Invoice Item` sii
+		INNER JOIN `tabSales Invoice` si ON sii.parent = si.name
+		LEFT JOIN (
+			SELECT parent, GROUP_CONCAT(DISTINCT tax_type ORDER BY idx SEPARATOR ', ') AS account_head
+			FROM `tabItem Tax Template Detail`
+			WHERE parenttype = 'Item Tax Template'
+			GROUP BY parent
+		) accounts ON accounts.parent = sii.item_tax_template
+		WHERE si.company = %s
+		  AND si.posting_date BETWEEN %s AND %s
+		  AND si.docstatus < 2
+		GROUP BY item_tax_template, account_head
+		HAVING exclusive <> 0 OR tax <> 0 OR inclusive <> 0
+		ORDER BY tax DESC, inclusive DESC
+		LIMIT 20
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	for row in rows:
+		row.percentage = round((row.tax or 0) / (row.exclusive or 1) * 100, 2) if row.exclusive else 0
+	return rows
 
 
 @frappe.whitelist()
@@ -1907,6 +1947,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 		"sro_schedule": _status_group_rows(
 			company, from_date, to_date, "sii.custom_sro_schedule_no", item_field=True
 		),
+		"item_tax_template": _item_tax_template_status_rows(company, from_date, to_date),
 		"recent_invoices": recent_invoices,
 	}
 

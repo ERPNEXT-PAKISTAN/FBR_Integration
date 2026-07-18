@@ -773,6 +773,20 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $("#fdStatusExclusive").html(money(summary.exclusive_sales || 0));
         $("#fdStatusTaxes").html(money(summary.taxes || 0));
         $("#fdStatusInclusive").html(money(summary.inclusive_sales || 0));
+        const inclusiveSales = Number(summary.inclusive_sales || 0);
+        const exclusivePct = inclusiveSales
+            ? (Number(summary.exclusive_sales || 0) / inclusiveSales) * 100
+            : 0;
+        const taxesPct = inclusiveSales
+            ? (Number(summary.taxes || 0) / inclusiveSales) * 100
+            : 0;
+        $("#fdStatusExclusivePct").text(
+            `${exclusivePct.toFixed(1)}% of inclusive`
+        );
+        $("#fdStatusTaxesPct").text(`${taxesPct.toFixed(1)}% of inclusive`);
+        $("#fdStatusInclusivePct").text(
+            inclusiveSales ? "100.0% total" : "0.0%"
+        );
 
         renderChart(
             "#fdInvoiceStatusChart",
@@ -831,6 +845,72 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             "#fdStatusTaxPayerRows",
             status.tax_payer_type || [],
             "Tax Payer Type"
+        );
+        renderChart(
+            "#fdStatusItemTaxTemplateChart",
+            null,
+            {
+                type: "bar",
+                height: 260,
+                data: {
+                    labels: (status.item_tax_template || []).map(
+                        (row) => row.item_tax_template || "Not Set"
+                    ),
+                    datasets: [
+                        {
+                            name: __("Tax Amount"),
+                            values: (status.item_tax_template || []).map(
+                                (row) => row.tax || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: ["#14b8a6"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
+            },
+            []
+        );
+        const itemTaxTotals = (status.item_tax_template || []).reduce(
+            (sum, row) => {
+                sum.exclusive += Number(row.exclusive || 0);
+                sum.tax += Number(row.tax || 0);
+                sum.inclusive += Number(row.inclusive || 0);
+                return sum;
+            },
+            { exclusive: 0, tax: 0, inclusive: 0 }
+        );
+        const itemTaxHtml = (status.item_tax_template || [])
+            .map(
+                (row) =>
+                    `<tr><td>${escape(
+                        row.item_tax_template || "Not Set"
+                    )}</td><td>${escape(
+                        row.account_head || "No GL Account"
+                    )}</td><td class="text-right">${Number(
+                        row.percentage || 0
+                    ).toFixed(2)}%</td><td class="text-right">${money(
+                        row.exclusive || 0
+                    )}</td><td class="text-right">${money(
+                        row.tax || 0
+                    )}</td><td class="text-right">${money(
+                        row.inclusive || 0
+                    )}</td></tr>`
+            )
+            .join("");
+        const itemTaxTotalPct = itemTaxTotals.exclusive
+            ? (itemTaxTotals.tax / itemTaxTotals.exclusive) * 100
+            : 0;
+        const itemTaxTotalRow = `<tr class="fd-total-row"><td>Total</td><td></td><td class="text-right">${itemTaxTotalPct.toFixed(
+            2
+        )}%</td><td class="text-right">${money(
+            itemTaxTotals.exclusive
+        )}</td><td class="text-right">${money(
+            itemTaxTotals.tax
+        )}</td><td class="text-right">${money(
+            itemTaxTotals.inclusive
+        )}</td></tr>`;
+        $("#fdStatusItemTaxTemplateRows").html(
+            (itemTaxHtml ? itemTaxHtml + itemTaxTotalRow : "") || rowEmpty(6)
         );
         renderStatusMiniTable(
             "#fdStatusProvinceRows",
@@ -1404,6 +1484,9 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(".fd-tab-panel").removeClass("active");
         $(`#fd-tab-${tab}`).addClass("active");
         scheduleRelabelAllCharts();
+        if (tab === "status") {
+            loadDashboard();
+        }
     });
 
     body.on("click", ".fd-preset", function () {
