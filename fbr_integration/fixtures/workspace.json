@@ -831,6 +831,186 @@
     "type": "Link"
    },
    {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Consumption Report",
+    "link_count": 0,
+    "link_to": "Consumption Report",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Sales Trend Analysis Report",
+    "link_count": 0,
+    "link_to": "Sales Trend Analysis Report",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Stock Report",
+    "link_count": 0,
+    "link_to": "Stock Report",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Supplier Wise Purchases Detail",
+    "link_count": 0,
+    "link_to": "Supplier Wise Purchases Detail",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "FBR Expenses Detail",
+    "link_count": 0,
+    "link_to": "FBR Expenses Detail",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "FBR Item Wise",
+    "link_count": 0,
+    "link_to": "FBR Item Wise",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "FBR Purchases Detail",
+    "link_count": 0,
+    "link_to": "FBR Purchases Detail",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "FBR Sales Detail",
+    "link_count": 0,
+    "link_to": "FBR Sales Detail",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "FBR Sales Summary",
+    "link_count": 0,
+    "link_to": "FBR Sales Summary",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Sales by Item",
+    "link_count": 0,
+    "link_to": "Sales by Item",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Sales by item Group",
+    "link_count": 0,
+    "link_to": "Sales by item Group",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Sales Invoices Detail Report",
+    "link_count": 0,
+    "link_to": "Sales Invoices Detail Report",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Sales Invoice Summary",
+    "link_count": 0,
+    "link_to": "Sales Invoice Summary",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Purchase Receipts Summary",
+    "link_count": 0,
+    "link_to": "Purchase Receipts Summary",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Purchase Invoice Summary",
+    "link_count": 0,
+    "link_to": "Purchase Invoice Summary",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
     "dependencies": null,
     "description": null,
     "hidden": 0,
@@ -921,7 +1101,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-07-18 00:00:00",
+  "modified": "2026-07-18 17:35:00.000000",
   "module": null,
   "name": "FBR Pakistan",
   "number_cards": [
@@ -954,6 +1134,7 @@
   "roles": [],
   "sequence_id": 10.0,
   "shortcuts": [],
-  "title": "FBR Pakistan"
+  "title": "FBR Pakistan",
+  "modified_by": "Administrator"
  }
 ]

@@ -451,6 +451,14 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function renderTaxAccountRows(selector, rows) {
+        const totalDebit = (rows || []).reduce(
+            (sum, row) => sum + Number(row.debit || 0),
+            0
+        );
+        const totalCredit = (rows || []).reduce(
+            (sum, row) => sum + Number(row.credit || 0),
+            0
+        );
         const html = (rows || [])
             .map((row) => {
                 const indent = Number(row.indent || 0);
@@ -465,7 +473,10 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 )}</td><td class="text-right">${money(row.balance)}</td></tr>`;
             })
             .join("");
-        $(selector).html(html || rowEmpty(4));
+        const totalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${money(
+            totalDebit
+        )}</td><td class="text-right">${money(totalCredit)}</td><td></td></tr>`;
+        $(selector).html((html ? html + totalRow : "") || rowEmpty(4));
     }
 
     function taxRowLabel(row) {
@@ -752,19 +763,34 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             []
         );
 
+        const revenueRows = data.revenue_sources || [];
+        const revenueTotal = revenueRows.reduce(
+            (sum, row) => sum + Number(row.amount || 0),
+            0
+        );
+        const revenuePercentTotal = revenueRows.reduce(
+            (sum, row) => sum + Number(row.percent || 0),
+            0
+        );
+        const revenueHtml = revenueRows
+            .map(
+                (row) =>
+                    `<tr><td>${escape(
+                        row.item_group
+                    )}</td><td class="text-right">${money(
+                        row.amount
+                    )}</td><td class="text-right">${Number(
+                        row.percent || 0
+                    ).toFixed(1)}%</td></tr>`
+            )
+            .join("");
+        const revenueTotalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${money(
+            revenueTotal
+        )}</td><td class="text-right">${revenuePercentTotal.toFixed(
+            1
+        )}%</td></tr>`;
         $("#fdRevenueSources").html(
-            (data.revenue_sources || [])
-                .map(
-                    (row) =>
-                        `<tr><td>${escape(
-                            row.item_group
-                        )}</td><td class="text-right">${money(
-                            row.amount
-                        )}</td><td class="text-right">${Number(
-                            row.percent || 0
-                        ).toFixed(1)}%</td></tr>`
-                )
-                .join("") || rowEmpty(3)
+            (revenueHtml ? revenueHtml + revenueTotalRow : "") || rowEmpty(3)
         );
         $("#fdExpenseRows").html(
             datasetRows(
@@ -997,19 +1023,31 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             },
             []
         );
+        const stockQtyTotal = rows.reduce(
+            (sum, row) => sum + Number(row.closing_qty || 0),
+            0
+        );
+        const stockValueTotal = rows.reduce(
+            (sum, row) => sum + Number(row.closing_value || 0),
+            0
+        );
+        const stockHtml = rows
+            .map(
+                (row) =>
+                    `<tr><td>${escape(
+                        row.item_group
+                    )}</td><td class="text-right">${number(
+                        row.closing_qty
+                    )}</td><td class="text-right">${money(
+                        row.closing_value
+                    )}</td></tr>`
+            )
+            .join("");
+        const stockTotalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${number(
+            stockQtyTotal
+        )}</td><td class="text-right">${money(stockValueTotal)}</td></tr>`;
         $("#fdStockRows").html(
-            rows
-                .map(
-                    (row) =>
-                        `<tr><td>${escape(
-                            row.item_group
-                        )}</td><td class="text-right">${number(
-                            row.closing_qty
-                        )}</td><td class="text-right">${money(
-                            row.closing_value
-                        )}</td></tr>`
-                )
-                .join("") || rowEmpty(3)
+            (stockHtml ? stockHtml + stockTotalRow : "") || rowEmpty(3)
         );
     }
 
