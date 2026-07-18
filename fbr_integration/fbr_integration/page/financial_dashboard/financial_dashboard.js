@@ -59,6 +59,18 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         return Math.round(Number(value || 0)).toLocaleString();
     }
 
+    function roundedChartData(data = {}) {
+        return {
+            ...data,
+            datasets: (data.datasets || []).map((dataset) => ({
+                ...dataset,
+                values: (dataset.values || []).map((value) =>
+                    Math.round(Number(value || 0))
+                ),
+            })),
+        };
+    }
+
     function number(value) {
         return frappe.format(value || 0, { fieldtype: "Float", precision: 2 });
     }
@@ -97,7 +109,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             const axisOptions = ["bar", "line"].includes(config.type)
                 ? {
                       ...(config.axisOptions || {}),
-                      shortenYAxisNumbers: 0,
+                      shortenYAxisNumbers: 1,
                       numberFormatter: chartNumber,
                   }
                 : config.axisOptions;
@@ -105,6 +117,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 ? {
                       valuesOverPoints: 1,
                       ...config,
+                      data: roundedChartData(config.data),
                       axisOptions,
                       barOptions: {
                           ...(config.barOptions || {}),
@@ -118,10 +131,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 tooltipOptions: { formatTooltipY: (d) => money(d) },
             });
             if (["bar", "line"].includes(config.type)) {
-                window.setTimeout(
-                    () => formatAxisValueLabels(node, config),
-                    80
-                );
+                formatAxisValueLabels(node, chartConfig);
             } else if (config.type === "pie") {
                 window.setTimeout(
                     () => renderExternalSliceLabels(node, labelRows),
@@ -138,14 +148,14 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         );
         const applyFullLabels = () => {
             $(node)
-                .find(".data-point-value")
+                .find("text.data-point-value, .data-point-value")
                 .each((index, element) => {
                     if (values[index] !== undefined) {
-                        element.textContent = money(values[index]);
+                        element.textContent = chartNumber(values[index]);
                     }
                 });
         };
-        [120, 400, 900].forEach((delay) =>
+        [80, 250, 700, 1200, 2200, 4000].forEach((delay) =>
             window.setTimeout(() => {
                 applyFullLabels();
             }, delay)
