@@ -57,7 +57,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function chartNumber(value) {
-        return String(Math.round(Number(value || 0)));
+        return Math.round(Number(value || 0)).toLocaleString();
     }
 
     function roundedChartData(data = {}) {

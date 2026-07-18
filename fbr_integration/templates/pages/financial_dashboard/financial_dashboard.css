@@ -148,7 +148,7 @@
 .fd-kpi strong {
     display: block;
     margin: 12px 0 10px;
-    font-size: 22px;
+    font-size: 18px;
     line-height: 1.15;
 }
 
@@ -773,10 +773,11 @@
 }
 
 .fd-chart .data-point-value {
-    font-size: 9px;
+    font-size: 11px;
     fill: #111827;
     stroke: #ffffff;
     stroke-width: 2.8px;
+    font-weight: 850;
 }
 
 .fd-overview-lower {
