@@ -424,6 +424,59 @@ def get_json_payload_fields():
 	return fields
 
 
+def get_scenario_sample_payload(scenario_id="SN002"):
+	scenario = (scenario_id or "SN002").strip().upper()
+	scenario_path = (
+		Path(frappe.get_app_path("fbr_integration")) / "public" / "scenario_docs" / f"{scenario}.json"
+	)
+	if not scenario_path.exists():
+		scenario_path = (
+			Path(frappe.get_app_path("fbr_integration")) / "public" / "scenario_docs" / "SN002.json"
+		)
+
+	try:
+		return json.loads(scenario_path.read_text()).get("sample") or {}
+	except Exception:
+		return {}
+
+
+def _sample_value_for_transform(transform, section):
+	transform = (transform or "Raw").strip()
+	if transform in {"Float", "Absolute Float", "Money 2 Decimals"}:
+		return 0
+	if transform == "Quantity 4 Decimals":
+		return 1
+	if transform == "Date YYYY-MM-DD":
+		return "2026-05-10"
+	if section == "Item":
+		return "Item Value"
+	return "Header Value"
+
+
+@frappe.whitelist()
+def get_current_payload_sample(scenario_id="SN002"):
+	payload = get_scenario_sample_payload(scenario_id)
+	if not payload:
+		payload = {"items": [{}]}
+
+	payload.setdefault("items", [{}])
+	if not payload["items"]:
+		payload["items"] = [{}]
+
+	for row in get_enabled_mapping_rows("Header"):
+		payload_field = (getattr(row, "payload_field", None) or "").strip()
+		if payload_field and payload_field not in payload:
+			payload[payload_field] = _sample_value_for_transform(getattr(row, "transform", None), "Header")
+
+	item_payload = payload["items"][0]
+	for row in get_enabled_mapping_rows("Item"):
+		payload_field = (getattr(row, "payload_field", None) or "").strip()
+		if payload_field and payload_field not in item_payload:
+			item_payload[payload_field] = _sample_value_for_transform(getattr(row, "transform", None), "Item")
+
+	return payload
+
+
 def _source_field_link_name(source_doctype, source_field):
 	if not source_doctype or not source_field:
 		return ""

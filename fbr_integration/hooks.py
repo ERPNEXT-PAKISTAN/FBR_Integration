@@ -31,7 +31,12 @@ if AUTO_SEND_ON_SUBMIT:
 # Sales Invoice UI: live tax + send button + QR/barcode rendering
 doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice_fbr.js",
-	"FBR Payload Field Mapping": "public/js/fbr_payload_field_mapping.js",
+	"FBR Payload Field Mapping": [
+		"public/js/fbr_payload_field_mapping.js",
+		"public/js/fbr_payload_reference.js",
+	],
+	"FBR Payload Field": "public/js/fbr_payload_reference.js",
+	"FBR Payload Source Field": "public/js/fbr_payload_reference.js",
 }
 
 # Purple button CSS (you already have fbr.css)
