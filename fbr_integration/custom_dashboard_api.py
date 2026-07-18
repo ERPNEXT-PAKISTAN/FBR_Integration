@@ -388,30 +388,34 @@ def _sales_invoice_totals(company, from_date, to_date):
 
 
 def _expense_main_group_totals(company, from_date, to_date):
-	rows = frappe.db.sql(
+	groups = frappe.db.sql(
 		"""
-		SELECT
-			parent.account_name,
-			COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS amount
-		FROM `tabGL Entry` gle
-		INNER JOIN `tabAccount` account ON gle.account = account.name
-		INNER JOIN `tabAccount` parent ON account.lft >= parent.lft
-			AND account.rgt <= parent.rgt
-			AND parent.company = account.company
-		WHERE gle.company = %s
-		  AND gle.posting_date BETWEEN %s AND %s
-		  AND gle.is_cancelled = 0
-		  AND parent.root_type = 'Expense'
-		  AND parent.is_group = 1
-		  AND LOWER(parent.account_name) IN ('direct expenses', 'indirect expenses')
-		GROUP BY parent.name, parent.account_name
+		SELECT account_name, lft, rgt
+		FROM `tabAccount`
+		WHERE company = %s
+		  AND root_type = 'Expense'
+		  AND is_group = 1
+		  AND LOWER(account_name) IN ('direct expenses', 'indirect expenses')
 		""",
-		(company, from_date, to_date),
+		(company,),
 		as_dict=True,
 	)
 	totals = {"direct": 0, "indirect": 0}
-	for row in rows:
-		key = "direct" if (row.account_name or "").lower() == "direct expenses" else "indirect"
+	for group in groups:
+		row = frappe.db.sql(
+			"""
+			SELECT COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS amount
+			FROM `tabGL Entry` gle
+			INNER JOIN `tabAccount` account ON gle.account = account.name
+			WHERE gle.company = %s
+			  AND gle.posting_date BETWEEN %s AND %s
+			  AND gle.is_cancelled = 0
+			  AND account.lft BETWEEN %s AND %s
+			""",
+			(company, from_date, to_date, group.lft, group.rgt),
+			as_dict=True,
+		)[0]
+		key = "direct" if (group.account_name or "").lower() == "direct expenses" else "indirect"
 		totals[key] = round(row.amount or 0, 0)
 	total = totals["direct"] + totals["indirect"]
 	totals["direct_pct"] = round((totals["direct"] / total * 100) if total else 0, 1)
