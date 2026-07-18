@@ -559,9 +559,10 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 .filter((row) => row.is_group)
                 .map((row) => {
                     const indent = Number(row.indent || 0);
-                    return `<tr class="fd-tree-group"><td style="padding-left: ${
-                        8 + indent * 18
-                    }px">${escape(
+                    return `<tr class="fd-expense-group-row fd-expense-group-level-${Math.min(
+                        indent,
+                        4
+                    )}"><td style="padding-left: ${8 + indent * 18}px">${escape(
                         row.account
                     )}</td><td class="text-right">${money(
                         row.value

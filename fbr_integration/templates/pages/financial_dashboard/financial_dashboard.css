@@ -825,3 +825,31 @@
         grid-template-columns: 1fr;
     }
 }
+
+.fd-expense-group-row td {
+    font-weight: 780;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22) !important;
+}
+
+.fd-expense-group-level-0 td {
+    background: #e0f2fe;
+    color: #075985;
+    font-weight: 900;
+}
+
+.fd-expense-group-level-1 td {
+    background: #ecfdf3;
+    color: #166534;
+}
+
+.fd-expense-group-level-2 td {
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.fd-expense-group-level-3 td,
+.fd-expense-group-level-4 td {
+    background: #f8fafc;
+    color: #475467;
+    font-weight: 700;
+}
