@@ -274,19 +274,22 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const html = (rows || [])
             .slice(-12)
             .map((row) => {
-                const amount = row.amount || 0;
                 const change = row.change || 0;
                 const netClass = change >= 0 ? "fd-good" : "fd-bad";
                 return `<tr><td>${escape(
                     row.period
                 )}</td><td class="text-right">${money(
-                    amount
+                    row.exclusive || 0
+                )}</td><td class="text-right">${money(
+                    row.tax || 0
+                )}</td><td class="text-right">${money(
+                    row.inclusive || row.amount || 0
                 )}</td><td class="text-right ${netClass}">${pct(
                     change
                 )}</td></tr>`;
             })
             .join("");
-        $(selector).html(html || rowEmpty(3, `No ${type} rows found`));
+        $(selector).html(html || rowEmpty(5, `No ${type} rows found`));
     }
 
     function renderAging(selector, rows, labelField) {

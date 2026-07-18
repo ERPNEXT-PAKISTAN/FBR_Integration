@@ -1139,83 +1139,57 @@ def _period_expr(date_field, group_by):
 
 @frappe.whitelist()
 def get_sales_summary(company, from_date, to_date, group_by="monthly"):
-	"""Sales (Income) by period with comparative columns (previous, change %, monthly/quarterly/yearly change)."""
+	"""Sales invoices by period with exclusive, tax, inclusive and change columns."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
-	if group_by == "yearly":
-		period_expr = "YEAR(gle.posting_date)"
-	elif group_by == "quarterly":
-		period_expr = "CONCAT(YEAR(gle.posting_date), '-Q', QUARTER(gle.posting_date))"
-	else:
-		period_expr = "DATE_FORMAT(gle.posting_date, '%%Y-%%m')"
-	rows = frappe.db.sql(
-		"""
-        SELECT """
-		+ period_expr
-		+ """ AS period,
-            COALESCE(SUM(gle.credit) - SUM(gle.debit), 0) AS amount
-        FROM `tabGL Entry` gle
-        INNER JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE gle.company = %s AND acc.root_type = 'Income'
-          AND gle.posting_date BETWEEN %s AND %s AND gle.is_cancelled = 0
-        GROUP BY period ORDER BY period
-        """,
-		(company, from_date, to_date),
-		as_dict=True,
-	)
-	by_period = {str(r["period"]): r["amount"] or 0 for r in rows}
-	result = []
-	for r in rows:
-		p = str(r["period"])
-		amt = r["amount"] or 0
-		prev_p = _period_shift(p, group_by, -1)
-		prev_m = _period_shift(p, group_by, -1)
-		prev_q = _period_shift(p, group_by, -3)
-		prev_y = _period_shift(p, group_by, -12)
-		prev_amt = by_period.get(prev_p, 0) if prev_p else 0
-		amt_m = by_period.get(prev_m, 0) if prev_m else 0
-		amt_q = by_period.get(prev_q, 0) if prev_q else 0
-		amt_y = by_period.get(prev_y, 0) if prev_y else 0
-		result.append(
-			{
-				"period": p,
-				"amount": amt,
-				"previous": prev_amt,
-				"change": _chg(amt, prev_amt),
-				"change_monthly": _chg(amt, amt_m),
-				"change_quarterly": _chg(amt, amt_q),
-				"change_yearly": _chg(amt, amt_y),
-			}
-		)
-	return result
+	return _invoice_period_summary(company, from_date, to_date, group_by, "Sales Invoice", "base_net_total")
 
 
 @frappe.whitelist()
 def get_purchases_summary(company, from_date, to_date, group_by="monthly"):
-	"""Purchases (Expense) by period with comparative columns."""
+	"""Purchase invoices by period with exclusive, tax, inclusive and change columns."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
-	if group_by == "yearly":
-		period_expr = "YEAR(gle.posting_date)"
-	elif group_by == "quarterly":
-		period_expr = "CONCAT(YEAR(gle.posting_date), '-Q', QUARTER(gle.posting_date))"
-	else:
-		period_expr = "DATE_FORMAT(gle.posting_date, '%%Y-%%m')"
+	return _invoice_period_summary(
+		company, from_date, to_date, group_by, "Purchase Invoice", "base_net_total"
+	)
+
+
+def _invoice_period_summary(company, from_date, to_date, group_by, doctype, exclusive_field):
+	period_expr = _period_expr("posting_date", group_by)
 	rows = frappe.db.sql(
-		"""
-        SELECT """
-		+ period_expr
-		+ """ AS period,
-            COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS amount
-        FROM `tabGL Entry` gle
-        INNER JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE gle.company = %s AND acc.root_type = 'Expense'
-          AND gle.posting_date BETWEEN %s AND %s AND gle.is_cancelled = 0
-        GROUP BY period ORDER BY period
-        """,
+		f"""
+		SELECT {period_expr} AS period,
+			COALESCE(SUM({exclusive_field}), 0) AS exclusive,
+			COALESCE(SUM(base_total_taxes_and_charges), 0) AS tax,
+			COALESCE(SUM(base_grand_total), 0) AS inclusive
+		FROM `tab{doctype}`
+		WHERE company = %s
+		  AND docstatus = 1
+		  AND posting_date BETWEEN %s AND %s
+		GROUP BY period
+		ORDER BY period
+		""",
 		(company, from_date, to_date),
 		as_dict=True,
 	)
-	by_period = {str(r["period"]): r["amount"] or 0 for r in rows}
-	return [_summary_row(r, group_by, by_period) for r in rows]
+	by_period = {str(row.period): row.inclusive or 0 for row in rows}
+	result = []
+	for row in rows:
+		period = str(row.period)
+		inclusive = row.inclusive or 0
+		prev_period = _period_shift(period, group_by, -1)
+		prev_inclusive = by_period.get(prev_period, 0) if prev_period else 0
+		result.append(
+			{
+				"period": period,
+				"exclusive": round(row.exclusive or 0, 0),
+				"tax": round(row.tax or 0, 0),
+				"inclusive": round(inclusive, 0),
+				"amount": round(inclusive, 0),
+				"previous": round(prev_inclusive, 0),
+				"change": _chg(inclusive, prev_inclusive),
+			}
+		)
+	return result
 
 
 def _summary_row(r, group_by, by_period):
