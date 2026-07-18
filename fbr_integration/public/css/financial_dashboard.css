@@ -463,3 +463,28 @@
 .fd-ratio-teal {
     background: linear-gradient(135deg, #0f766e, #14b8a6);
 }
+
+.fd-chart-side {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.75fr);
+    gap: 12px;
+    align-items: center;
+}
+
+.fd-chart-side .fd-chart-labels {
+    align-content: center;
+    flex-direction: column;
+    max-height: 300px;
+    overflow: auto;
+}
+
+.fd-chart-side .fd-chart-label {
+    width: 100%;
+    justify-content: space-between;
+}
+
+@media (max-width: 900px) {
+    .fd-chart-side {
+        grid-template-columns: 1fr;
+    }
+}

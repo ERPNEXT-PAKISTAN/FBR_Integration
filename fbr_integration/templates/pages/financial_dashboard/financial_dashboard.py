@@ -3,6 +3,10 @@ from datetime import timedelta
 import frappe
 from frappe.utils import add_to_date, cint, get_first_day, get_last_day, getdate
 
+DEFAULT_TAX_YEAR_FROM_DATE = "2025-07-01"
+DEFAULT_TAX_YEAR_TO_DATE = "2026-06-30"
+DEFAULT_TAX_YEAR_LABEL = "Tax Year 2025-2026"
+
 
 @frappe.whitelist()
 def get_companies():
@@ -156,23 +160,45 @@ def get_trend_data(company, from_date, to_date, group_by="monthly"):
 @frappe.whitelist()
 def get_expense_breakdown(company, from_date, to_date):
 	from_date, to_date = _get_dates(company, from_date, to_date)
-	rows = frappe.db.sql(
+	groups = frappe.db.sql(
 		"""
-        SELECT acc.account_name AS label, SUM(gle.debit) - SUM(gle.credit) AS value
-        FROM `tabGL Entry` gle
-        INNER JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE gle.company = %s AND acc.root_type = 'Expense'
-          AND gle.posting_date BETWEEN %s AND %s AND gle.is_cancelled = 0
-        GROUP BY acc.name
-        HAVING value > 0
-        ORDER BY value DESC
-        LIMIT 10
-        """,
-		(company, from_date, to_date),
+		SELECT name, account_name, lft, rgt
+		FROM `tabAccount`
+		WHERE company = %s
+		  AND root_type = 'Expense'
+		  AND is_group = 1
+		  AND LOWER(account_name) IN ('direct expenses', 'indirect expenses')
+		ORDER BY lft
+		""",
+		(company,),
 		as_dict=True,
 	)
+
+	rows = []
+	for group in groups:
+		row = frappe.db.sql(
+			"""
+			SELECT COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS value
+			FROM `tabGL Entry` gle
+			INNER JOIN `tabAccount` acc ON gle.account = acc.name
+			WHERE gle.company = %s
+			  AND acc.root_type = 'Expense'
+			  AND acc.is_group = 0
+			  AND acc.lft > %s
+			  AND acc.rgt < %s
+			  AND gle.posting_date BETWEEN %s AND %s
+			  AND gle.is_cancelled = 0
+			""",
+			(company, group.lft, group.rgt, from_date, to_date),
+			as_dict=True,
+		)[0]
+		value = row.value or 0
+		if value > 0:
+			rows.append({"label": group.account_name, "value": value})
+
+	rows.sort(key=lambda row: row["value"], reverse=True)
 	labels = [r["label"] for r in rows]
-	values = [r["value"] for r in rows]
+	values = [round(r["value"] or 0, 0) for r in rows]
 	return {"labels": labels, "values": values}
 
 
@@ -208,9 +234,12 @@ def get_revenue_sources(company, from_date, to_date):
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	total_row = frappe.db.sql(
 		"""
-        SELECT COALESCE(SUM(gle.credit)-SUM(gle.debit),0) AS total
-        FROM `tabGL Entry` gle INNER JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE gle.company=%s AND acc.root_type='Income' AND gle.posting_date BETWEEN %s AND %s AND gle.is_cancelled=0
+        SELECT COALESCE(SUM(sii.base_net_amount), 0) AS total
+        FROM `tabSales Invoice Item` sii
+        INNER JOIN `tabSales Invoice` si ON sii.parent = si.name
+        WHERE si.company = %s
+          AND si.docstatus = 1
+          AND si.posting_date BETWEEN %s AND %s
         """,
 		(company, from_date, to_date),
 		as_dict=True,
@@ -218,10 +247,18 @@ def get_revenue_sources(company, from_date, to_date):
 	total = (total_row[0]["total"] or 0) if total_row else 0
 	rows = frappe.db.sql(
 		"""
-        SELECT acc.account_name AS account, SUM(gle.credit)-SUM(gle.debit) AS amount
-        FROM `tabGL Entry` gle INNER JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE gle.company=%s AND acc.root_type='Income' AND gle.posting_date BETWEEN %s AND %s AND gle.is_cancelled=0
-        GROUP BY acc.name HAVING amount > 0 ORDER BY amount DESC LIMIT 10
+        SELECT COALESCE(NULLIF(sii.item_group, ''), item.item_group, 'No Item Group') AS item_group,
+               COALESCE(SUM(sii.base_net_amount), 0) AS amount
+        FROM `tabSales Invoice Item` sii
+        INNER JOIN `tabSales Invoice` si ON sii.parent = si.name
+        LEFT JOIN `tabItem` item ON sii.item_code = item.name
+        WHERE si.company = %s
+          AND si.docstatus = 1
+          AND si.posting_date BETWEEN %s AND %s
+        GROUP BY item_group
+        HAVING amount <> 0
+        ORDER BY amount DESC
+        LIMIT 10
         """,
 		(company, from_date, to_date),
 		as_dict=True,
@@ -229,7 +266,7 @@ def get_revenue_sources(company, from_date, to_date):
 	result = []
 	for r in rows:
 		pct = round(r["amount"] / total * 100, 1) if total else 0
-		result.append({"account": r["account"], "amount": r["amount"], "percent": pct})
+		result.append({"item_group": r["item_group"], "amount": r["amount"], "percent": pct})
 	return result
 
 
@@ -818,60 +855,142 @@ def get_trial_balance(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_aging_receivables(company, report_date=None):
-	"""Aging receivables: total outstanding and by age bucket (0-30, 30-60, 60-90, 90+). Uses GL balance for Receivable accounts."""
+	"""Customer receivable closing balances from GL."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
 		frappe.throw("Company is required")
-	# Total outstanding from Receivable accounts (debit - credit)
-	total_row = frappe.db.sql(
+
+	return frappe.db.sql(
 		"""
-        SELECT COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS outstanding
-        FROM `tabGL Entry` gle
-        INNER JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE gle.company = %s AND acc.account_type = 'Receivable' AND gle.is_cancelled = 0
-          AND gle.posting_date <= %s
-        """,
-		(company, as_on),
+		SELECT
+			gle.party AS customer,
+			COALESCE(c.customer_name, gle.party) AS customer_name,
+			SUM(gle.debit) - SUM(gle.credit) AS outstanding,
+			MIN(DATEDIFF(%s, gle.posting_date)) AS age
+		FROM `tabGL Entry` gle
+		INNER JOIN `tabAccount` acc ON gle.account = acc.name
+		LEFT JOIN `tabCustomer` c ON gle.party = c.name
+		WHERE gle.company = %s
+		  AND gle.party_type = 'Customer'
+		  AND gle.party IS NOT NULL
+		  AND acc.account_type = 'Receivable'
+		  AND gle.posting_date <= %s
+		  AND gle.is_cancelled = 0
+		GROUP BY gle.party, c.customer_name
+		HAVING outstanding > 0
+		ORDER BY outstanding DESC
+		LIMIT 10
+		""",
+		(as_on, company, as_on),
 		as_dict=True,
 	)
-	total = (total_row[0]["outstanding"] or 0) if total_row else 0
-	# Age buckets would require Payment Ledger / invoice due dates; return summary + placeholder buckets
+
+
+@frappe.whitelist()
+def get_aging_payables(company, report_date=None):
+	"""Supplier payable closing balances from GL."""
+	as_on = getdate(report_date or frappe.utils.getdate())
+	if not company:
+		frappe.throw("Company is required")
+
+	return frappe.db.sql(
+		"""
+		SELECT
+			gle.party AS supplier,
+			COALESCE(s.supplier_name, gle.party) AS supplier_name,
+			SUM(gle.credit) - SUM(gle.debit) AS outstanding,
+			MIN(DATEDIFF(%s, gle.posting_date)) AS age
+		FROM `tabGL Entry` gle
+		INNER JOIN `tabAccount` acc ON gle.account = acc.name
+		LEFT JOIN `tabSupplier` s ON gle.party = s.name
+		WHERE gle.company = %s
+		  AND gle.party_type = 'Supplier'
+		  AND gle.party IS NOT NULL
+		  AND acc.account_type = 'Payable'
+		  AND gle.posting_date <= %s
+		  AND gle.is_cancelled = 0
+		GROUP BY gle.party, s.supplier_name
+		HAVING outstanding > 0
+		ORDER BY outstanding DESC
+		LIMIT 10
+		""",
+		(as_on, company, as_on),
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def get_aging_receivables_summary(company, report_date=None):
+	"""Receivable age buckets for standalone calls."""
+	as_on = getdate(report_date or frappe.utils.getdate())
+	if not company:
+		frappe.throw("Company is required")
+	rows = frappe.db.sql(
+		"""
+		SELECT
+			CASE
+				WHEN DATEDIFF(%s, COALESCE(due_date, posting_date)) <= 30 THEN '0-30'
+				WHEN DATEDIFF(%s, COALESCE(due_date, posting_date)) <= 60 THEN '31-60'
+				WHEN DATEDIFF(%s, COALESCE(due_date, posting_date)) <= 90 THEN '61-90'
+				ELSE '90+'
+			END AS bucket,
+			SUM(outstanding_amount) AS amount
+		FROM `tabSales Invoice`
+		WHERE company = %s
+		  AND docstatus = 1
+		  AND posting_date <= %s
+		  AND outstanding_amount > 0
+		GROUP BY bucket
+		""",
+		(as_on, as_on, as_on, company, as_on),
+		as_dict=True,
+	)
+	bucket_map = {r.bucket: r.amount or 0 for r in rows}
 	return {
-		"total": total,
+		"total": sum(bucket_map.values()),
 		"buckets": [
-			{"range": "0-30", "amount": total, "label": "0-30 days"},
-			{"range": "30-60", "amount": 0, "label": "31-60 days"},
-			{"range": "60-90", "amount": 0, "label": "61-90 days"},
-			{"range": "90+", "amount": 0, "label": "90+ days"},
+			{"range": "0-30", "amount": bucket_map.get("0-30", 0), "label": "0-30 days"},
+			{"range": "31-60", "amount": bucket_map.get("31-60", 0), "label": "31-60 days"},
+			{"range": "61-90", "amount": bucket_map.get("61-90", 0), "label": "61-90 days"},
+			{"range": "90+", "amount": bucket_map.get("90+", 0), "label": "90+ days"},
 		],
 	}
 
 
 @frappe.whitelist()
-def get_aging_payables(company, report_date=None):
-	"""Aging payables: total outstanding (Credit - Debit for Payable accounts)."""
+def get_aging_payables_summary(company, report_date=None):
+	"""Payable age buckets for standalone calls."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
 		frappe.throw("Company is required")
-	total_row = frappe.db.sql(
+	rows = frappe.db.sql(
 		"""
-        SELECT COALESCE(SUM(gle.credit) - SUM(gle.debit), 0) AS outstanding
-        FROM `tabGL Entry` gle
-        INNER JOIN `tabAccount` acc ON gle.account = acc.name
-        WHERE gle.company = %s AND acc.account_type = 'Payable' AND gle.is_cancelled = 0
-          AND gle.posting_date <= %s
-        """,
-		(company, as_on),
+		SELECT
+			CASE
+				WHEN DATEDIFF(%s, COALESCE(due_date, posting_date)) <= 30 THEN '0-30'
+				WHEN DATEDIFF(%s, COALESCE(due_date, posting_date)) <= 60 THEN '31-60'
+				WHEN DATEDIFF(%s, COALESCE(due_date, posting_date)) <= 90 THEN '61-90'
+				ELSE '90+'
+			END AS bucket,
+			SUM(outstanding_amount) AS amount
+		FROM `tabPurchase Invoice`
+		WHERE company = %s
+		  AND docstatus = 1
+		  AND posting_date <= %s
+		  AND outstanding_amount > 0
+		GROUP BY bucket
+		""",
+		(as_on, as_on, as_on, company, as_on),
 		as_dict=True,
 	)
-	total = (total_row[0]["outstanding"] or 0) if total_row else 0
+	bucket_map = {r.bucket: r.amount or 0 for r in rows}
 	return {
-		"total": total,
+		"total": sum(bucket_map.values()),
 		"buckets": [
-			{"range": "0-30", "amount": total, "label": "0-30 days"},
-			{"range": "30-60", "amount": 0, "label": "31-60 days"},
-			{"range": "60-90", "amount": 0, "label": "61-90 days"},
-			{"range": "90+", "amount": 0, "label": "90+ days"},
+			{"range": "0-30", "amount": bucket_map.get("0-30", 0), "label": "0-30 days"},
+			{"range": "31-60", "amount": bucket_map.get("31-60", 0), "label": "31-60 days"},
+			{"range": "61-90", "amount": bucket_map.get("61-90", 0), "label": "61-90 days"},
+			{"range": "90+", "amount": bucket_map.get("90+", 0), "label": "90+ days"},
 		],
 	}
 
@@ -1271,70 +1390,106 @@ def get_ratio_analysis(company, from_date, to_date):
 
 
 @frappe.whitelist()
-def get_invoice_kpis(company, from_date, to_date):
-	from_date, to_date = _get_dates(company, from_date, to_date)
-	s = frappe.db.sql(
-		"""
-        SELECT COUNT(*) AS cnt, COALESCE(SUM(base_grand_total), 0) AS total
-        FROM `tabSales Invoice`
-        WHERE company = %s AND docstatus = 1 AND posting_date BETWEEN %s AND %s
-        """,
-		(company, from_date, to_date),
-		as_dict=True,
-	)[0]
-	p = frappe.db.sql(
-		"""
-        SELECT COUNT(*) AS cnt, COALESCE(SUM(base_grand_total), 0) AS total
-        FROM `tabPurchase Invoice`
-        WHERE company = %s AND docstatus = 1 AND posting_date BETWEEN %s AND %s
-        """,
-		(company, from_date, to_date),
-		as_dict=True,
-	)[0]
+def get_tax_year_dates(reference_date=None):
+	"""Pakistan tax year: 1 July to 30 June."""
+	if not reference_date:
+		return {
+			"from_date": DEFAULT_TAX_YEAR_FROM_DATE,
+			"to_date": DEFAULT_TAX_YEAR_TO_DATE,
+			"label": DEFAULT_TAX_YEAR_LABEL,
+		}
+
+	reference = getdate(reference_date) if reference_date else getdate()
+	start_year = reference.year if reference.month >= 7 else reference.year - 1
 	return {
-		"sales_count": s.get("cnt", 0) or 0,
-		"sales_total": s.get("total", 0) or 0,
-		"purchase_count": p.get("cnt", 0) or 0,
-		"purchase_total": p.get("total", 0) or 0,
+		"from_date": f"{start_year}-07-01",
+		"to_date": f"{start_year + 1}-06-30",
+		"label": f"Tax Year {start_year}-{start_year + 1}",
+	}
+
+
+def _period_bounds_for_previous(from_date, to_date):
+	period_days = (to_date - from_date).days + 1
+	prev_to = from_date - timedelta(days=1)
+	prev_from = prev_to - timedelta(days=period_days - 1)
+	return prev_from, prev_to
+
+
+@frappe.whitelist()
+def get_invoice_activity(company, from_date, to_date):
+	from_date, to_date = _get_dates(company, from_date, to_date)
+
+	def invoice_row(doctype, date_field="posting_date"):
+		return frappe.db.sql(
+			f"""
+			SELECT COUNT(*) AS count, COALESCE(SUM(grand_total), 0) AS total
+			FROM `tab{doctype}`
+			WHERE company = %s
+			  AND docstatus = 1
+			  AND {date_field} BETWEEN %s AND %s
+			""",
+			(company, from_date, to_date),
+			as_dict=True,
+		)[0]
+
+	sales = invoice_row("Sales Invoice")
+	purchase_invoices = invoice_row("Purchase Invoice")
+	purchase_receipts = invoice_row("Purchase Receipt")
+
+	return {
+		"sales_count": sales.count or 0,
+		"sales_total": sales.total or 0,
+		"purchase_invoice_count": purchase_invoices.count or 0,
+		"purchase_invoice_total": purchase_invoices.total or 0,
+		"purchase_receipt_count": purchase_receipts.count or 0,
+		"purchase_receipt_total": purchase_receipts.total or 0,
 	}
 
 
 @frappe.whitelist()
-def get_sales_purchases_overview(company, from_date, to_date, group_by="monthly"):
+def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"):
+	if not from_date or not to_date:
+		tax_year = get_tax_year_dates()
+		from_date = from_date or tax_year["from_date"]
+		to_date = to_date or tax_year["to_date"]
+
 	from_date, to_date = _get_dates(company, from_date, to_date)
-	if group_by == "yearly":
-		s_expr = "YEAR(posting_date)"
-	elif group_by == "quarterly":
-		s_expr = "CONCAT(YEAR(posting_date), '-Q', QUARTER(posting_date))"
-	else:
-		s_expr = "DATE_FORMAT(posting_date, '%%Y-%%m')"
-	sales = frappe.db.sql(
-		f"""
-        SELECT {s_expr} AS period, COUNT(*) AS cnt, COALESCE(SUM(base_grand_total), 0) AS total
-        FROM `tabSales Invoice`
-        WHERE company = %s AND docstatus = 1 AND posting_date BETWEEN %s AND %s
-        GROUP BY period ORDER BY period
-        """,
-		(company, from_date, to_date),
-		as_dict=True,
+	currency = frappe.get_cached_value("Company", company, "default_currency") or frappe.db.get_default(
+		"currency"
 	)
-	purch = frappe.db.sql(
-		f"""
-        SELECT {s_expr} AS period, COUNT(*) AS cnt, COALESCE(SUM(base_grand_total), 0) AS total
-        FROM `tabPurchase Invoice`
-        WHERE company = %s AND docstatus = 1 AND posting_date BETWEEN %s AND %s
-        GROUP BY period ORDER BY period
-        """,
-		(company, from_date, to_date),
-		as_dict=True,
-	)
-	sp = {str(r["period"]): r for r in sales}
-	pp = {str(r["period"]): r for r in purch}
-	labels = sorted(set(list(sp.keys()) + list(pp.keys())))
+	prev_from, prev_to = _period_bounds_for_previous(from_date, to_date)
+
+	summary = get_financial_summary(company, from_date, to_date)
+	previous_summary = get_financial_summary(company, prev_from, prev_to)
+	trend = get_trend_data(company, from_date, to_date, group_by)
+	cash_flow = get_cash_flow(company, from_date, to_date)
+	expense_breakdown = get_expense_breakdown(company, from_date, to_date)
+	revenue_sources = get_revenue_sources(company, from_date, to_date)
+	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
+	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
+	ratios = get_ratio_analysis(company, from_date, to_date)
+	activity = get_invoice_activity(company, from_date, to_date)
+	receivables = get_aging_receivables(company, to_date)
+	payables = get_aging_payables(company, to_date)
+
 	return {
-		"labels": labels,
-		"sales_values": [float(sp.get(k, {}).get("total", 0) or 0) for k in labels],
-		"purchases_values": [float(pp.get(k, {}).get("total", 0) or 0) for k in labels],
-		"sales_counts": [int(sp.get(k, {}).get("cnt", 0) or 0) for k in labels],
-		"purchase_counts": [int(pp.get(k, {}).get("cnt", 0) or 0) for k in labels],
+		"company": company,
+		"currency": currency,
+		"from_date": str(from_date),
+		"to_date": str(to_date),
+		"tax_year": get_tax_year_dates(to_date),
+		"period_label": f"{from_date.strftime('%d-%m-%Y')} to {to_date.strftime('%d-%m-%Y')}",
+		"previous_period_label": f"{prev_from.strftime('%d-%m-%Y')} to {prev_to.strftime('%d-%m-%Y')}",
+		"summary": summary,
+		"previous_summary": previous_summary,
+		"trend": trend,
+		"cash_flow": cash_flow,
+		"expense_breakdown": expense_breakdown,
+		"revenue_sources": revenue_sources,
+		"sales_summary": sales_summary,
+		"purchases_summary": purchases_summary,
+		"ratios": ratios,
+		"activity": activity,
+		"receivables": receivables[:8] if isinstance(receivables, list) else [],
+		"payables": payables[:8] if isinstance(payables, list) else [],
 	}
