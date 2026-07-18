@@ -34,43 +34,54 @@ function set_payload_section_from_table(cdt, cdn) {
     }
 }
 
-function get_field_query(row) {
-    return {
-        query: "fbr_integration.fbr_payload_mapping.search_doctype_fields",
-        params: {
-            source_doctype: row.source_doctype || "",
-        },
-        translate_values: false,
-    };
-}
-
-function source_field_query(doc, cdt, cdn) {
-    const row = (cdt && cdn && locals[cdt] && locals[cdt][cdn]) || doc || {};
-    return get_field_query(row);
-}
-
-function set_source_field_query(frm, cdt, cdn) {
+function get_source_field_control(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
-
-    FBR_MAPPING_TABLES.forEach((table_field) => {
-        const grid = get_mapping_grid(frm, table_field);
-        if (!grid) return;
-
-        const grid_field = grid.get_field("source_field");
-        if (grid_field) {
-            grid_field.df.get_query = source_field_query;
-        }
-    });
-
     const grid = get_mapping_grid(frm, row.parentfield);
     const grid_row = grid && grid.grid_rows_by_docname[cdn];
-    const source_field = grid_row?.grid_form?.fields_dict?.source_field;
-    if (source_field) {
-        source_field.get_query = source_field_query;
-        source_field.df.get_query = source_field.get_query;
-        source_field.set_data([]);
-        source_field.refresh();
+
+    return (
+        grid_row?.grid_form?.fields_dict?.source_field ||
+        grid_row?.columns?.source_field?.field ||
+        null
+    );
+}
+
+function apply_source_field_options(frm, cdt, cdn, options) {
+    const row = locals[cdt][cdn];
+    const option_values = (options || []).map((field) => field.value);
+    const option_text = option_values.join("\n");
+
+    const grid = get_mapping_grid(frm, row.parentfield);
+    const grid_field = grid && grid.get_field("source_field");
+    if (grid_field) {
+        grid_field.df.options = option_text;
     }
+
+    const source_field = get_source_field_control(frm, cdt, cdn);
+    if (!source_field) {
+        frm.refresh_field(row.parentfield);
+        return;
+    }
+
+    source_field.df.options = option_values;
+    source_field.set_data(options || []);
+    source_field.refresh();
+}
+
+function load_source_field_options(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    if (!row.source_doctype) {
+        apply_source_field_options(frm, cdt, cdn, []);
+        return;
+    }
+
+    frappe.call({
+        method: "fbr_integration.fbr_payload_mapping.get_doctype_field_options",
+        args: { doctype: row.source_doctype },
+        callback(r) {
+            apply_source_field_options(frm, cdt, cdn, r.message || []);
+        },
+    });
 }
 
 frappe.ui.form.on("FBR Payload Field Mapping", {
@@ -82,11 +93,11 @@ frappe.ui.form.on("FBR Payload Field Mapping", {
 frappe.ui.form.on("FBR Payload Field Mapping Detail", {
     form_render(frm, cdt, cdn) {
         set_payload_section_from_table(cdt, cdn);
-        set_source_field_query(frm, cdt, cdn);
+        load_source_field_options(frm, cdt, cdn);
     },
     source_doctype(frm, cdt, cdn) {
         set_payload_section_from_table(cdt, cdn);
         frappe.model.set_value(cdt, cdn, "source_field", "");
-        set_source_field_query(frm, cdt, cdn);
+        load_source_field_options(frm, cdt, cdn);
     },
 });
