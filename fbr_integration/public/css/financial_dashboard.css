@@ -574,3 +574,76 @@
     stroke-width: 3px;
     stroke-linejoin: round;
 }
+
+.fd-pie-chart {
+    position: relative;
+    min-height: 340px;
+    overflow: visible;
+}
+
+.fd-pie-label-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.fd-pie-label-layer svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.fd-pie-label-layer polyline {
+    fill: none;
+    stroke: #8f98a3;
+    stroke-width: 0.45;
+}
+
+.fd-pie-label {
+    position: absolute;
+    transform: translateY(-50%);
+    width: 178px;
+    color: #344054;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-shadow: 0 1px 0 #fff;
+}
+
+.fd-pie-label-left {
+    transform: translate(-100%, -50%);
+    text-align: right;
+}
+
+.fd-pie-label-right {
+    text-align: left;
+}
+
+.fd-pie-label em {
+    color: #475467;
+    font-style: normal;
+    font-weight: 750;
+}
+
+.fd-tree-wrap {
+    max-height: none;
+    overflow: visible;
+}
+
+.fd-tree-wrap .table {
+    width: auto;
+    min-width: 520px;
+}
+
+.fd-tree-wrap td:first-child,
+.fd-tree-wrap th:first-child {
+    min-width: 320px;
+}
+
+.fd-tree-wrap td.text-right,
+.fd-tree-wrap th.text-right {
+    min-width: 150px;
+}

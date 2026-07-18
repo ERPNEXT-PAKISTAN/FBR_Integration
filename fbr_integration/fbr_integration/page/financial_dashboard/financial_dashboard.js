@@ -28,6 +28,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         to_date: TAX_YEAR.to_date,
         group_by: "monthly",
         currency: frappe.defaults.get_default("currency") || "PKR",
+        lastData: null,
     };
 
     function call(method, args = {}) {
@@ -46,6 +47,10 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             options: state.currency,
             precision: 0,
         });
+    }
+
+    function number(value) {
+        return frappe.format(value || 0, { fieldtype: "Float", precision: 2 });
     }
 
     function pct(value) {
@@ -100,7 +105,10 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     80
                 );
             } else if (config.type === "pie") {
-                window.setTimeout(() => renderSliceLabels(node, labelRows), 80);
+                window.setTimeout(
+                    () => renderExternalSliceLabels(node, labelRows),
+                    80
+                );
             }
         }
         if (labelSelector) renderChartLabels(labelSelector, labelRows);
@@ -118,33 +126,74 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             });
     }
 
-    function renderSliceLabels(node, rows) {
-        $(node).find(".fd-slice-labels").remove();
+    function renderExternalSliceLabels(node, rows) {
+        $(node).find(".fd-pie-label-layer").remove();
         const total = (rows || []).reduce(
             (sum, row) => sum + Number(row.value || 0),
             0
         );
         if (!total) return;
 
+        const layer = $(
+            "<div class='fd-pie-label-layer'><svg viewBox='0 0 100 100' preserveAspectRatio='none'></svg></div>"
+        ).appendTo(node);
+        const svg = layer.find("svg");
         let angle = -90;
-        const labels = $("<div class='fd-slice-labels'></div>").appendTo(node);
+        const positions = [];
+
         (rows || []).forEach((row) => {
             const value = Number(row.value || 0);
             if (value <= 0) return;
             const portion = value / total;
             const midAngle = angle + portion * 180;
             const radians = (midAngle * Math.PI) / 180;
-            const radius = 31;
-            const left = 50 + Math.cos(radians) * radius;
-            const top = 50 + Math.sin(radians) * radius;
+            const edgeX = 50 + Math.cos(radians) * 31;
+            const edgeY = 50 + Math.sin(radians) * 31;
+            const elbowX = 50 + Math.cos(radians) * 39;
+            const elbowY = 50 + Math.sin(radians) * 39;
+            const side = Math.cos(radians) >= 0 ? "right" : "left";
+            positions.push({
+                row,
+                value,
+                edgeX,
+                edgeY,
+                elbowX,
+                elbowY,
+                side,
+                y: elbowY,
+            });
             angle += portion * 360;
+        });
+
+        ["left", "right"].forEach((side) => {
+            const sideRows = positions
+                .filter((position) => position.side === side)
+                .sort((a, b) => a.y - b.y);
+            sideRows.forEach((position, index) => {
+                const minY = 8 + index * 9;
+                const maxY = 92 - (sideRows.length - index - 1) * 9;
+                position.labelY = Math.min(Math.max(position.y, minY), maxY);
+                position.labelX = side === "right" ? 96 : 4;
+                position.anchorX = side === "right" ? 87 : 13;
+            });
+        });
+
+        positions.forEach((position) => {
+            svg.append(
+                `<polyline points="${position.edgeX},${position.edgeY} ${position.elbowX},${position.elbowY} ${position.anchorX},${position.labelY}" />`
+            );
             $(
-                `<span class="fd-slice-label"><b>${escape(
-                    row.label
-                )}</b><em>${money(value)}</em></span>`
+                `<span class="fd-pie-label fd-pie-label-${
+                    position.side
+                }"><b>${escape(position.row.label)}</b> — <em>${money(
+                    position.value
+                )}</em></span>`
             )
-                .css({ left: `${left}%`, top: `${top}%` })
-                .appendTo(labels);
+                .css({
+                    left: `${position.labelX}%`,
+                    top: `${position.labelY}%`,
+                })
+                .appendTo(layer);
         });
     }
 
@@ -273,7 +322,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     ],
                 },
                 colors: ["#0f9f6e", "#155eef"],
-                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
                 barOptions: { stacked: 0 },
             },
             []
@@ -293,7 +342,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     ],
                 },
                 colors: ["#16a34a", "#dc2626"],
-                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
                 lineOptions: { regionFill: 1 },
             },
             []
@@ -310,7 +359,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     datasets: [{ name: __("Sales"), values: salesValues }],
                 },
                 colors: ["#0f9f6e"],
-                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
         );
@@ -328,13 +377,14 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     ],
                 },
                 colors: ["#155eef"],
-                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
         );
     }
 
     function renderDashboard(data) {
+        state.lastData = data;
         state.currency = data.currency || state.currency;
         const s = data.summary || {};
         const activity = data.activity || {};
@@ -385,7 +435,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     ],
                 },
                 colors: ["#2563eb"],
-                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
         );
@@ -439,7 +489,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             "#fdExpensesTabChart",
             null,
             {
-                type: "pie",
+                type: "bar",
                 height: 320,
                 data: {
                     labels: data.expense_breakdown?.labels || [],
@@ -448,11 +498,9 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     ],
                 },
                 colors: ["#ef4444", "#f59e0b"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
-            datasetRows(
-                data.expense_breakdown?.labels || [],
-                data.expense_breakdown?.values || []
-            )
+            []
         );
 
         $("#fdRevenueSources").html(
@@ -498,6 +546,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 })
                 .join("") || rowEmpty(2)
         );
+        renderStock(data.stock_by_item_group || []);
 
         renderSimpleRows("#fdSalesRows", data.sales_summary, "sales");
         renderSimpleRows("#fdPurchaseRows", data.purchases_summary, "purchase");
@@ -540,6 +589,46 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         );
 
         renderRatioRows(data.ratios);
+    }
+
+    function renderStock(rows) {
+        const chartRows = rows.slice(0, 12);
+        renderChart(
+            "#fdStockChart",
+            null,
+            {
+                type: "bar",
+                height: 320,
+                data: {
+                    labels: chartRows.map((row) => row.item_group || "-"),
+                    datasets: [
+                        {
+                            name: __("Stock Value"),
+                            values: chartRows.map(
+                                (row) => row.closing_value || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: ["#7c3aed"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
+            },
+            []
+        );
+        $("#fdStockRows").html(
+            rows
+                .map(
+                    (row) =>
+                        `<tr><td>${escape(
+                            row.item_group
+                        )}</td><td class="text-right">${number(
+                            row.closing_qty
+                        )}</td><td class="text-right">${money(
+                            row.closing_value
+                        )}</td></tr>`
+                )
+                .join("") || rowEmpty(3)
+        );
     }
 
     async function loadCompanies() {
@@ -598,6 +687,8 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(this).addClass("active");
         $(".fd-tab-panel").removeClass("active");
         $(`#fd-tab-${tab}`).addClass("active");
+        if (state.lastData)
+            window.setTimeout(() => renderDashboard(state.lastData), 50);
     });
 
     body.on("click", ".fd-preset", function () {

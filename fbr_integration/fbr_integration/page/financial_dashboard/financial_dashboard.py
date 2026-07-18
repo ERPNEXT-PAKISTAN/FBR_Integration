@@ -268,6 +268,32 @@ def get_expense_hierarchy(company, from_date, to_date):
 
 
 @frappe.whitelist()
+def get_stock_by_item_group(company):
+	if not company:
+		frappe.throw("Company is required")
+
+	return frappe.db.sql(
+		"""
+		SELECT
+			COALESCE(NULLIF(item.item_group, ''), 'No Item Group') AS item_group,
+			SUM(bin.actual_qty) AS closing_qty,
+			SUM(bin.stock_value) AS closing_value
+		FROM `tabBin` bin
+		INNER JOIN `tabItem` item ON bin.item_code = item.name
+		INNER JOIN `tabWarehouse` wh ON bin.warehouse = wh.name
+		WHERE wh.company = %s
+		  AND bin.actual_qty <> 0
+		GROUP BY item.item_group
+		HAVING closing_qty <> 0 OR closing_value <> 0
+		ORDER BY closing_value DESC
+		LIMIT 30
+		""",
+		(company,),
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
 def get_cash_flow(company, from_date, to_date):
 	"""Cash flow summary for chart: Operating, Investing, Financing (linked to statement logic)."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
@@ -1530,6 +1556,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 	cash_flow = get_cash_flow(company, from_date, to_date)
 	expense_breakdown = get_expense_breakdown(company, from_date, to_date)
 	expense_hierarchy = get_expense_hierarchy(company, from_date, to_date)
+	stock_by_item_group = get_stock_by_item_group(company)
 	revenue_sources = get_revenue_sources(company, from_date, to_date)
 	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
 	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
@@ -1552,6 +1579,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 		"cash_flow": cash_flow,
 		"expense_breakdown": expense_breakdown,
 		"expense_hierarchy": expense_hierarchy,
+		"stock_by_item_group": stock_by_item_group,
 		"revenue_sources": revenue_sources,
 		"sales_summary": sales_summary,
 		"purchases_summary": purchases_summary,

@@ -67,6 +67,7 @@
         <button class="fd-tab" data-tab="sales">Sales</button>
         <button class="fd-tab" data-tab="purchases">Purchases</button>
         <button class="fd-tab" data-tab="expenses">Expenses</button>
+        <button class="fd-tab" data-tab="stock">Stock</button>
         <button class="fd-tab" data-tab="reports">Reports</button>
         <button class="fd-tab" data-tab="ratios">Ratios</button>
     </section>
@@ -312,6 +313,39 @@
                             </tr>
                         </thead>
                         <tbody id="fdExpenseHierarchyRows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="fd-tab-panel" id="fd-tab-stock">
+        <div class="fd-grid fd-grid-2">
+            <div class="fd-card fd-card-wide">
+                <div class="fd-card-head">
+                    <div>
+                        <h3>Stock Closing by Item Group</h3>
+                        <p>
+                            Closing quantity and stock value from current bins
+                        </p>
+                    </div>
+                </div>
+                <div id="fdStockChart" class="fd-chart"></div>
+            </div>
+            <div class="fd-card fd-card-wide">
+                <div class="fd-card-head">
+                    <h3>Stock Closing Detail</h3>
+                </div>
+                <div class="fd-table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Item Group</th>
+                                <th class="text-right">Closing Qty</th>
+                                <th class="text-right">Closing Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fdStockRows"></tbody>
                     </table>
                 </div>
             </div>
