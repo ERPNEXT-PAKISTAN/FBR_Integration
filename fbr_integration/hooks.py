@@ -31,6 +31,7 @@ if AUTO_SEND_ON_SUBMIT:
 # Sales Invoice UI: live tax + send button + QR/barcode rendering
 doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice_fbr.js",
+	"FBR Payload Field Mapping": "public/js/fbr_payload_field_mapping.js",
 }
 
 # Purple button CSS (you already have fbr.css)
@@ -40,6 +41,7 @@ after_install = "fbr_integration.install.after_install"
 
 after_migrate = [
 	"fbr_integration.item_tax_templates.sync_item_tax_templates",
+	"fbr_integration.fbr_payload_mapping.sync_payload_field_mappings",
 	"fbr_integration.print_format_sync.sync_print_formats",
 	"fbr_integration.patches.remove_sales_invoice_update_stock_default.execute",
 	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",

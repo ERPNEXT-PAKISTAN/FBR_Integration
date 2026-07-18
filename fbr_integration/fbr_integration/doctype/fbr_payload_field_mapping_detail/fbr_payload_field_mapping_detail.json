@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-07-18 00:00:00.000000",
+ "custom": 0,
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "payload_section",
+  "payload_field",
+  "source_doctype",
+  "source_field",
+  "transform",
+  "current_source",
+  "description"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "payload_section",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Payload Section",
+   "options": "Header\nItem",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payload_field",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "FBR Payload Field",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Source DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "source_field",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Source Field"
+  },
+  {
+   "default": "Raw",
+   "fieldname": "transform",
+   "fieldtype": "Select",
+   "label": "Transform",
+   "options": "Raw\nText\nFBR Text\nFBR Item Text\nRegistration No\nDate YYYY-MM-DD\nFloat\nAbsolute Float\nMoney 2 Decimals\nQuantity 4 Decimals"
+  },
+  {
+   "fieldname": "current_source",
+   "fieldtype": "Data",
+   "label": "Current Source",
+   "read_only": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FBR Integration",
+ "name": "FBR Payload Field Mapping Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

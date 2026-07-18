@@ -7,6 +7,8 @@ import requests
 import urllib3
 from frappe.utils import cint
 
+from fbr_integration.fbr_payload_mapping import resolve_payload_value
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -558,59 +560,125 @@ def send_invoice_to_fbr(doc, method=None):
 		if total_values <= 0:
 			total_values = value_sales_excluding_st + sales_tax_applicable + further_tax + num(extra_tax)
 
+		item_payload = {
+			"hsCode": resolve_payload_value(
+				"hsCode", safe_str(item.custom_hs_code), doc, item=item, section="Item"
+			),
+			"productDescription": resolve_payload_value(
+				"productDescription",
+				safe_fbr_item_text(item.item_name),
+				doc,
+				item=item,
+				section="Item",
+			),
+			"rate": resolve_payload_value("rate", rate_val, doc, item=item, section="Item"),
+			"uoM": resolve_payload_value(
+				"uoM", safe_fbr_text(item.custom_fbr_uom), doc, item=item, section="Item"
+			),
+			"quantity": resolve_payload_value("quantity", num(item.qty), doc, item=item, section="Item"),
+			"totalValues": resolve_payload_value("totalValues", total_values, doc, item=item, section="Item"),
+			"valueSalesExcludingST": resolve_payload_value(
+				"valueSalesExcludingST",
+				value_sales_excluding_st,
+				doc,
+				item=item,
+				section="Item",
+			),
+			"fixedNotifiedValueOrRetailPrice": resolve_payload_value(
+				"fixedNotifiedValueOrRetailPrice",
+				num(item.rate),
+				doc,
+				item=item,
+				section="Item",
+			),
+			"salesTaxApplicable": resolve_payload_value(
+				"salesTaxApplicable",
+				sales_tax_applicable,
+				doc,
+				item=item,
+				section="Item",
+			),
+			"salesTaxWithheldAtSource": resolve_payload_value(
+				"salesTaxWithheldAtSource", 0, doc, item=item, section="Item"
+			),
+			"extraTax": resolve_payload_value(
+				"extraTax",
+				format_extra_tax_for_payload(extra_tax, scenario_id),
+				doc,
+				item=item,
+				section="Item",
+			),
+			"furtherTax": resolve_payload_value("furtherTax", further_tax, doc, item=item, section="Item"),
+			"sroScheduleNo": resolve_payload_value(
+				"sroScheduleNo", sro_schedule_no_val, doc, item=item, section="Item"
+			),
+			"fedPayable": resolve_payload_value("fedPayable", 0, doc, item=item, section="Item"),
+			"discount": resolve_payload_value(
+				"discount", num(item.discount_amount), doc, item=item, section="Item"
+			),
+			"saleType": resolve_payload_value("saleType", sale_type_val, doc, item=item, section="Item"),
+			"sroItemSerialNo": resolve_payload_value(
+				"sroItemSerialNo", sro_item_sno_val, doc, item=item, section="Item"
+			),
+		}
+
 		items_list.append(
 			{
-				"hsCode": safe_str(item.custom_hs_code),
-				"productDescription": safe_fbr_item_text(item.item_name),
-				"rate": rate_val,
-				"uoM": safe_fbr_text(item.custom_fbr_uom),
-				"quantity": num(item.qty),
-				"totalValues": total_values,
-				"valueSalesExcludingST": value_sales_excluding_st,
-				"fixedNotifiedValueOrRetailPrice": num(item.rate),
-				"salesTaxApplicable": sales_tax_applicable,
-				"salesTaxWithheldAtSource": 0,
-				"extraTax": format_extra_tax_for_payload(extra_tax, scenario_id),
-				"furtherTax": further_tax,
-				"sroScheduleNo": sro_schedule_no_val,
-				"fedPayable": 0,
-				"discount": num(item.discount_amount),
-				"saleType": sale_type_val,
-				"sroItemSerialNo": sro_item_sno_val,
+				"hsCode": item_payload["hsCode"],
+				"productDescription": item_payload["productDescription"],
+				"rate": item_payload["rate"],
+				"uoM": item_payload["uoM"],
+				"quantity": item_payload["quantity"],
+				"totalValues": item_payload["totalValues"],
+				"valueSalesExcludingST": item_payload["valueSalesExcludingST"],
+				"fixedNotifiedValueOrRetailPrice": item_payload["fixedNotifiedValueOrRetailPrice"],
+				"salesTaxApplicable": item_payload["salesTaxApplicable"],
+				"salesTaxWithheldAtSource": item_payload["salesTaxWithheldAtSource"],
+				"extraTax": item_payload["extraTax"],
+				"furtherTax": item_payload["furtherTax"],
+				"sroScheduleNo": item_payload["sroScheduleNo"],
+				"fedPayable": item_payload["fedPayable"],
+				"discount": item_payload["discount"],
+				"saleType": item_payload["saleType"],
+				"sroItemSerialNo": item_payload["sroItemSerialNo"],
 			}
 		)
 
 	payload = {
-		"invoiceType": safe_fbr_text(doc.custom_invoice_type),
-		"invoiceDate": str(doc.posting_date),
-		"sellerNTNCNIC": seller_registration_no,
-		"sellerBusinessName": safe_fbr_text(doc.company),
-		"sellerAddress": safe_fbr_text(seller_address),
-		"sellerProvince": safe_fbr_text(seller_province),
-		"buyerNTNCNIC": normalize_registration_no(doc.tax_id),
-		"buyerBusinessName": safe_fbr_text(doc.customer),
-		"buyerAddress": safe_fbr_text(buyer_address),
-		"buyerProvince": safe_fbr_text(buyer_province),
-		"invoiceRefNo": safe_str(doc.name),
-		"scenarioId": safe_str(doc.custom_scenario_id),
-		"referencedInvoiceNo": safe_str(doc.name),
-		"sourceInvoiceNo": safe_str(doc.name),
+		"invoiceType": resolve_payload_value("invoiceType", safe_fbr_text(doc.custom_invoice_type), doc),
+		"invoiceDate": resolve_payload_value("invoiceDate", str(doc.posting_date), doc),
+		"sellerNTNCNIC": resolve_payload_value("sellerNTNCNIC", seller_registration_no, doc),
+		"sellerBusinessName": resolve_payload_value("sellerBusinessName", safe_fbr_text(doc.company), doc),
+		"sellerAddress": resolve_payload_value("sellerAddress", safe_fbr_text(seller_address), doc),
+		"sellerProvince": resolve_payload_value("sellerProvince", safe_fbr_text(seller_province), doc),
+		"buyerNTNCNIC": resolve_payload_value("buyerNTNCNIC", normalize_registration_no(doc.tax_id), doc),
+		"buyerBusinessName": resolve_payload_value("buyerBusinessName", safe_fbr_text(doc.customer), doc),
+		"buyerAddress": resolve_payload_value("buyerAddress", safe_fbr_text(buyer_address), doc),
+		"buyerProvince": resolve_payload_value("buyerProvince", safe_fbr_text(buyer_province), doc),
+		"invoiceRefNo": resolve_payload_value("invoiceRefNo", safe_str(doc.name), doc),
+		"scenarioId": resolve_payload_value("scenarioId", safe_str(doc.custom_scenario_id), doc),
+		"referencedInvoiceNo": resolve_payload_value("referencedInvoiceNo", safe_str(doc.name), doc),
+		"sourceInvoiceNo": resolve_payload_value("sourceInvoiceNo", safe_str(doc.name), doc),
 		"reason": "",
-		"remarks": safe_fbr_text(getattr(doc, "remarks", "")),
-		"buyerRegistrationType": safe_fbr_text(doc.custom_tax_payer_type),
+		"remarks": resolve_payload_value("remarks", safe_fbr_text(getattr(doc, "remarks", "")), doc),
+		"buyerRegistrationType": resolve_payload_value(
+			"buyerRegistrationType", safe_fbr_text(doc.custom_tax_payer_type), doc
+		),
 		"items": [normalize_fbr_item_numbers(item) for item in merge_fbr_items(items_list)],
 	}
 
 	if is_credit_note_return:
-		payload["reason"] = get_return_reason(doc)
+		payload["reason"] = resolve_payload_value("reason", get_return_reason(doc), doc)
 		source_invoice_no = get_source_invoice_no_for_return(doc) or manual_source_invoice_no
 		if not source_invoice_no:
 			frappe.throw(
 				"Unable to resolve source invoice number for Credit Note. "
 				"Set Return Against or provide FBR Source Invoice No."
 			)
-		payload["referencedInvoiceNo"] = safe_str(source_invoice_no)
-		payload["sourceInvoiceNo"] = source_invoice_no
+		payload["referencedInvoiceNo"] = resolve_payload_value(
+			"referencedInvoiceNo", safe_str(source_invoice_no), doc
+		)
+		payload["sourceInvoiceNo"] = resolve_payload_value("sourceInvoiceNo", source_invoice_no, doc)
 
 	# Debug log — visible in bench logs to help diagnose FBR rejections
 	frappe.log_error(
