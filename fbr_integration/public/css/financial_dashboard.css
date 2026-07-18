@@ -368,3 +368,98 @@
         grid-template-columns: 1fr;
     }
 }
+
+.fd-card-wide {
+    grid-column: 1 / -1;
+}
+
+.fd-chart-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.fd-chart-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border: 1px solid var(--fd-border);
+    border-radius: 999px;
+    background: #f8fafc;
+    color: var(--fd-text);
+    font-size: 11px;
+    line-height: 1;
+}
+
+.fd-chart-label i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: 0 0 9px;
+}
+
+.fd-chart-label b {
+    font-weight: 750;
+}
+
+.fd-chart-label em {
+    color: var(--fd-muted);
+    font-style: normal;
+    font-weight: 700;
+}
+
+.fd-ratio {
+    position: relative;
+    overflow: hidden;
+    border: 0;
+    color: #fff;
+}
+
+.fd-ratio::after {
+    content: "";
+    position: absolute;
+    right: -24px;
+    bottom: -24px;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.fd-ratio span,
+.fd-ratio small {
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.fd-ratio b {
+    display: block;
+    margin: 8px 0 4px;
+    font-size: 24px;
+    font-weight: 850;
+}
+
+.fd-ratio-blue {
+    background: linear-gradient(135deg, #155eef, #528bff);
+}
+
+.fd-ratio-green {
+    background: linear-gradient(135deg, #0f9f6e, #34d399);
+}
+
+.fd-ratio-amber {
+    background: linear-gradient(135deg, #b7791f, #f59e0b);
+}
+
+.fd-ratio-purple {
+    background: linear-gradient(135deg, #6d28d9, #a855f7);
+}
+
+.fd-ratio-red {
+    background: linear-gradient(135deg, #d92d20, #fb7185);
+}
+
+.fd-ratio-teal {
+    background: linear-gradient(135deg, #0f766e, #14b8a6);
+}

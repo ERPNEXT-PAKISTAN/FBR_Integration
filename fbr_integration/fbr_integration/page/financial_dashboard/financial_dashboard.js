@@ -12,13 +12,22 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     const API =
         "fbr_integration.fbr_integration.page.financial_dashboard.financial_dashboard";
     const TAX_YEAR = { from_date: "2025-07-01", to_date: "2026-06-30" };
+    const chartColors = [
+        "#155eef",
+        "#0f9f6e",
+        "#f59e0b",
+        "#dc2626",
+        "#7c3aed",
+        "#06b6d4",
+        "#84cc16",
+        "#f97316",
+    ];
     const state = {
         company: frappe.defaults.get_user_default("Company") || "",
         from_date: TAX_YEAR.from_date,
         to_date: TAX_YEAR.to_date,
         group_by: "monthly",
         currency: frappe.defaults.get_default("currency") || "PKR",
-        charts: {},
     };
 
     function call(method, args = {}) {
@@ -48,10 +57,15 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         return frappe.datetime.str_to_user(value);
     }
 
+    function escape(value) {
+        return frappe.utils.escape_html(value || "-");
+    }
+
     function setBusy(isBusy) {
         $("#fdRefresh")
             .prop("disabled", isBusy)
             .text(isBusy ? __("Loading...") : __("Refresh"));
+        $(".fd-shell").toggleClass("fd-loading", isBusy);
     }
 
     function resetChart(selector) {
@@ -62,10 +76,37 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         return clone;
     }
 
-    function renderChart(selector, config) {
+    function renderChart(selector, labelSelector, config, labelRows = []) {
         const node = resetChart(selector);
-        if (!node || typeof frappe.Chart === "undefined") return;
-        return new frappe.Chart(node, config);
+        if (node && typeof frappe.Chart !== "undefined") {
+            new frappe.Chart(node, {
+                ...config,
+                tooltipOptions: { formatTooltipY: (d) => money(d) },
+            });
+        }
+        renderChartLabels(labelSelector, labelRows);
+    }
+
+    function renderChartLabels(selector, rows) {
+        const html = (rows || [])
+            .slice(0, 24)
+            .map(
+                (row, index) =>
+                    `<span class="fd-chart-label"><i style="background:${
+                        chartColors[index % chartColors.length]
+                    }"></i><b>${escape(row.label)}</b><em>${money(
+                        row.value
+                    )}</em></span>`
+            )
+            .join("");
+        $(selector).html(html);
+    }
+
+    function datasetRows(labels, values) {
+        return (labels || []).map((label, index) => ({
+            label,
+            value: (values || [])[index] || 0,
+        }));
     }
 
     function setChange(selector, value, positiveIsGood = true) {
@@ -90,8 +131,8 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 const amount = row.amount || 0;
                 const change = row.change || 0;
                 const netClass = change >= 0 ? "fd-good" : "fd-bad";
-                return `<tr><td>${frappe.utils.escape_html(
-                    row.period || "-"
+                return `<tr><td>${escape(
+                    row.period
                 )}</td><td class="text-right">${money(
                     amount
                 )}</td><td class="text-right ${netClass}">${pct(
@@ -104,13 +145,12 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
 
     function renderAging(selector, rows, labelField) {
         const html = (rows || [])
-            .slice(0, 8)
+            .slice(0, 10)
             .map((row) => {
                 const label =
+                    row[`${labelField}_name`] ||
                     row[labelField] ||
                     row.party ||
-                    row.customer ||
-                    row.supplier ||
                     row.name ||
                     "-";
                 const value =
@@ -119,12 +159,123 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     row.total_due ||
                     row.amount ||
                     0;
-                return `<tr><td>${frappe.utils.escape_html(
+                const age = Math.max(Number(row.age || 0), 0);
+                return `<tr><td>${escape(
                     label
-                )}</td><td class="text-right">${money(value)}</td></tr>`;
+                )}</td><td class="text-right">${money(
+                    value
+                )}</td><td class="text-right">${age} days</td></tr>`;
             })
             .join("");
-        $(selector).html(html || rowEmpty(2));
+        $(selector).html(html || rowEmpty(3));
+    }
+
+    function renderRatioRows(rows) {
+        const html = (rows || [])
+            .map((row, index) => {
+                const theme = [
+                    "blue",
+                    "green",
+                    "amber",
+                    "purple",
+                    "red",
+                    "teal",
+                ][index % 6];
+                return `<div class="fd-ratio fd-ratio-${theme}"><span>${escape(
+                    row.category
+                )}</span><strong>${escape(row.name)}</strong><b>${
+                    row.value || 0
+                }</b><small>${escape(row.description)}</small></div>`;
+            })
+            .join("");
+        $("#fdRatioRows").html(
+            html || `<div class="fd-empty">${__("No ratio data found")}</div>`
+        );
+    }
+
+    function renderTrendCharts(data) {
+        const trend = data.trend || {};
+        const labels = trend.labels || [];
+        const salesValues = trend.revenue || [];
+        const purchaseValues = trend.expense || [];
+        const salesPurchaseLabels = labels.flatMap((label, index) => [
+            { label: `${label} Sales`, value: salesValues[index] || 0 },
+            { label: `${label} Purchases`, value: purchaseValues[index] || 0 },
+        ]);
+
+        renderChart(
+            "#fdOverviewSalesPurchaseChart",
+            "#fdOverviewSalesPurchaseLabels",
+            {
+                type: "bar",
+                height: 300,
+                data: {
+                    labels,
+                    datasets: [
+                        { name: __("Sales"), values: salesValues },
+                        { name: __("Purchases"), values: purchaseValues },
+                    ],
+                },
+                colors: ["#0f9f6e", "#155eef"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+                barOptions: { stacked: 0 },
+            },
+            salesPurchaseLabels
+        );
+
+        renderChart(
+            "#fdTrendChart",
+            "#fdTrendLabels",
+            {
+                type: "line",
+                height: 280,
+                data: {
+                    labels,
+                    datasets: [
+                        { name: __("Revenue"), values: salesValues },
+                        { name: __("Expenses"), values: purchaseValues },
+                    ],
+                },
+                colors: ["#16a34a", "#dc2626"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+                lineOptions: { regionFill: 1 },
+            },
+            salesPurchaseLabels
+        );
+
+        renderChart(
+            "#fdSalesChart",
+            "#fdSalesLabels",
+            {
+                type: "bar",
+                height: 300,
+                data: {
+                    labels,
+                    datasets: [{ name: __("Sales"), values: salesValues }],
+                },
+                colors: ["#0f9f6e"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+            },
+            datasetRows(labels, salesValues)
+        );
+
+        renderChart(
+            "#fdPurchaseChart",
+            "#fdPurchaseLabels",
+            {
+                type: "bar",
+                height: 300,
+                data: {
+                    labels,
+                    datasets: [
+                        { name: __("Purchases"), values: purchaseValues },
+                    ],
+                },
+                colors: ["#155eef"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
+            },
+            datasetRows(labels, purchaseValues)
+        );
     }
 
     function renderDashboard(data) {
@@ -160,59 +311,84 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
             )
         );
 
-        renderChart("#fdTrendChart", {
-            type: "line",
-            height: 280,
-            data: {
-                labels: data.trend?.labels || [],
-                datasets: [
-                    { name: __("Revenue"), values: data.trend?.revenue || [] },
-                    { name: __("Expenses"), values: data.trend?.expense || [] },
-                ],
+        renderTrendCharts(data);
+
+        renderChart(
+            "#fdCashFlowChart",
+            "#fdCashFlowLabels",
+            {
+                type: "bar",
+                height: 280,
+                data: {
+                    labels: data.cash_flow?.labels || [],
+                    datasets: [
+                        {
+                            name: __("Amount"),
+                            values: data.cash_flow?.values || [],
+                        },
+                    ],
+                },
+                colors: ["#2563eb"],
+                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
             },
-            colors: ["#16a34a", "#dc2626"],
-            axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
-        });
-        renderChart("#fdCashFlowChart", {
-            type: "bar",
-            height: 280,
-            data: {
-                labels: data.cash_flow?.labels || [],
-                datasets: [
-                    {
-                        name: __("Amount"),
-                        values: data.cash_flow?.values || [],
-                    },
-                ],
+            datasetRows(
+                data.cash_flow?.labels || [],
+                data.cash_flow?.values || []
+            )
+        );
+
+        renderChart(
+            "#fdRevenueSourceChart",
+            "#fdRevenueSourceLabels",
+            {
+                type: "pie",
+                height: 280,
+                data: {
+                    labels: (data.revenue_sources || []).map(
+                        (row) => row.item_group || "-"
+                    ),
+                    datasets: [
+                        {
+                            values: (data.revenue_sources || []).map(
+                                (row) => row.amount || 0
+                            ),
+                        },
+                    ],
+                },
+                colors: chartColors,
             },
-            colors: ["#2563eb"],
-            axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 1 },
-        });
-        renderChart("#fdExpenseChart", {
-            type: "donut",
-            height: 280,
-            data: {
-                labels: data.expense_breakdown?.labels || [],
-                datasets: [{ values: data.expense_breakdown?.values || [] }],
+            (data.revenue_sources || []).map((row) => ({
+                label: row.item_group,
+                value: row.amount,
+            }))
+        );
+
+        renderChart(
+            "#fdExpenseChart",
+            "#fdExpenseLabels",
+            {
+                type: "donut",
+                height: 280,
+                data: {
+                    labels: data.expense_breakdown?.labels || [],
+                    datasets: [
+                        { values: data.expense_breakdown?.values || [] },
+                    ],
+                },
+                colors: ["#ef4444", "#f59e0b"],
             },
-            colors: [
-                "#ef4444",
-                "#f97316",
-                "#f59e0b",
-                "#84cc16",
-                "#14b8a6",
-                "#0ea5e9",
-                "#6366f1",
-                "#a855f7",
-            ],
-        });
+            datasetRows(
+                data.expense_breakdown?.labels || [],
+                data.expense_breakdown?.values || []
+            )
+        );
 
         $("#fdRevenueSources").html(
             (data.revenue_sources || [])
                 .map(
                     (row) =>
-                        `<tr><td>${frappe.utils.escape_html(
-                            row.account || "-"
+                        `<tr><td>${escape(
+                            row.item_group
                         )}</td><td class="text-right">${money(
                             row.amount
                         )}</td><td class="text-right">${Number(
@@ -262,23 +438,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 .join("") || rowEmpty(4)
         );
 
-        $("#fdRatioRows").html(
-            (data.ratios || [])
-                .map(
-                    (row) =>
-                        `<div class="fd-ratio"><span>${frappe.utils.escape_html(
-                            row.category || ""
-                        )}</span><strong>${frappe.utils.escape_html(
-                            row.name || ""
-                        )}</strong><b>${
-                            row.value || 0
-                        }</b><small>${frappe.utils.escape_html(
-                            row.description || ""
-                        )}</small></div>`
-                )
-                .join("") ||
-                `<div class="fd-empty">${__("No ratio data found")}</div>`
-        );
+        renderRatioRows(data.ratios);
     }
 
     async function loadCompanies() {
@@ -286,9 +446,9 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const options = (companies || [])
             .map(
                 (company) =>
-                    `<option value="${frappe.utils.escape_html(
+                    `<option value="${escape(company)}">${escape(
                         company
-                    )}">${frappe.utils.escape_html(company)}</option>`
+                    )}</option>`
             )
             .join("");
         $("#fdCompany").html(options);

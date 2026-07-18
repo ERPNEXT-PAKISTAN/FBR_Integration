@@ -36,34 +36,28 @@
 
     <section class="fd-kpis">
         <div class="fd-kpi fd-kpi-green">
-            <span>Total Revenue</span>
-            <strong id="fdRevenue">0</strong>
-            <small id="fdRevenueChange">0%</small>
+            <span>Total Revenue</span><strong id="fdRevenue">0</strong
+            ><small id="fdRevenueChange">0%</small>
         </div>
         <div class="fd-kpi fd-kpi-red">
-            <span>Total Expenses</span>
-            <strong id="fdExpense">0</strong>
-            <small id="fdExpenseChange">0%</small>
+            <span>Total Expenses</span><strong id="fdExpense">0</strong
+            ><small id="fdExpenseChange">0%</small>
         </div>
         <div class="fd-kpi fd-kpi-blue">
-            <span>Net Profit</span>
-            <strong id="fdProfit">0</strong>
-            <small id="fdProfitChange">0%</small>
+            <span>Net Profit</span><strong id="fdProfit">0</strong
+            ><small id="fdProfitChange">0%</small>
         </div>
         <div class="fd-kpi fd-kpi-amber">
-            <span>Profit Margin</span>
-            <strong id="fdMargin">0%</strong>
-            <small id="fdMarginChange">0%</small>
+            <span>Profit Margin</span><strong id="fdMargin">0%</strong
+            ><small id="fdMarginChange">0%</small>
         </div>
         <div class="fd-kpi fd-kpi-muted">
-            <span>Sales Invoices</span>
-            <strong id="fdSalesCount">0</strong>
-            <small id="fdSalesTotal">0</small>
+            <span>Sales Invoices</span><strong id="fdSalesCount">0</strong
+            ><small id="fdSalesTotal">0</small>
         </div>
         <div class="fd-kpi fd-kpi-muted">
-            <span>Purchase Activity</span>
-            <strong id="fdPurchaseCount">0</strong>
-            <small id="fdPurchaseTotal">0</small>
+            <span>Purchase Activity</span><strong id="fdPurchaseCount">0</strong
+            ><small id="fdPurchaseTotal">0</small>
         </div>
     </section>
 
@@ -78,6 +72,19 @@
 
     <section class="fd-tab-panel active" id="fd-tab-overview">
         <div class="fd-grid fd-grid-2">
+            <div class="fd-card fd-card-wide">
+                <div class="fd-card-head">
+                    <div>
+                        <h3>Sales vs Purchases</h3>
+                        <p>Full-period movement with visible values</p>
+                    </div>
+                </div>
+                <div id="fdOverviewSalesPurchaseChart" class="fd-chart"></div>
+                <div
+                    id="fdOverviewSalesPurchaseLabels"
+                    class="fd-chart-labels"
+                ></div>
+            </div>
             <div class="fd-card">
                 <div class="fd-card-head">
                     <div>
@@ -86,6 +93,7 @@
                     </div>
                 </div>
                 <div id="fdTrendChart" class="fd-chart"></div>
+                <div id="fdTrendLabels" class="fd-chart-labels"></div>
             </div>
             <div class="fd-card">
                 <div class="fd-card-head">
@@ -95,9 +103,14 @@
                     </div>
                 </div>
                 <div id="fdCashFlowChart" class="fd-chart"></div>
+                <div id="fdCashFlowLabels" class="fd-chart-labels"></div>
             </div>
             <div class="fd-card">
-                <div class="fd-card-head"><h3>Top Revenue Sources</h3></div>
+                <div class="fd-card-head">
+                    <h3>Top Revenue Sources by Item Group</h3>
+                </div>
+                <div id="fdRevenueSourceChart" class="fd-chart"></div>
+                <div id="fdRevenueSourceLabels" class="fd-chart-labels"></div>
                 <div class="fd-table-wrap">
                     <table class="table">
                         <tbody id="fdRevenueSources"></tbody>
@@ -107,6 +120,7 @@
             <div class="fd-card">
                 <div class="fd-card-head"><h3>Expense Breakdown</h3></div>
                 <div id="fdExpenseChart" class="fd-chart"></div>
+                <div id="fdExpenseLabels" class="fd-chart-labels"></div>
             </div>
         </div>
     </section>
@@ -153,6 +167,16 @@
 
     <section class="fd-tab-panel" id="fd-tab-sales">
         <div class="fd-grid fd-grid-2">
+            <div class="fd-card fd-card-wide">
+                <div class="fd-card-head">
+                    <div>
+                        <h3>Sales Trend</h3>
+                        <p>Sales amount by selected grouping</p>
+                    </div>
+                </div>
+                <div id="fdSalesChart" class="fd-chart"></div>
+                <div id="fdSalesLabels" class="fd-chart-labels"></div>
+            </div>
             <div class="fd-card">
                 <div class="fd-card-head">
                     <h3>Sales Summary</h3>
@@ -183,6 +207,7 @@
                             <tr>
                                 <th>Customer</th>
                                 <th class="text-right">Outstanding</th>
+                                <th class="text-right">Age</th>
                             </tr>
                         </thead>
                         <tbody id="fdReceivablesRows"></tbody>
@@ -194,6 +219,16 @@
 
     <section class="fd-tab-panel" id="fd-tab-purchases">
         <div class="fd-grid fd-grid-2">
+            <div class="fd-card fd-card-wide">
+                <div class="fd-card-head">
+                    <div>
+                        <h3>Purchase Trend</h3>
+                        <p>Purchase/expense amount by selected grouping</p>
+                    </div>
+                </div>
+                <div id="fdPurchaseChart" class="fd-chart"></div>
+                <div id="fdPurchaseLabels" class="fd-chart-labels"></div>
+            </div>
             <div class="fd-card">
                 <div class="fd-card-head">
                     <h3>Purchases / Expenses Summary</h3>
@@ -224,6 +259,7 @@
                             <tr>
                                 <th>Supplier</th>
                                 <th class="text-right">Outstanding</th>
+                                <th class="text-right">Age</th>
                             </tr>
                         </thead>
                         <tbody id="fdPayablesRows"></tbody>
