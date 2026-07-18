@@ -530,24 +530,6 @@
     "hidden": 0,
     "icon": null,
     "is_query_report": 1,
-    "label": "Sales Analytics",
-    "link_count": 0,
-    "link_to": "Sales Analytics",
-    "link_type": "Report",
-    "onboard": 0,
-    "only_for": "",
-    "parent": "FBR Pakistan",
-    "parentfield": "links",
-    "parenttype": "Workspace",
-    "report_ref_doctype": null,
-    "type": "Link"
-   },
-   {
-    "dependencies": null,
-    "description": null,
-    "hidden": 0,
-    "icon": null,
-    "is_query_report": 1,
     "label": "Sales by item Group",
     "link_count": 0,
     "link_to": "Sales by item Group",
@@ -738,6 +720,66 @@
     "parentfield": "links",
     "parenttype": "Workspace",
     "report_ref_doctype": null,
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Consumption Report",
+    "link_count": 0,
+    "link_to": "Consumption Report",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "FBR Expenses GL Dynamic",
+    "link_count": 0,
+    "link_to": "FBR Expenses GL Dynamic",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Sales Trend Analysis Report",
+    "link_count": 0,
+    "link_to": "Sales Trend Analysis Report",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Stock Report",
+    "link_count": 0,
+    "link_to": "Stock Report",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
+    "type": "Link"
+   },
+   {
+    "dependencies": "",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Supplier Wise Purchases Detail",
+    "link_count": 0,
+    "link_to": "Supplier Wise Purchases Detail",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": "",
     "type": "Link"
    },
    {
@@ -1101,7 +1143,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-07-18 17:35:00.000000",
+  "modified": "2026-07-18 18:05:00.000000",
   "module": null,
   "name": "FBR Pakistan",
   "number_cards": [
