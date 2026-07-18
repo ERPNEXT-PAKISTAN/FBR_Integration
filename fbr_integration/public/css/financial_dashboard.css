@@ -647,3 +647,74 @@
 .fd-tree-wrap th.text-right {
     min-width: 150px;
 }
+
+.fd-card {
+    overflow: hidden;
+}
+
+.fd-card .fd-pie-chart {
+    overflow: hidden;
+    min-height: 360px;
+}
+
+.fd-pie-label-layer {
+    inset: 4px 8px 8px;
+}
+
+.fd-pie-label-layer polyline {
+    stroke: #667085;
+    stroke-width: 0.55;
+}
+
+.fd-pie-label {
+    width: 132px;
+    color: #1f2937;
+    font-size: 10px;
+    line-height: 1.18;
+    white-space: normal;
+}
+
+.fd-pie-label b {
+    font-weight: 850;
+}
+
+.fd-pie-label em {
+    color: #344054;
+    font-weight: 800;
+}
+
+.fd-tree-wrap .table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.fd-tree-wrap td:first-child,
+.fd-tree-wrap th:first-child {
+    width: 62%;
+    min-width: 0;
+}
+
+.fd-tree-wrap td.text-right,
+.fd-tree-wrap th.text-right {
+    width: 38%;
+    min-width: 0;
+    text-align: left !important;
+}
+
+.fd-total-row td {
+    border-top: 2px solid #d0d5dd !important;
+    background: #f8fafc;
+    font-weight: 850;
+}
+
+.fd-mini-select {
+    width: 240px;
+    max-width: 100%;
+}
+
+.fd-chart .data-point-value {
+    font-size: 9px;
+    fill: #111827;
+    stroke: #ffffff;
+    stroke-width: 2.8px;
+}

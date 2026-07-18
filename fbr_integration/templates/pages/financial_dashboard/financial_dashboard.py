@@ -268,12 +268,31 @@ def get_expense_hierarchy(company, from_date, to_date):
 
 
 @frappe.whitelist()
-def get_stock_by_item_group(company):
+def get_warehouses(company):
 	if not company:
 		frappe.throw("Company is required")
 
+	return frappe.get_all(
+		"Warehouse",
+		filters={"company": company, "is_group": 0, "disabled": 0},
+		pluck="name",
+		order_by="name",
+	)
+
+
+@frappe.whitelist()
+def get_stock_by_item_group(company, warehouse=None):
+	if not company:
+		frappe.throw("Company is required")
+
+	conditions = ["wh.company = %s", "bin.actual_qty <> 0"]
+	params = [company]
+	if warehouse:
+		conditions.append("bin.warehouse = %s")
+		params.append(warehouse)
+
 	return frappe.db.sql(
-		"""
+		f"""
 		SELECT
 			COALESCE(NULLIF(item.item_group, ''), 'No Item Group') AS item_group,
 			SUM(bin.actual_qty) AS closing_qty,
@@ -281,14 +300,13 @@ def get_stock_by_item_group(company):
 		FROM `tabBin` bin
 		INNER JOIN `tabItem` item ON bin.item_code = item.name
 		INNER JOIN `tabWarehouse` wh ON bin.warehouse = wh.name
-		WHERE wh.company = %s
-		  AND bin.actual_qty <> 0
+		WHERE {" AND ".join(conditions)}
 		GROUP BY item.item_group
 		HAVING closing_qty <> 0 OR closing_value <> 0
 		ORDER BY closing_value DESC
 		LIMIT 30
 		""",
-		(company,),
+		params,
 		as_dict=True,
 	)
 
@@ -1557,6 +1575,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 	expense_breakdown = get_expense_breakdown(company, from_date, to_date)
 	expense_hierarchy = get_expense_hierarchy(company, from_date, to_date)
 	stock_by_item_group = get_stock_by_item_group(company)
+	warehouses = get_warehouses(company)
 	revenue_sources = get_revenue_sources(company, from_date, to_date)
 	sales_summary = get_sales_summary(company, from_date, to_date, group_by)
 	purchases_summary = get_purchases_summary(company, from_date, to_date, group_by)
@@ -1580,6 +1599,7 @@ def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"
 		"expense_breakdown": expense_breakdown,
 		"expense_hierarchy": expense_hierarchy,
 		"stock_by_item_group": stock_by_item_group,
+		"warehouses": warehouses,
 		"revenue_sources": revenue_sources,
 		"sales_summary": sales_summary,
 		"purchases_summary": purchases_summary,

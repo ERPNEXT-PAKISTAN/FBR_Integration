@@ -13,14 +13,14 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         "fbr_integration.fbr_integration.page.financial_dashboard.financial_dashboard";
     const TAX_YEAR = { from_date: "2025-07-01", to_date: "2026-06-30" };
     const chartColors = [
-        "#155eef",
-        "#0f9f6e",
-        "#f59e0b",
-        "#dc2626",
+        "#0f766e",
+        "#2563eb",
+        "#d97706",
         "#7c3aed",
-        "#06b6d4",
-        "#84cc16",
-        "#f97316",
+        "#be123c",
+        "#0891b2",
+        "#65a30d",
+        "#c2410c",
     ];
     const state = {
         company: frappe.defaults.get_user_default("Company") || "",
@@ -29,6 +29,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         group_by: "monthly",
         currency: frappe.defaults.get_default("currency") || "PKR",
         lastData: null,
+        warehouse: "",
     };
 
     function call(method, args = {}) {
@@ -118,12 +119,16 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const values = (config.data?.datasets || []).flatMap(
             (dataset) => dataset.values || []
         );
-        $(node)
-            .find(".data-point-value")
-            .each((index, element) => {
-                if (values[index] !== undefined)
-                    element.textContent = money(values[index]);
-            });
+        [80, 250, 650].forEach((delay) =>
+            window.setTimeout(() => {
+                $(node)
+                    .find(".data-point-value")
+                    .each((index, element) => {
+                        if (values[index] !== undefined)
+                            element.textContent = money(values[index]);
+                    });
+            }, delay)
+        );
     }
 
     function renderExternalSliceLabels(node, rows) {
@@ -173,8 +178,8 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 const minY = 8 + index * 9;
                 const maxY = 92 - (sideRows.length - index - 1) * 9;
                 position.labelY = Math.min(Math.max(position.y, minY), maxY);
-                position.labelX = side === "right" ? 96 : 4;
-                position.anchorX = side === "right" ? 87 : 13;
+                position.labelX = side === "right" ? 72 : 28;
+                position.anchorX = side === "right" ? 62 : 38;
             });
         });
 
@@ -254,6 +259,18 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function renderAging(selector, rows, labelField) {
+        const total = (rows || []).reduce(
+            (sum, row) =>
+                sum +
+                Number(
+                    row.outstanding ||
+                        row.outstanding_amount ||
+                        row.total_due ||
+                        row.amount ||
+                        0
+                ),
+            0
+        );
         const html = (rows || [])
             .slice(0, 10)
             .map((row) => {
@@ -277,7 +294,10 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 )}</td><td class="text-right">${age} days</td></tr>`;
             })
             .join("");
-        $(selector).html(html || rowEmpty(3));
+        const totalRow = `<tr class="fd-total-row"><td>Total</td><td class="text-right">${money(
+            total
+        )}</td><td></td></tr>`;
+        $(selector).html((html ? html + totalRow : "") || rowEmpty(3));
     }
 
     function renderRatioRows(rows) {
@@ -321,7 +341,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { name: __("Purchases"), values: purchaseValues },
                     ],
                 },
-                colors: ["#0f9f6e", "#155eef"],
+                colors: ["#0f766e", "#2563eb"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
                 barOptions: { stacked: 0 },
             },
@@ -341,9 +361,9 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { name: __("Expenses"), values: purchaseValues },
                     ],
                 },
-                colors: ["#16a34a", "#dc2626"],
+                colors: ["#0f766e", "#be123c"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
-                lineOptions: { regionFill: 1 },
+                lineOptions: { regionFill: 1, showDots: 1 },
             },
             []
         );
@@ -358,7 +378,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                     labels,
                     datasets: [{ name: __("Sales"), values: salesValues }],
                 },
-                colors: ["#0f9f6e"],
+                colors: ["#0f766e"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -376,7 +396,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { name: __("Purchases"), values: purchaseValues },
                     ],
                 },
-                colors: ["#155eef"],
+                colors: ["#2563eb"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -434,7 +454,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         },
                     ],
                 },
-                colors: ["#2563eb"],
+                colors: ["#0891b2"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -478,7 +498,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { values: data.expense_breakdown?.values || [] },
                     ],
                 },
-                colors: ["#ef4444", "#f59e0b"],
+                colors: ["#be123c", "#d97706"],
             },
             datasetRows(
                 data.expense_breakdown?.labels || [],
@@ -497,7 +517,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                         { values: data.expense_breakdown?.values || [] },
                     ],
                 },
-                colors: ["#ef4444", "#f59e0b"],
+                colors: ["#be123c", "#d97706"],
                 axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
             },
             []
@@ -534,6 +554,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         );
         $("#fdExpenseHierarchyRows").html(
             (data.expense_hierarchy || [])
+                .filter((row) => row.is_group)
                 .map((row) => {
                     const indent = Number(row.indent || 0);
                     return `<tr class="${
@@ -547,6 +568,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
                 .join("") || rowEmpty(2)
         );
         renderStock(data.stock_by_item_group || []);
+        renderWarehouseOptions(data.warehouses || []);
 
         renderSimpleRows("#fdSalesRows", data.sales_summary, "sales");
         renderSimpleRows("#fdPurchaseRows", data.purchases_summary, "purchase");
@@ -631,6 +653,30 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         );
     }
 
+    function renderWarehouseOptions(warehouses) {
+        const current = state.warehouse;
+        const options =
+            `<option value="">${__("All Warehouses")}</option>` +
+            (warehouses || [])
+                .map(
+                    (warehouse) =>
+                        `<option value="${escape(warehouse)}">${escape(
+                            warehouse
+                        )}</option>`
+                )
+                .join("");
+        $("#fdStockWarehouse").html(options).val(current);
+    }
+
+    async function loadStockForWarehouse() {
+        if (!state.company) return;
+        const rows = await call("get_stock_by_item_group", {
+            company: state.company,
+            warehouse: state.warehouse,
+        });
+        renderStock(rows || []);
+    }
+
     async function loadCompanies() {
         const companies = await call("get_companies");
         const options = (companies || [])
@@ -711,6 +757,10 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     $("#fdGroupBy").on("change", function () {
         state.group_by = this.value;
         loadDashboard();
+    });
+    $("#fdStockWarehouse").on("change", function () {
+        state.warehouse = this.value;
+        loadStockForWarehouse();
     });
     $("#fdRefresh").on("click", loadDashboard);
 
