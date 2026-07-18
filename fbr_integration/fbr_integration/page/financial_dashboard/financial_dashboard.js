@@ -11,7 +11,15 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
 
     const API =
         "fbr_integration.fbr_integration.page.financial_dashboard.financial_dashboard";
-    const TAX_YEAR = { from_date: "2025-07-01", to_date: "2026-06-30" };
+    const today = frappe.datetime.get_today();
+    const todayYear = Number(today.slice(0, 4));
+    const todayMonth = Number(today.slice(5, 7));
+    const taxYearStart = todayMonth >= 7 ? todayYear : todayYear - 1;
+    const TAX_YEAR = {
+        from_date: `${taxYearStart}-07-01`,
+        to_date: `${taxYearStart + 1}-06-30`,
+        label: `Tax Year ${taxYearStart}-${taxYearStart + 1}`,
+    };
     const chartBlue = "#2da9e1";
     const chartGreen = "#47c878";
     const chartColors = [
@@ -1533,7 +1541,6 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function applyPreset(preset) {
-        const today = frappe.datetime.get_today();
         if (preset === "tax_year") {
             state.from_date = TAX_YEAR.from_date;
             state.to_date = TAX_YEAR.to_date;

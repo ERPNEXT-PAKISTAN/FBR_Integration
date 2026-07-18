@@ -3,10 +3,6 @@ from datetime import timedelta
 import frappe
 from frappe.utils import add_to_date, cint, get_first_day, get_last_day, getdate, nowdate
 
-DEFAULT_TAX_YEAR_FROM_DATE = "2025-07-01"
-DEFAULT_TAX_YEAR_TO_DATE = "2026-06-30"
-DEFAULT_TAX_YEAR_LABEL = "Tax Year 2025-2026"
-
 
 @frappe.whitelist()
 def get_companies():
@@ -1753,14 +1749,7 @@ def get_ratio_analysis(company, from_date, to_date):
 @frappe.whitelist()
 def get_tax_year_dates(reference_date=None):
 	"""Pakistan tax year: 1 July to 30 June."""
-	if not reference_date:
-		return {
-			"from_date": DEFAULT_TAX_YEAR_FROM_DATE,
-			"to_date": DEFAULT_TAX_YEAR_TO_DATE,
-			"label": DEFAULT_TAX_YEAR_LABEL,
-		}
-
-	reference = getdate(reference_date) if reference_date else getdate()
+	reference = getdate(reference_date or nowdate())
 	start_year = reference.year if reference.month >= 7 else reference.year - 1
 	return {
 		"from_date": f"{start_year}-07-01",

@@ -305,10 +305,9 @@ def customer_supplier_details_dashboard_api(
 	}
 
 
-def _last_completed_fiscal_year():
+def _current_pakistan_tax_year():
 	today = getdate(nowdate())
-	current_start_year = today.year if today.month >= 7 else today.year - 1
-	start_year = current_start_year - 1
+	start_year = today.year if today.month >= 7 else today.year - 1
 	return getdate(f"{start_year}-07-01"), getdate(f"{start_year + 1}-06-30")
 
 
@@ -485,7 +484,7 @@ def _sales_purchase_trend(company, from_date, to_date):
 @frappe.whitelist()
 def fiscal_year_kpi_block_data(company=None):
 	company = _first_company(company)
-	from_date, to_date = _last_completed_fiscal_year()
+	from_date, to_date = _current_pakistan_tax_year()
 	prev_from = add_to_date(from_date, years=-1)
 	prev_to = add_to_date(to_date, years=-1)
 	current_summary = _income_expense_summary(company, from_date, to_date)
