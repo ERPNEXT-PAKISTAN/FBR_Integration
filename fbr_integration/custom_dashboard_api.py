@@ -369,6 +369,7 @@ def _sales_invoice_totals(company, from_date, to_date):
 		"""
 		SELECT
 			COUNT(*) AS invoice_count,
+			SUM(CASE WHEN docstatus = 1 AND is_return = 1 THEN 1 ELSE 0 END) AS return_count,
 			SUM(CASE WHEN docstatus = 0 THEN 1 ELSE 0 END) AS draft_count,
 			SUM(CASE WHEN docstatus = 1 THEN 1 ELSE 0 END) AS submitted_count,
 			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') != '' THEN 1 ELSE 0 END) AS fbr_success_count,
@@ -384,6 +385,38 @@ def _sales_invoice_totals(company, from_date, to_date):
 		(company, from_date, to_date),
 		as_dict=True,
 	)[0]
+
+
+def _expense_main_group_totals(company, from_date, to_date):
+	rows = frappe.db.sql(
+		"""
+		SELECT
+			parent.account_name,
+			COALESCE(SUM(gle.debit) - SUM(gle.credit), 0) AS amount
+		FROM `tabGL Entry` gle
+		INNER JOIN `tabAccount` account ON gle.account = account.name
+		INNER JOIN `tabAccount` parent ON account.lft >= parent.lft
+			AND account.rgt <= parent.rgt
+			AND parent.company = account.company
+		WHERE gle.company = %s
+		  AND gle.posting_date BETWEEN %s AND %s
+		  AND gle.is_cancelled = 0
+		  AND parent.root_type = 'Expense'
+		  AND parent.is_group = 1
+		  AND LOWER(parent.account_name) IN ('direct expenses', 'indirect expenses')
+		GROUP BY parent.name, parent.account_name
+		""",
+		(company, from_date, to_date),
+		as_dict=True,
+	)
+	totals = {"direct": 0, "indirect": 0}
+	for row in rows:
+		key = "direct" if (row.account_name or "").lower() == "direct expenses" else "indirect"
+		totals[key] = round(row.amount or 0, 0)
+	total = totals["direct"] + totals["indirect"]
+	totals["direct_pct"] = round((totals["direct"] / total * 100) if total else 0, 1)
+	totals["indirect_pct"] = round((totals["indirect"] / total * 100) if total else 0, 1)
+	return totals
 
 
 def _purchase_totals(company, from_date, to_date):
@@ -450,6 +483,7 @@ def fiscal_year_kpi_block_data(company=None):
 	current_summary = _income_expense_summary(company, from_date, to_date)
 	previous_summary = _income_expense_summary(company, prev_from, prev_to)
 	sales = _sales_invoice_totals(company, from_date, to_date)
+	expense_groups = _expense_main_group_totals(company, from_date, to_date)
 	purchases = _purchase_totals(company, from_date, to_date)
 
 	return {
@@ -460,6 +494,10 @@ def fiscal_year_kpi_block_data(company=None):
 		"period_label": f"{from_date.strftime('%d-%m-%Y')} to {to_date.strftime('%d-%m-%Y')}",
 		"summary": {
 			**current_summary,
+			"direct_expenses": expense_groups["direct"],
+			"indirect_expenses": expense_groups["indirect"],
+			"direct_expenses_pct": expense_groups["direct_pct"],
+			"indirect_expenses_pct": expense_groups["indirect_pct"],
 			"revenue_change": _pct_change(current_summary["revenue"], previous_summary["revenue"]),
 			"expenses_change": _pct_change(current_summary["expenses"], previous_summary["expenses"]),
 			"profit_change": _pct_change(current_summary["profit"], previous_summary["profit"]),
@@ -467,6 +505,7 @@ def fiscal_year_kpi_block_data(company=None):
 		},
 		"sales": {
 			"invoice_count": int(sales.invoice_count or 0),
+			"return_count": int(sales.return_count or 0),
 			"draft_count": int(sales.draft_count or 0),
 			"submitted_count": int(sales.submitted_count or 0),
 			"fbr_success_count": int(sales.fbr_success_count or 0),
