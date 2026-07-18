@@ -760,7 +760,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
     }
 
     function renderSalesInvoiceStatus(data) {
-        const status = data.sales_invoice_status || {};
+        const status = data.sales_invoice_status || data || {};
         const summary = status.summary || {};
         const total = Number(summary.total_invoices || 0);
         const fbrSubmitted = Number(summary.fbr_submitted_count || 0);
@@ -848,33 +848,48 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         );
         const itemTaxTemplateRows = status.item_tax_template || [];
         const itemTaxChartRows = itemTaxTemplateRows.slice(0, 12);
-        renderChart(
-            "#fdStatusItemTaxTemplateChart",
-            "#fdStatusItemTaxTemplateLabels",
-            {
-                type: "bar",
-                height: 260,
-                data: {
-                    labels: itemTaxChartRows.map(
-                        (row) => row.item_tax_template || "Not Set"
-                    ),
-                    datasets: [
-                        {
-                            name: __("Tax Amount"),
-                            values: itemTaxChartRows.map((row) => row.tax || 0),
-                        },
-                    ],
+        const itemTaxMetric = itemTaxChartRows.some(
+            (row) => Number(row.tax || 0) > 0
+        )
+            ? "tax"
+            : "inclusive";
+        if (itemTaxChartRows.length) {
+            renderChart(
+                "#fdStatusItemTaxTemplateChart",
+                "#fdStatusItemTaxTemplateLabels",
+                {
+                    type: "bar",
+                    height: 260,
+                    data: {
+                        labels: itemTaxChartRows.map(
+                            (row) => row.item_tax_template || "Not Set"
+                        ),
+                        datasets: [
+                            {
+                                name:
+                                    itemTaxMetric === "tax"
+                                        ? __("Tax Amount")
+                                        : __("Inclusive Sales"),
+                                values: itemTaxChartRows.map(
+                                    (row) => row[itemTaxMetric] || 0
+                                ),
+                            },
+                        ],
+                    },
+                    colors: ["#14b8a6"],
+                    axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
                 },
-                colors: ["#14b8a6"],
-                axisOptions: { xIsSeries: 1, shortenYAxisNumbers: 0 },
-            },
-            itemTaxChartRows.map((row) => ({
-                label: `${row.item_tax_template || "Not Set"} (${Number(
-                    row.percentage || 0
-                ).toFixed(2)}%)`,
-                value: row.tax || row.inclusive || 0,
-            }))
-        );
+                itemTaxChartRows.map((row) => ({
+                    label: `${row.item_tax_template || "Not Set"} (${Number(
+                        row.percentage || 0
+                    ).toFixed(2)}%)`,
+                    value: row.tax || row.inclusive || 0,
+                }))
+            );
+        } else {
+            resetChart("#fdStatusItemTaxTemplateChart");
+            $("#fdStatusItemTaxTemplateLabels").empty();
+        }
         const itemTaxTotals = itemTaxTemplateRows.reduce(
             (sum, row) => {
                 sum.exclusive += Number(row.exclusive || 0);
@@ -1463,6 +1478,24 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         }
     }
 
+    async function loadStatusDashboard() {
+        if (!state.company) return;
+        const status = await call("get_sales_invoice_status_report", {
+            company: state.company,
+            from_date: state.from_date,
+            to_date: state.to_date,
+        });
+        renderSalesInvoiceStatus(status || {});
+        scheduleRelabelAllCharts();
+    }
+
+    async function refreshDashboard() {
+        await loadDashboard();
+        if ($("#fd-tab-status").hasClass("active")) {
+            await loadStatusDashboard();
+        }
+    }
+
     function applyPreset(preset) {
         const today = frappe.datetime.get_today();
         if (preset === "tax_year") {
@@ -1490,7 +1523,7 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(`#fd-tab-${tab}`).addClass("active");
         scheduleRelabelAllCharts();
         if (tab === "status") {
-            loadDashboard();
+            loadStatusDashboard();
         }
     });
 
@@ -1498,31 +1531,31 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $(".fd-preset").removeClass("active");
         $(this).addClass("active");
         applyPreset($(this).data("preset"));
-        loadDashboard();
+        refreshDashboard();
     });
 
     $("#fdCompany").on("change", function () {
         state.company = this.value;
-        loadDashboard();
+        refreshDashboard();
     });
     $("#fdFromDate, #fdToDate").on("change", function () {
         state.from_date = $("#fdFromDate").val();
         state.to_date = $("#fdToDate").val();
         $(".fd-preset").removeClass("active");
-        loadDashboard();
+        refreshDashboard();
     });
     $("#fdGroupBy").on("change", function () {
         state.group_by = this.value;
-        loadDashboard();
+        refreshDashboard();
     });
     $("#fdStockWarehouse").on("change", function () {
         state.warehouse = this.value;
         loadStockForWarehouse();
     });
-    $("#fdRefresh").on("click", loadDashboard);
+    $("#fdRefresh").on("click", refreshDashboard);
 
     $("#fdFromDate").val(state.from_date);
     $("#fdToDate").val(state.to_date);
     $("#fdGroupBy").val(state.group_by);
-    loadCompanies().then(loadDashboard);
+    loadCompanies().then(refreshDashboard);
 };
