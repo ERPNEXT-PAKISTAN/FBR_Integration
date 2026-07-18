@@ -194,9 +194,9 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         const x = Number(element.getAttribute("x") || 0);
         const y = Number(element.getAttribute("y") || 0);
         element.setAttribute("transform", `rotate(-90 ${x} ${y})`);
-        element.setAttribute("text-anchor", "start");
+        element.setAttribute("text-anchor", "end");
         element.setAttribute("dominant-baseline", "middle");
-        element.setAttribute("dx", "4");
+        element.setAttribute("dx", "-6");
         element.setAttribute("dy", "0");
     }
 
