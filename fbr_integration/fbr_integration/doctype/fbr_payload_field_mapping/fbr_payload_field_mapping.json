@@ -8,7 +8,11 @@
  "field_order": [
   "enabled",
   "description",
-  "section_break_mappings",
+  "section_break_header_mappings",
+  "header_mappings",
+  "section_break_item_mappings",
+  "item_mappings",
+  "section_break_legacy_mappings",
   "mappings"
  ],
  "fields": [
@@ -26,13 +30,37 @@
    "default": "Configure which ERPNext fields are used for each FBR payload value. Defaults match the current app behavior. Select Source DocType first, then select Source Field."
   },
   {
-   "fieldname": "section_break_mappings",
+   "fieldname": "section_break_header_mappings",
    "fieldtype": "Section Break",
-   "label": "Payload Field Mappings"
+   "label": "Header Payload Field Mappings"
+  },
+  {
+   "fieldname": "header_mappings",
+   "fieldtype": "Table",
+   "label": "Header Mappings",
+   "options": "FBR Payload Field Mapping Detail"
+  },
+  {
+   "fieldname": "section_break_item_mappings",
+   "fieldtype": "Section Break",
+   "label": "Item Payload Field Mappings"
+  },
+  {
+   "fieldname": "item_mappings",
+   "fieldtype": "Table",
+   "label": "Item Mappings",
+   "options": "FBR Payload Field Mapping Detail"
+  },
+  {
+   "fieldname": "section_break_legacy_mappings",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Legacy Payload Field Mappings"
   },
   {
    "fieldname": "mappings",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Mappings",
    "options": "FBR Payload Field Mapping Detail"
   }

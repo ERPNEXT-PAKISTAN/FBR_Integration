@@ -3,6 +3,7 @@ from frappe.utils import getdate
 
 MAPPING_DOCTYPE = "FBR Payload Field Mapping"
 DETAIL_DOCTYPE = "FBR Payload Field Mapping Detail"
+MAPPING_TABLE_FIELDS = ("header_mappings", "item_mappings", "mappings")
 
 
 DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
@@ -347,19 +348,50 @@ def _doctype_available():
 	return frappe.db.exists("DocType", MAPPING_DOCTYPE)
 
 
+def _table_field_for_section(section):
+	return "item_mappings" if section == "Item" else "header_mappings"
+
+
+def _iter_mapping_rows(settings):
+	for table_field in MAPPING_TABLE_FIELDS:
+		yield from settings.get(table_field) or []
+
+
+def _move_legacy_rows_to_section_tables():
+	if not frappe.db.table_exists(DETAIL_DOCTYPE):
+		return
+
+	legacy_rows = frappe.get_all(
+		DETAIL_DOCTYPE,
+		filters={"parent": MAPPING_DOCTYPE, "parentfield": "mappings"},
+		fields=["name", "payload_section"],
+		ignore_permissions=True,
+	)
+	for row in legacy_rows:
+		frappe.db.set_value(
+			DETAIL_DOCTYPE,
+			row.name,
+			"parentfield",
+			_table_field_for_section(row.payload_section),
+			update_modified=False,
+		)
+
+
 def sync_payload_field_mappings():
 	if not _doctype_available():
 		return
 
+	_move_legacy_rows_to_section_tables()
 	settings = frappe.get_single(MAPPING_DOCTYPE)
 	settings.enabled = 1 if settings.enabled is None else settings.enabled
-	existing = {row.payload_field for row in settings.get("mappings") or []}
+	existing = {(row.payload_section, row.payload_field) for row in _iter_mapping_rows(settings)}
 
 	for row in DEFAULT_PAYLOAD_FIELD_MAPPINGS:
-		if row["payload_field"] in existing:
+		key = (row["payload_section"], row["payload_field"])
+		if key in existing:
 			continue
 		settings.append(
-			"mappings",
+			_table_field_for_section(row["payload_section"]),
 			{
 				"enabled": 1,
 				"payload_section": row["payload_section"],
@@ -396,11 +428,11 @@ def _get_settings_rows():
 	if not getattr(settings, "enabled", 0):
 		return {}
 
-	return {
-		(row.payload_section, row.payload_field): row
-		for row in settings.get("mappings") or []
-		if getattr(row, "enabled", 0) and row.payload_field
-	}
+	rows = {}
+	for row in _iter_mapping_rows(settings):
+		if getattr(row, "enabled", 0) and row.payload_field:
+			rows[(row.payload_section, row.payload_field)] = row
+	return rows
 
 
 def _get_address_doc(doc, payload_field):
