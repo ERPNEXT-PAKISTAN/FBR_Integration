@@ -80,8 +80,8 @@ def safe_fbr_item_text(val):
 
 
 def normalize_registration_no(val):
-	"""Keep only digits for FBR registration values like NTN/CNIC."""
-	return re.sub(r"\D+", "", safe_str(val))
+	"""Keep FBR registration values alphanumeric, e.g. NTN/CNIC or C-prefixed registration."""
+	return re.sub(r"[^A-Za-z0-9]+", "", safe_str(val)).upper()
 
 
 def get_valid_seller_registration_no(doc):

@@ -376,7 +376,7 @@
 
 .fd-status-kpis {
     display: grid;
-    grid-template-columns: repeat(4, minmax(130px, 1fr));
+    grid-template-columns: repeat(6, minmax(120px, 1fr));
     gap: 14px;
     margin-top: 16px;
 }
@@ -440,6 +440,25 @@
     background: linear-gradient(135deg, #ffffff, #fef2f2);
 }
 
+
+.fd-status-kpi-teal strong {
+    color: #0f9f8f;
+}
+
+.fd-status-kpi-teal {
+    color: #0f9f8f;
+    background: linear-gradient(135deg, #ffffff, #ecfeff);
+}
+
+.fd-status-kpi-purple strong {
+    color: #7c3aed;
+}
+
+.fd-status-kpi-purple {
+    color: #7c3aed;
+    background: linear-gradient(135deg, #ffffff, #f5f3ff);
+}
+
 .fd-status-money {
     display: block;
     margin-top: 12px;
@@ -465,7 +484,26 @@
     color: #1d8fca;
 }
 
-.fd-status-money-card .fd-status-money {
+.fd-status-money-card
+.fd-status-kpi-teal strong {
+    color: #0f9f8f;
+}
+
+.fd-status-kpi-teal {
+    color: #0f9f8f;
+    background: linear-gradient(135deg, #ffffff, #ecfeff);
+}
+
+.fd-status-kpi-purple strong {
+    color: #7c3aed;
+}
+
+.fd-status-kpi-purple {
+    color: #7c3aed;
+    background: linear-gradient(135deg, #ffffff, #f5f3ff);
+}
+
+.fd-status-money {
     color: currentColor;
 }
 

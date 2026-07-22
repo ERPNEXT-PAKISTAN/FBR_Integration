@@ -825,7 +825,11 @@ frappe.pages["financial-dashboard"].on_page_load = function (wrapper) {
         $("#fdStatusTotal").text(number(total));
         $("#fdStatusSubmitted").text(number(summary.submitted_count || 0));
         $("#fdStatusDraft").text(number(summary.draft_count || 0));
-        $("#fdStatusFailed").text(number(summary.fbr_failed_count || 0));
+        $("#fdStatusFailed").text(number(summary.fbr_error_count || 0));
+        $("#fdStatusFbrSubmitted").text(
+            number(summary.fbr_submitted_count || 0)
+        );
+        $("#fdStatusSalesReturn").text(number(summary.sales_return_count || 0));
         $("#fdStatusCompliance").text(`${compliance.toFixed(0)}%`);
         $("#fdStatusExclusive").html(money(summary.exclusive_sales || 0));
         $("#fdStatusTaxes").html(money(summary.taxes || 0));

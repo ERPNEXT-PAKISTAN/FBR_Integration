@@ -1874,6 +1874,8 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') != '' THEN 1 ELSE 0 END) AS fbr_submitted_count,
 			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') = '' THEN 1 ELSE 0 END) AS fbr_pending_count,
 			SUM(CASE WHEN docstatus = 1 AND LOWER(COALESCE(custom_fbr_invoice_status, '')) LIKE '%%fail%%' THEN 1 ELSE 0 END) AS fbr_failed_count,
+			SUM(CASE WHEN LOWER(COALESCE(custom_fbr_responsed, '')) = 'error' THEN 1 ELSE 0 END) AS fbr_error_count,
+			SUM(CASE WHEN docstatus = 1 AND COALESCE(is_return, 0) = 1 THEN 1 ELSE 0 END) AS sales_return_count,
 			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_net_total ELSE 0 END), 0) AS exclusive_sales,
 			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_total_taxes_and_charges ELSE 0 END), 0) AS taxes,
 			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_grand_total ELSE 0 END), 0) AS inclusive_sales
@@ -1956,6 +1958,8 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 			"fbr_submitted_count": cint(summary.fbr_submitted_count),
 			"fbr_pending_count": cint(summary.fbr_pending_count),
 			"fbr_failed_count": cint(summary.fbr_failed_count),
+			"fbr_error_count": cint(summary.fbr_error_count),
+			"sales_return_count": cint(summary.sales_return_count),
 			"exclusive_sales": round(summary.exclusive_sales or 0, 0),
 			"taxes": round(summary.taxes or 0, 0),
 			"inclusive_sales": round(summary.inclusive_sales or 0, 0),

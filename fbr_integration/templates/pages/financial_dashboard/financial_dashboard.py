@@ -3,10 +3,6 @@ from datetime import timedelta
 import frappe
 from frappe.utils import add_to_date, cint, get_first_day, get_last_day, getdate, nowdate
 
-DEFAULT_TAX_YEAR_FROM_DATE = "2025-07-01"
-DEFAULT_TAX_YEAR_TO_DATE = "2026-06-30"
-DEFAULT_TAX_YEAR_LABEL = "Tax Year 2025-2026"
-
 
 @frappe.whitelist()
 def get_companies():
@@ -1753,14 +1749,7 @@ def get_ratio_analysis(company, from_date, to_date):
 @frappe.whitelist()
 def get_tax_year_dates(reference_date=None):
 	"""Pakistan tax year: 1 July to 30 June."""
-	if not reference_date:
-		return {
-			"from_date": DEFAULT_TAX_YEAR_FROM_DATE,
-			"to_date": DEFAULT_TAX_YEAR_TO_DATE,
-			"label": DEFAULT_TAX_YEAR_LABEL,
-		}
-
-	reference = getdate(reference_date) if reference_date else getdate()
+	reference = getdate(reference_date or nowdate())
 	start_year = reference.year if reference.month >= 7 else reference.year - 1
 	return {
 		"from_date": f"{start_year}-07-01",
@@ -1885,6 +1874,8 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') != '' THEN 1 ELSE 0 END) AS fbr_submitted_count,
 			SUM(CASE WHEN docstatus = 1 AND COALESCE(custom_fbr_invoice_no, '') = '' THEN 1 ELSE 0 END) AS fbr_pending_count,
 			SUM(CASE WHEN docstatus = 1 AND LOWER(COALESCE(custom_fbr_invoice_status, '')) LIKE '%%fail%%' THEN 1 ELSE 0 END) AS fbr_failed_count,
+			SUM(CASE WHEN LOWER(COALESCE(custom_fbr_responsed, '')) = 'error' THEN 1 ELSE 0 END) AS fbr_error_count,
+			SUM(CASE WHEN docstatus = 1 AND COALESCE(is_return, 0) = 1 THEN 1 ELSE 0 END) AS sales_return_count,
 			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_net_total ELSE 0 END), 0) AS exclusive_sales,
 			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_total_taxes_and_charges ELSE 0 END), 0) AS taxes,
 			COALESCE(SUM(CASE WHEN docstatus = 1 THEN base_grand_total ELSE 0 END), 0) AS inclusive_sales
@@ -1967,6 +1958,8 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 			"fbr_submitted_count": cint(summary.fbr_submitted_count),
 			"fbr_pending_count": cint(summary.fbr_pending_count),
 			"fbr_failed_count": cint(summary.fbr_failed_count),
+			"fbr_error_count": cint(summary.fbr_error_count),
+			"sales_return_count": cint(summary.sales_return_count),
 			"exclusive_sales": round(summary.exclusive_sales or 0, 0),
 			"taxes": round(summary.taxes or 0, 0),
 			"inclusive_sales": round(summary.inclusive_sales or 0, 0),

@@ -52,7 +52,7 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 		"source_doctype": "Sales Invoice",
 		"source_field": "company_tax_id",
 		"transform": "Registration No",
-		"description": "Current: Sales Invoice → Company Tax ID (company_tax_id), digits only.",
+		"description": "Current: Sales Invoice → Company Tax ID (company_tax_id), alphanumeric only.",
 	},
 	{
 		"payload_section": "Header",
@@ -84,7 +84,7 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 		"source_doctype": "Sales Invoice",
 		"source_field": "tax_id",
 		"transform": "Registration No",
-		"description": "Current: Sales Invoice → Tax ID (tax_id), digits only.",
+		"description": "Current: Sales Invoice → Tax ID (tax_id), alphanumeric only.",
 	},
 	{
 		"payload_section": "Header",
@@ -363,7 +363,7 @@ def safe_fbr_item_text(val):
 def normalize_registration_no(val):
 	import re
 
-	return re.sub(r"\D+", "", safe_str(val))
+	return re.sub(r"[^A-Za-z0-9]+", "", safe_str(val)).upper()
 
 
 def _doctype_available():
