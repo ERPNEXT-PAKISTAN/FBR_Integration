@@ -55,6 +55,7 @@ class TestFbrTaxCalculation(unittest.TestCase):
 	def test_format_extra_tax_for_payload_uses_blank_for_reduced_rate_scenarios(self):
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN005"), "")
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN009"), "")
+		self.assertEqual(format_extra_tax_for_payload(12.5, "SN028"), "")
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN004"), 12.5)
 
 	def test_item_tax_template_seed_data_ships_expected_scenarios(self):

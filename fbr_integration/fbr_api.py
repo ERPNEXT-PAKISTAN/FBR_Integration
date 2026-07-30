@@ -152,13 +152,13 @@ def extra_tax_value(val, sale_type_str):
 
 def is_reduced_rate_scenario(scenario_id):
 	"""Return True for FBR scenarios where extra tax must not be sent."""
-	return safe_str(scenario_id).strip().upper() in {"SN005", "SN009"}
+	return safe_str(scenario_id).strip().upper() in {"SN005", "SN009", "SN028"}
 
 
 def format_extra_tax_for_payload(extra_tax, scenario_id):
 	"""Return blank extraTax for scenarios where FBR rejects even numeric zero."""
 	scenario = safe_str(scenario_id).strip().upper()
-	if scenario in {"SN005", "SN006", "SN007", "SN009"}:
+	if scenario in {"SN005", "SN006", "SN007", "SN009", "SN028"}:
 		return ""
 	return safe_float(extra_tax)
 
