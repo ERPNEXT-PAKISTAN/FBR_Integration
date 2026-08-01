@@ -5,6 +5,15 @@ app_description = "FBR Digital Invoice Integration"
 app_email = "tymuur@outlook.com"
 app_license = "MIT"
 
+add_to_apps_screen = [
+	{
+		"name": "fbr_integration",
+		"logo": "/assets/fbr_integration/images/fbr/DI_invoicing.png",
+		"title": "FBR Integration",
+		"route": "/desk/fbr-pakistan",
+	}
+]
+
 AUTO_SEND_ON_SUBMIT = 0  # 1 = auto send on submit, 0 = manual button
 
 doc_events = {

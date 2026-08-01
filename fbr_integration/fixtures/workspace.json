@@ -1180,7 +1180,7 @@
    }
   ],
   "modified": "2026-07-18 18:35:00.000000",
-  "module": null,
+  "module": "FBR Integration",
   "name": "FBR Pakistan",
   "number_cards": [
    {
@@ -1213,6 +1213,8 @@
   "sequence_id": 10.0,
   "shortcuts": [],
   "title": "FBR Pakistan",
+  "type": "Workspace",
+  "app": "fbr_integration",
   "modified_by": "Administrator"
  }
 ]

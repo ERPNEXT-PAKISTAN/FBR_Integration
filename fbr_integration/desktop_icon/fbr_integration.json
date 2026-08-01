@@ -1,0 +1,18 @@
+{
+ "app": "fbr_integration",
+ "bg_color": "gray",
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon_type": "App",
+ "idx": 0,
+ "label": "FBR Integration",
+ "link": "/desk/fbr-pakistan",
+ "link_type": "External",
+ "logo_url": "/assets/fbr_integration/images/fbr/DI_invoicing.png",
+ "name": "FBR Integration",
+ "owner": "Administrator",
+ "restrict_removal": 0,
+ "roles": [],
+ "sidebar": "FBR Pakistan",
+ "standard": 1
+}

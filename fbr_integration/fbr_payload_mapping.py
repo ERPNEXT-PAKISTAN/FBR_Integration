@@ -646,6 +646,8 @@ def sync_payload_field_mappings():
 			},
 		)
 
+	# Source Field links require Custom Fields / meta to already be synced.
+	settings.flags.ignore_links = True
 	settings.save(ignore_permissions=True)
 	frappe.db.commit()
 	frappe.clear_cache(doctype=MAPPING_DOCTYPE)
