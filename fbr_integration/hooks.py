@@ -5,12 +5,13 @@ app_description = "FBR Digital Invoice Integration"
 app_email = "tymuur@outlook.com"
 app_license = "MIT"
 
+# Apps launcher entry (v15 + v16). Route is also corrected at migrate via compat.workspace_route().
 add_to_apps_screen = [
 	{
 		"name": "fbr_integration",
 		"logo": "/assets/fbr_integration/images/fbr/DI_invoicing.png",
 		"title": "FBR Integration",
-		"route": "/desk/fbr-pakistan",
+		"route": "/app/fbr-pakistan",
 	}
 ]
 
@@ -81,6 +82,8 @@ after_migrate = [
 	"fbr_integration.patches.remove_sales_invoice_update_stock_default.execute",
 	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
 	"fbr_integration.patches.set_sales_invoice_update_after_submit_fields.execute",
+	# v15-safe: only builds Desktop Icon / Workspace Sidebar when those DocTypes exist (v16).
+	"fbr_integration.compat.ensure_desk_navigation",
 ]
 
 # Fixtures: ship custom fields + print formats + reports + workspace/dashboard (recommended)

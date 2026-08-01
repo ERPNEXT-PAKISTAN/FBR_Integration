@@ -6,7 +6,7 @@
  "icon_type": "App",
  "idx": 0,
  "label": "FBR Integration",
- "link": "/desk/fbr-pakistan",
+ "link": "/app/fbr-pakistan",
  "link_type": "External",
  "logo_url": "/assets/fbr_integration/images/fbr/DI_invoicing.png",
  "name": "FBR Integration",
