@@ -2,18 +2,24 @@ import sys
 import types
 import unittest
 
+from fbr_integration.tests.frappe_test_stub import install_frappe_stub
 
-if "frappe" not in sys.modules:
-	frappe_stub = types.SimpleNamespace(
-		__path__=[],
-		whitelist=lambda *args, **kwargs: (lambda fn: fn),
-		safe_decode=lambda value: value,
-		throw=lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError(args[0] if args else "")),
-	)
-	sys.modules["frappe"] = frappe_stub
-	frappe_utils_stub = types.SimpleNamespace(cint=lambda value=0: int(value or 0))
-	sys.modules["frappe.utils"] = frappe_utils_stub
-	setattr(frappe_stub, "utils", frappe_utils_stub)
+install_frappe_stub()
+
+# Heavy deps used by fbr_api at import time.
+if "fbr_integration.fbr_payload_mapping" not in sys.modules:
+	mapping = types.ModuleType("fbr_integration.fbr_payload_mapping")
+	mapping.apply_extra_item_payload_mappings = lambda *a, **k: None
+	mapping.apply_extra_payload_mappings = lambda *a, **k: None
+	mapping.resolve_payload_value = lambda *a, **k: None
+	sys.modules["fbr_integration.fbr_payload_mapping"] = mapping
+
+for pkg in ("requests", "urllib3"):
+	if pkg not in sys.modules:
+		mod = types.ModuleType(pkg)
+		if pkg == "urllib3":
+			mod.disable_warnings = lambda *a, **k: None
+		sys.modules[pkg] = mod
 
 
 from fbr_integration.fbr_api import format_extra_tax_for_payload  # noqa: E402

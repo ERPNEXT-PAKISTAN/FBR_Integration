@@ -77,16 +77,8 @@ app_include_js = ["/assets/fbr_integration/js/fbr_desk.js"]
 after_install = "fbr_integration.install.after_install"
 before_uninstall = "fbr_integration.install.before_uninstall"
 
-# Keep after_migrate light: patches run via patches.txt once. Re-sync masters + desk nav only.
-after_migrate = [
-	"fbr_integration.item_tax_templates.sync_item_tax_templates",
-	"fbr_integration.fbr_payload_mapping.sync_payload_fields",
-	"fbr_integration.fbr_payload_mapping.sync_payload_source_fields",
-	"fbr_integration.fbr_payload_mapping.sync_payload_field_mappings",
-	"fbr_integration.print_format_sync.sync_print_formats",
-	# v15-safe: only builds Desktop Icon / Workspace Sidebar when those DocTypes exist (v16).
-	"fbr_integration.compat.ensure_desk_navigation",
-]
+# Desk nav every migrate; heavy master syncs only when FBR_SYNC_VERSION changes.
+after_migrate = ["fbr_integration.migrate_tasks.run_after_migrate"]
 
 # Fixtures: ship custom fields + print formats + reports + workspace/dashboard (recommended)
 fixtures = [

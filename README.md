@@ -57,6 +57,10 @@ Important notes:
 | Desktop Icon | If schema supports | App icon → FBR workspace |
 | In-app links | `/app/...` | Rewritten via `frappe.fbr.desk_path` |
 
+CI runs a matrix against Frappe/ERPNext **version-15** and **version-16**.
+
+Public verification: `/fbr_verify?invoice=<FBR Invoice No>` looks up Sales Invoice by `custom_fbr_invoice_no`.
+
 ### FBR Invoice Settings
 
 - Enable integration and choose Sandbox or Production

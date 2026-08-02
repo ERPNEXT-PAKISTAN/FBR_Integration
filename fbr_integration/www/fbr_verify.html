@@ -1,12 +1,30 @@
-<h2>FBR QR Verification</h2>
+{% extends "templates/web.html" %}
 
-{% if valid %}
-  <div style="padding:10px;border:1px solid #2ecc71;">
-    <b>Status:</b> VALID ?
-  </div>
-  <pre style="white-space:pre-wrap;">{{ payload | tojson }}</pre>
-{% else %}
-  <div style="padding:10px;border:1px solid #e74c3c;">
-    <b>Status:</b> INVALID ?
-  </div>
-{% endif %}
+{% block page_content %}
+<div style="max-width:720px;margin:24px auto;padding:0 12px;font-family:system-ui,sans-serif;">
+  <h2 style="margin:0 0 12px;">FBR Invoice Verification</h2>
+
+  {% if invoice %}
+    <div style="padding:12px 14px;border-radius:10px;border:1px solid {{ '#86efac' if valid else '#fca5a5' }};background:{{ '#f0fdf4' if valid else '#fef2f2' }};margin-bottom:14px;">
+      <b>Status:</b> {{ "VALID" if valid else "NOT VALID" }}
+      <div style="margin-top:6px;font-size:13px;opacity:.9;">{{ message }}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">Sales Invoice</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;"><b>{{ invoice.sales_invoice }}</b></td></tr>
+      <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">FBR Invoice No</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{{ invoice.fbr_invoice_no }}</td></tr>
+      <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">Customer</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{{ invoice.customer_name or invoice.customer }}</td></tr>
+      <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">Posting Date</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{{ invoice.posting_date }}</td></tr>
+      <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">Grand Total</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{{ invoice.currency }} {{ invoice.grand_total }}</td></tr>
+      <tr><td style="padding:8px;border-bottom:1px solid #e5e7eb;">FBR Status</td><td style="padding:8px;border-bottom:1px solid #e5e7eb;">{{ invoice.fbr_status }} ({{ invoice.fbr_status_code }})</td></tr>
+    </table>
+  {% else %}
+    <div style="padding:12px 14px;border-radius:10px;border:1px solid #fca5a5;background:#fef2f2;">
+      <b>Status:</b> INVALID
+      <div style="margin-top:6px;font-size:13px;">{{ message }}</div>
+    </div>
+    <p style="font-size:13px;color:#64748b;margin-top:14px;">
+      Example: <code>/fbr_verify?invoice=YOUR-FBR-INVOICE-NO</code>
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

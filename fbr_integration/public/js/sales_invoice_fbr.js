@@ -2,6 +2,46 @@ function esc(s) {
     return frappe.utils.escape_html((s || "").toString());
 }
 
+// Cache FBR Invoice Settings for the desk session (refresh hits this often).
+let __fbr_invoice_settings = null;
+let __fbr_invoice_settings_promise = null;
+
+function get_fbr_invoice_settings(force) {
+    if (!force && __fbr_invoice_settings) {
+        return Promise.resolve(__fbr_invoice_settings);
+    }
+    if (!force && __fbr_invoice_settings_promise) {
+        return __fbr_invoice_settings_promise;
+    }
+    __fbr_invoice_settings_promise = frappe
+        .call({
+            method: "frappe.client.get_value",
+            args: {
+                doctype: "FBR Invoice Settings",
+                fieldname: ["integration_type", "enabled"],
+            },
+        })
+        .then((r) => {
+            __fbr_invoice_settings = r.message || {};
+            return __fbr_invoice_settings;
+        })
+        .finally(() => {
+            __fbr_invoice_settings_promise = null;
+        });
+    return __fbr_invoice_settings_promise;
+}
+
+/** Historic typo fieldname; prefer correct spelling if present on the form. */
+function scenario_detail_html_field(frm_or_dict) {
+    const fields = frm_or_dict && frm_or_dict.fields_dict
+        ? frm_or_dict.fields_dict
+        : frm_or_dict || {};
+    if (fields.custom_scenario_detail_fields) {
+        return "custom_scenario_detail_fields";
+    }
+    return "custom_scenario_detial_fields";
+}
+
 function json_to_html(obj, indent) {
     indent = indent || 0;
     const pad = "  ".repeat(indent);
@@ -585,12 +625,13 @@ function render_scenario_detail_field_html(data, sid) {
 }
 
 async function render_selected_scenario_detail_fields(frm) {
-    if (!frm.fields_dict.custom_scenario_detial_fields) return;
+    const html_field = scenario_detail_html_field(frm);
+    if (!frm.fields_dict[html_field]) return;
 
     const sid = get_selected_scenario_id(frm);
     if (!sid) {
         frm.set_df_property(
-            "custom_scenario_detial_fields",
+            html_field,
             "options",
             '<div style="padding:10px;color:#64748b;">Select a scenario detail to preview its scenario JSON.</div>'
         );
@@ -601,12 +642,12 @@ async function render_selected_scenario_detail_fields(frm) {
         const data = await fetch_scenario_doc(sid);
         // Render only the currently selected scenario so the form stays focused.
         frm.set_df_property(
-            "custom_scenario_detial_fields",
+            html_field,
             "options",
             render_scenario_detail_field_html(data, sid)
         );
-        if (frm.fields_dict.custom_scenario_detial_fields.$wrapper) {
-            frm.fields_dict.custom_scenario_detial_fields.$wrapper
+        if (frm.fields_dict[html_field].$wrapper) {
+            frm.fields_dict[html_field].$wrapper
                 .find("[data-scenario-tree]")
                 .on("click", function () {
                     show_scenario_tree(
@@ -616,7 +657,7 @@ async function render_selected_scenario_detail_fields(frm) {
         }
     } catch (err) {
         frm.set_df_property(
-            "custom_scenario_detial_fields",
+            html_field,
             "options",
             `<div style="padding:10px;color:#b45309;">Scenario details not available for <b>${esc(
                 sid
@@ -666,12 +707,18 @@ async function render_item_scenario_detail_fields(frm, cdn) {
         frm.fields_dict.items.grid.grid_rows_by_docname
             ? frm.fields_dict.items.grid.grid_rows_by_docname[cdn]
             : null;
+    const item_html_field = scenario_detail_html_field(
+        (grid_row && grid_row.grid_form) || {
+            fields_dict:
+                (grid_row && grid_row.on_grid_fields_dict) || {},
+        }
+    );
     const control =
         (grid_row && grid_row.on_grid_fields_dict
-            ? grid_row.on_grid_fields_dict.custom_scenario_detial_fields
+            ? grid_row.on_grid_fields_dict[item_html_field]
             : null) ||
         (grid_row && grid_row.grid_form && grid_row.grid_form.fields_dict
-            ? grid_row.grid_form.fields_dict.custom_scenario_detial_fields
+            ? grid_row.grid_form.fields_dict[item_html_field]
             : null);
 
     if (!control) return;
@@ -1357,16 +1404,10 @@ frappe.ui.form.on("Sales Invoice", {
         // Determine if invoice is already submitted to FBR
         const is_sent_to_fbr = (frm.doc.custom_fbr_invoice_no || "").trim();
 
-        // Fetch integration type to decide when to show the Send button
-        frappe.call({
-            method: "frappe.client.get_value",
-            args: {
-                doctype: "FBR Invoice Settings",
-                fieldname: "integration_type",
-            },
-            callback: function (r) {
+        // Cached settings — avoid one get_value per Sales Invoice refresh
+        get_fbr_invoice_settings().then(function (settings) {
                 const integration_type = (
-                    (r.message || {}).integration_type || ""
+                    (settings || {}).integration_type || ""
                 ).trim();
                 const is_sandbox = integration_type === "Sandbox";
                 const is_submitted = frm.doc.docstatus === 1;
@@ -1429,7 +1470,6 @@ frappe.ui.form.on("Sales Invoice", {
                 } catch (e) {
                     // ignore style application errors
                 }
-            },
         });
     },
 });

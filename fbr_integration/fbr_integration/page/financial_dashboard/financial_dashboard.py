@@ -1,11 +1,13 @@
 from datetime import timedelta
 
 import frappe
+from fbr_integration.permissions import assert_finance_dashboard_access
 from frappe.utils import add_to_date, cint, get_first_day, get_last_day, getdate, nowdate
 
 
 @frappe.whitelist()
 def get_companies():
+	assert_finance_dashboard_access()
 	return frappe.get_all("Company", pluck="name")
 
 
@@ -19,6 +21,7 @@ def _get_dates(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_financial_summary(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 
 	# Revenue: Income accounts use (credit - debit)
@@ -113,6 +116,7 @@ def get_financial_summary(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_trend_data(company, from_date, to_date, group_by="monthly"):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	if group_by == "yearly":
 		period_expr = "YEAR(gle.posting_date)"
@@ -155,6 +159,7 @@ def get_trend_data(company, from_date, to_date, group_by="monthly"):
 
 @frappe.whitelist()
 def get_expense_breakdown(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	groups = frappe.db.sql(
 		"""
@@ -200,6 +205,7 @@ def get_expense_breakdown(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_expense_hierarchy(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""Expense hierarchy from Chart of Accounts with period values."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	accounts = frappe.db.sql(
@@ -265,6 +271,7 @@ def get_expense_hierarchy(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_warehouses(company):
+	assert_finance_dashboard_access()
 	if not company:
 		frappe.throw("Company is required")
 
@@ -278,6 +285,7 @@ def get_warehouses(company):
 
 @frappe.whitelist()
 def get_stock_by_item_group(company, warehouse=None):
+	assert_finance_dashboard_access()
 	if not company:
 		frappe.throw("Company is required")
 
@@ -309,6 +317,7 @@ def get_stock_by_item_group(company, warehouse=None):
 
 @frappe.whitelist()
 def get_cash_flow(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""Cash flow summary for chart: Operating, Investing, Financing (linked to statement logic)."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	rev_row = frappe.db.sql(
@@ -336,6 +345,7 @@ def get_cash_flow(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_revenue_sources(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	total_row = frappe.db.sql(
 		"""
@@ -377,6 +387,7 @@ def get_revenue_sources(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_customer_group_sales(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	customer_group_expr = (
 		"COALESCE(NULLIF(si.customer_group, ''), NULLIF(customer.customer_group, ''), 'No Customer Group')"
@@ -406,6 +417,7 @@ def get_customer_group_sales(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_supplier_group_purchases(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	supplier_group_expr = (
 		"COALESCE(NULLIF(pi.supplier_group, ''), NULLIF(supplier.supplier_group, ''), 'No Supplier Group')"
@@ -554,6 +566,7 @@ def _tree_total(accounts, parent_name):
 
 @frappe.whitelist()
 def get_profit_loss(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""P&L with Chart of Accounts hierarchy and comparative columns (monthly, quarterly, yearly change)."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	period_days = (to_date - from_date).days + 1
@@ -697,6 +710,7 @@ def get_profit_loss(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_balance_sheet(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""Balance Sheet with comparative columns (monthly, quarterly, yearly change)."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	prev_to = from_date - timedelta(days=1)
@@ -799,6 +813,7 @@ def _months_in_range(from_date, to_date):
 
 @frappe.whitelist()
 def get_profit_loss_monthly(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""P&L with months as columns: Jan, Feb, Mar, ... (one column per month in range)."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	months_list = []
@@ -831,6 +846,7 @@ def get_profit_loss_monthly(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_balance_sheet_monthly(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""Balance Sheet with months as columns: balance as of end of Jan, Feb, Mar, ..."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	months_list = []
@@ -864,6 +880,7 @@ def get_balance_sheet_monthly(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_cash_flow_statement(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""Cash flow with detail: Operating (Income/Expense by account), Investing, Financing."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	# Income detail by account
@@ -987,6 +1004,7 @@ def _cash_flow_financing(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_trial_balance(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	rows = frappe.db.sql(
 		"""
@@ -1018,6 +1036,7 @@ def get_trial_balance(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_aging_receivables(company, report_date=None):
+	assert_finance_dashboard_access()
 	"""Customer receivable closing balances from GL."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
@@ -1051,6 +1070,7 @@ def get_aging_receivables(company, report_date=None):
 
 @frappe.whitelist()
 def get_aging_payables(company, report_date=None):
+	assert_finance_dashboard_access()
 	"""Supplier payable closing balances from GL."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
@@ -1084,6 +1104,7 @@ def get_aging_payables(company, report_date=None):
 
 @frappe.whitelist()
 def get_aging_receivables_summary(company, report_date=None):
+	assert_finance_dashboard_access()
 	"""Receivable age buckets for standalone calls."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
@@ -1122,6 +1143,7 @@ def get_aging_receivables_summary(company, report_date=None):
 
 @frappe.whitelist()
 def get_aging_payables_summary(company, report_date=None):
+	assert_finance_dashboard_access()
 	"""Payable age buckets for standalone calls."""
 	as_on = getdate(report_date or frappe.utils.getdate())
 	if not company:
@@ -1193,6 +1215,7 @@ def _period_expr(date_field, group_by):
 
 @frappe.whitelist()
 def get_sales_summary(company, from_date, to_date, group_by="monthly"):
+	assert_finance_dashboard_access()
 	"""Sales invoices by period with exclusive, tax, inclusive and change columns."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	return _invoice_period_summary(company, from_date, to_date, group_by, "Sales Invoice", "base_net_total")
@@ -1200,6 +1223,7 @@ def get_sales_summary(company, from_date, to_date, group_by="monthly"):
 
 @frappe.whitelist()
 def get_sales_return_invoices(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	return frappe.db.sql(
 		"""
@@ -1233,6 +1257,7 @@ def get_sales_return_invoices(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_purchases_summary(company, from_date, to_date, group_by="monthly"):
+	assert_finance_dashboard_access()
 	"""Purchase invoices by period with exclusive, tax, inclusive and change columns."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	return _invoice_period_summary(
@@ -1303,6 +1328,7 @@ def _summary_row(r, group_by, by_period):
 
 @frappe.whitelist()
 def get_expenses_summary(company, from_date, to_date, group_by="monthly"):
+	assert_finance_dashboard_access()
 	"""Expenses by period: monthly, quarterly, or yearly."""
 	return get_purchases_summary(company, from_date, to_date, group_by)
 
@@ -1334,18 +1360,21 @@ def _invoice_tax_rows(company, from_date, to_date, parent_doctype, tax_doctype):
 
 @frappe.whitelist()
 def get_sales_tax_summary(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	return _invoice_tax_rows(company, from_date, to_date, "Sales Invoice", "Sales Taxes and Charges")
 
 
 @frappe.whitelist()
 def get_purchase_tax_summary(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	return _invoice_tax_rows(company, from_date, to_date, "Purchase Invoice", "Purchase Taxes and Charges")
 
 
 @frappe.whitelist()
 def get_tax_period_summary(company, from_date, to_date, group_by="monthly"):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	sales_period_expr = _period_expr("si.posting_date", group_by)
 	purchase_period_expr = _period_expr("pi.posting_date", group_by)
@@ -1478,6 +1507,7 @@ def _tax_account_tree(company, from_date, to_date, account_name, root_type):
 
 @frappe.whitelist()
 def get_tax_account_reports(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	return {
 		"withholding_income_taxes": _tax_account_tree(
 			company, from_date, to_date, "Withholding Income Taxes", "Asset"
@@ -1488,6 +1518,7 @@ def get_tax_account_reports(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_vertical_analysis(company, from_date, to_date, group_by="period"):
+	assert_finance_dashboard_access()
 	"""P&L vertical analysis: each line as % of revenue. group_by=monthly returns { months, rows } with % per month."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	if group_by == "monthly":
@@ -1551,6 +1582,7 @@ def get_vertical_analysis(company, from_date, to_date, group_by="period"):
 
 @frappe.whitelist()
 def get_horizontal_analysis(company, from_date, to_date, group_by="period"):
+	assert_finance_dashboard_access()
 	"""P&L horizontal analysis: period-over-period % change. group_by=monthly returns { months, rows } with change % per month."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	if group_by == "monthly":
@@ -1594,6 +1626,7 @@ def get_horizontal_analysis(company, from_date, to_date, group_by="period"):
 
 @frappe.whitelist()
 def get_ratio_analysis(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	"""Financial ratios: Liquidity, Profitability, Performance/Solvency, Efficiency (1 decimal for %)."""
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	ta_row = frappe.db.sql(
@@ -1748,6 +1781,7 @@ def get_ratio_analysis(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_tax_year_dates(reference_date=None):
+	assert_finance_dashboard_access()
 	"""Pakistan tax year: 1 July to 30 June."""
 	reference = getdate(reference_date or nowdate())
 	start_year = reference.year if reference.month >= 7 else reference.year - 1
@@ -1767,6 +1801,7 @@ def _period_bounds_for_previous(from_date, to_date):
 
 @frappe.whitelist()
 def get_invoice_activity(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 
 	def invoice_row(doctype, date_field="posting_date"):
@@ -1864,6 +1899,7 @@ def _item_tax_template_status_rows(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_sales_invoice_status_report(company, from_date, to_date):
+	assert_finance_dashboard_access()
 	from_date, to_date = _get_dates(company, from_date, to_date)
 	summary = frappe.db.sql(
 		"""
@@ -1981,6 +2017,7 @@ def get_sales_invoice_status_report(company, from_date, to_date):
 
 @frappe.whitelist()
 def get_dashboard_data(company, from_date=None, to_date=None, group_by="monthly"):
+	assert_finance_dashboard_access()
 	if not from_date or not to_date:
 		tax_year = get_tax_year_dates()
 		from_date = from_date or tax_year["from_date"]
