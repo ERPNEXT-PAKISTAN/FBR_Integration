@@ -70,6 +70,18 @@ Public verification: `/fbr_verify?invoice=<FBR Invoice No>` looks up Sales Invoi
 - Item fields map to FBR `salesTaxWithheldAtSource`
 - Install/migrate seeds Tax Withholding Groups/Categories and Chart of Accounts
 
+### Sales Return / Credit Note (FBR fields)
+
+ERPNext `is_return` maps to FBR as follows (DI API):
+
+| FBR JSON field | Value |
+| --- | --- |
+| `invoiceType` | `Credit Note` (retry as `Debit Note` if gateway rejects type) |
+| `invoiceRefNo` | **Original FBR Invoice No** from Return Against / `custom_fbr_source_invoice_no` |
+| `reason` | FBR Return Reason / Remarks |
+
+Do **not** put the ERP Sales Invoice name in `invoiceRefNo` — FBR errors `0026` / `0057` mean the reference is missing or not a real FBR invoice number.
+
 ### POS → FBR
 
 This site’s POS Settings create **Sales Invoice** (`is_pos`). **Each POS order = one SI = one FBR send.**

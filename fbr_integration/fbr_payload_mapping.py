@@ -114,9 +114,14 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 		"payload_section": "Header",
 		"payload_field": "invoiceRefNo",
 		"source_doctype": "Sales Invoice",
-		"source_field": "name",
+		"source_field": "custom_fbr_source_invoice_no",
 		"transform": "Text",
-		"description": "Current: Sales Invoice → Name (name).",
+		"description": (
+			"FBR official reference field. Empty for Sale Invoice. "
+			"For Credit/Debit Note (is_return): original FBR Invoice No "
+			"(custom_fbr_source_invoice_no / return_against.custom_fbr_invoice_no). "
+			"Do NOT map to ERP Sales Invoice name."
+		),
 	},
 	{
 		"payload_section": "Header",
@@ -128,27 +133,11 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 	},
 	{
 		"payload_section": "Header",
-		"payload_field": "referencedInvoiceNo",
-		"source_doctype": "Sales Invoice",
-		"source_field": "",
-		"transform": "Text",
-		"description": "Current: Sales Invoice name; for returns current source FBR invoice number overrides this.",
-	},
-	{
-		"payload_section": "Header",
-		"payload_field": "sourceInvoiceNo",
-		"source_doctype": "Sales Invoice",
-		"source_field": "",
-		"transform": "Text",
-		"description": "Current: Sales Invoice name; for returns current source FBR invoice number overrides this.",
-	},
-	{
-		"payload_section": "Header",
 		"payload_field": "reason",
 		"source_doctype": "Sales Invoice",
 		"source_field": "custom_fbr_reason",
 		"transform": "FBR Text",
-		"description": "Current: FBR Return Reason, then parsed Remarks, then Sales Return.",
+		"description": "Required by FBR for Credit/Debit Note. FBR Return Reason, then Remarks, then Sales Return.",
 	},
 	{
 		"payload_section": "Header",

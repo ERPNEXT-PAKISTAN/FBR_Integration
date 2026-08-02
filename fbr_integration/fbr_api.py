@@ -338,20 +338,32 @@ def persist_fbr_response_fields(doc):
 
 
 def get_source_invoice_no_for_return(doc):
-	"""Resolve source invoice number for Sales Return payloads."""
+	"""Resolve original *FBR* invoice number for Sales Return / Credit Note.
+
+	FBR DI API field invoiceRefNo must be the FBR invoice number of the original
+	Sale Invoice (e.g. 7327556DI1744111990654), NOT the ERPNext Sales Invoice name.
+	"""
+	# 1) Explicit FBR Source Invoice No on the return
+	if hasattr(doc, "custom_fbr_source_invoice_no"):
+		manual = safe_str(getattr(doc, "custom_fbr_source_invoice_no", "")).strip()
+		if manual:
+			return manual
+
+	# 2) From Return Against → original SI's custom_fbr_invoice_no
 	return_against = safe_str(getattr(doc, "return_against", "")).strip()
-	if not return_against:
-		return ""
+	if return_against:
+		try:
+			source_fbr_no = frappe.db.get_value(
+				"Sales Invoice", return_against, "custom_fbr_invoice_no"
+			)
+			if source_fbr_no:
+				return safe_str(source_fbr_no).strip()
+		except Exception:
+			pass
 
-	try:
-		source_fbr_no = frappe.db.get_value("Sales Invoice", return_against, "custom_fbr_invoice_no")
-		if source_fbr_no:
-			return safe_str(source_fbr_no).strip()
-	except Exception:
-		pass
-
-	# Fallback to ERP invoice id if FBR invoice no is not present.
-	return return_against
+	# 3) Parsed from remarks
+	parsed_source, _ = _parse_return_meta_from_remarks(getattr(doc, "remarks", ""))
+	return parsed_source
 
 
 def _parse_return_meta_from_remarks(remarks):
@@ -382,24 +394,26 @@ def _parse_return_meta_from_remarks(remarks):
 
 
 def get_manual_source_invoice_no_for_return(doc):
-	"""Resolve manual source invoice number for direct return flow."""
-	if hasattr(doc, "custom_fbr_source_invoice_no"):
-		manual = safe_str(getattr(doc, "custom_fbr_source_invoice_no", "")).strip()
-		if manual:
-			return manual
-
-	parsed_source, _ = _parse_return_meta_from_remarks(getattr(doc, "remarks", ""))
-	return parsed_source
+	"""Resolve manual source FBR invoice number for direct return flow."""
+	return get_source_invoice_no_for_return(doc)
 
 
 def enforce_return_invoice_type(doc, method=None):
-	"""Ensure return invoices always use Credit Note type."""
+	"""Ensure return invoices always use Credit Note type (FBR invoiceType)."""
 	if cint(getattr(doc, "is_return", 0)) != 1:
 		return
 
 	invoice_type = safe_str(getattr(doc, "custom_invoice_type", "")).strip().lower()
 	if invoice_type != "credit note" and hasattr(doc, "custom_invoice_type"):
 		doc.custom_invoice_type = "Credit Note"
+
+	# Keep custom_fbr_source_invoice_no filled from return_against when possible
+	if hasattr(doc, "custom_fbr_source_invoice_no") and not safe_str(
+		getattr(doc, "custom_fbr_source_invoice_no", "")
+	).strip():
+		source = get_source_invoice_no_for_return(doc)
+		if source:
+			doc.custom_fbr_source_invoice_no = source
 
 
 def log_fbr_exchange(doc_name, attempt_label, payload, response):
@@ -509,21 +523,30 @@ def send_invoice_to_fbr(doc, method=None):
 		buyer_province = addr.state or ""
 
 	is_return_invoice = cint(getattr(doc, "is_return", 0)) == 1
-	is_credit_note_return = (
-		is_return_invoice
-		and safe_str(getattr(doc, "custom_invoice_type", "")).strip().lower() == "credit note"
-	)
-	manual_source_invoice_no = get_manual_source_invoice_no_for_return(doc)
+	if is_return_invoice:
+		enforce_return_invoice_type(doc)
 
-	if (
-		is_credit_note_return
-		and not safe_str(getattr(doc, "return_against", "")).strip()
-		and not manual_source_invoice_no
-	):
-		frappe.throw(
-			"Sales Return Credit Note requires one source reference: "
-			"either Return Against (original Sales Invoice) or FBR Source Invoice No."
-		)
+	# FBR DI: for Credit/Debit Note, invoiceRefNo = original FBR invoice number.
+	# For Sale Invoice, invoiceRefNo must be empty.
+	fbr_invoice_ref_no = ""
+	if is_return_invoice:
+		fbr_invoice_ref_no = get_source_invoice_no_for_return(doc)
+		if not fbr_invoice_ref_no:
+			frappe.throw(
+				"Sales Return / Credit Note requires the original FBR Invoice No. "
+				"Set Return Against on a Sales Invoice that was already sent to FBR, "
+				"or enter FBR Source Invoice No.",
+				title="FBR invoiceRefNo missing",
+			)
+		# Reject ERP names mistakenly used as FBR reference (FBR nos contain "DI").
+		if "DI" not in fbr_invoice_ref_no.upper() and safe_str(
+			getattr(doc, "return_against", "")
+		).strip() == fbr_invoice_ref_no:
+			frappe.throw(
+				f"Original invoice {fbr_invoice_ref_no} has no FBR Invoice No yet. "
+				"Send the original Sale Invoice to FBR first, then create the return.",
+				title="Original invoice not reported to FBR",
+			)
 
 	# Items
 	items_list = []
@@ -649,8 +672,17 @@ def send_invoice_to_fbr(doc, method=None):
 
 		items_list.append(item_payload)
 
+	# Default invoiceType: Sale Invoice, or Credit Note when is_return.
+	default_invoice_type = (
+		"Credit Note"
+		if is_return_invoice
+		else (safe_fbr_text(doc.custom_invoice_type) or "Sale Invoice")
+	)
+	if is_return_invoice:
+		default_invoice_type = safe_fbr_text(doc.custom_invoice_type) or "Credit Note"
+
 	payload = {
-		"invoiceType": resolve_payload_value("invoiceType", safe_fbr_text(doc.custom_invoice_type), doc),
+		"invoiceType": resolve_payload_value("invoiceType", default_invoice_type, doc),
 		"invoiceDate": resolve_payload_value("invoiceDate", str(doc.posting_date), doc),
 		"sellerNTNCNIC": resolve_payload_value("sellerNTNCNIC", seller_registration_no, doc),
 		"sellerBusinessName": resolve_payload_value("sellerBusinessName", safe_fbr_text(doc.company), doc),
@@ -660,11 +692,9 @@ def send_invoice_to_fbr(doc, method=None):
 		"buyerBusinessName": resolve_payload_value("buyerBusinessName", safe_fbr_text(doc.customer), doc),
 		"buyerAddress": resolve_payload_value("buyerAddress", safe_fbr_text(buyer_address), doc),
 		"buyerProvince": resolve_payload_value("buyerProvince", safe_fbr_text(buyer_province), doc),
-		"invoiceRefNo": resolve_payload_value("invoiceRefNo", safe_str(doc.name), doc),
+		# FBR official reference field (empty on Sale Invoice; original FBR no on Credit/Debit Note)
+		"invoiceRefNo": resolve_payload_value("invoiceRefNo", fbr_invoice_ref_no, doc),
 		"scenarioId": resolve_payload_value("scenarioId", safe_str(doc.custom_scenario_id), doc),
-		"referencedInvoiceNo": resolve_payload_value("referencedInvoiceNo", safe_str(doc.name), doc),
-		"sourceInvoiceNo": resolve_payload_value("sourceInvoiceNo", safe_str(doc.name), doc),
-		"reason": "",
 		"remarks": resolve_payload_value("remarks", safe_fbr_text(getattr(doc, "remarks", "")), doc),
 		"buyerRegistrationType": resolve_payload_value(
 			"buyerRegistrationType", safe_fbr_text(doc.custom_tax_payer_type), doc
@@ -672,20 +702,25 @@ def send_invoice_to_fbr(doc, method=None):
 		"items": [normalize_fbr_item_numbers(item) for item in merge_fbr_items(items_list)],
 	}
 
-	if is_credit_note_return:
+	if is_return_invoice:
 		payload["reason"] = resolve_payload_value("reason", get_return_reason(doc), doc)
-		source_invoice_no = get_source_invoice_no_for_return(doc) or manual_source_invoice_no
-		if not source_invoice_no:
-			frappe.throw(
-				"Unable to resolve source invoice number for Credit Note. "
-				"Set Return Against or provide FBR Source Invoice No."
-			)
-		payload["referencedInvoiceNo"] = resolve_payload_value(
-			"referencedInvoiceNo", safe_str(source_invoice_no), doc
-		)
-		payload["sourceInvoiceNo"] = resolve_payload_value("sourceInvoiceNo", source_invoice_no, doc)
 
 	apply_extra_payload_mappings(payload, doc, existing_fields=payload.keys())
+
+	# Enforce FBR contract after optional mappings (do not allow ERP name in invoiceRefNo).
+	if is_return_invoice:
+		payload["invoiceType"] = safe_fbr_text(payload.get("invoiceType")) or "Credit Note"
+		payload["invoiceRefNo"] = fbr_invoice_ref_no
+		if not safe_str(payload.get("reason")).strip():
+			payload["reason"] = get_return_reason(doc)
+	else:
+		# Sale Invoice: FBR samples use empty invoiceRefNo
+		if safe_str(payload.get("invoiceRefNo")).strip() == safe_str(doc.name).strip():
+			payload["invoiceRefNo"] = ""
+
+	# Drop non-API legacy keys if a custom mapping reintroduced them.
+	payload.pop("referencedInvoiceNo", None)
+	payload.pop("sourceInvoiceNo", None)
 
 	# Lightweight logger (avoid flooding Error Log with full payloads)
 	frappe.logger("fbr_integration").info(
@@ -710,15 +745,19 @@ def send_invoice_to_fbr(doc, method=None):
 	resp_text = resp.text or ""
 	res_json = parse_fbr_response(resp)
 
-	# Some FBR setups reject Credit Note label but accept Debit Note for returns.
-	if is_credit_note_return:
+	# Some FBR gateway versions list Debit Note but still accept Credit Note;
+	# if type is rejected (0003), retry once as Debit Note with same invoiceRefNo.
+	if is_return_invoice:
 		validation = res_json.get("validationResponse", {}) or {}
 		error_code = validation.get("errorCode") or ""
 		invoice_type = safe_str(payload.get("invoiceType")).strip().lower()
 		if error_code == "0003" and invoice_type == "credit note":
 			payload["invoiceType"] = "Debit Note"
+			payload["invoiceRefNo"] = fbr_invoice_ref_no
 			frappe.logger("fbr_integration").info(
-				"FBR retry Debit Note for credit-note return %s", doc.name
+				"FBR retry Debit Note for return %s (invoiceRefNo=%s)",
+				doc.name,
+				fbr_invoice_ref_no,
 			)
 			resp = _post_payload(payload)
 			log_fbr_exchange(doc.name, "retry_debit_note", payload, resp)
