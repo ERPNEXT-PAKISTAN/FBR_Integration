@@ -14,15 +14,27 @@ _frappe.utils = types.SimpleNamespace(
 
 
 from fbr_integration.fbr_tax_calculation import (  # noqa: E402
-	_st_withheld_rate_from_category,
+	_default_st_withheld_rate,
+	_invoice_considers_tax_withholding,
 	ensure_pos_flag,
 )
 
 
 class TestWithholdingHelpers(unittest.TestCase):
-	def test_st_withheld_category_filter(self):
-		self.assertEqual(_st_withheld_rate_from_category("WH TAX - 5% (Sales)"), 0)
-		self.assertEqual(_st_withheld_rate_from_category(""), 0)
+	def test_apply_tds_gates_auto_rate(self):
+		item = types.SimpleNamespace(
+			custom_sales_tax_withheld_rate=0,
+			tax_withholding_category="",
+		)
+		doc_off = types.SimpleNamespace(apply_tds=0, customer="C1")
+		doc_on = types.SimpleNamespace(apply_tds=1, customer="C1")
+		self.assertFalse(_invoice_considers_tax_withholding(doc_off))
+		self.assertTrue(_invoice_considers_tax_withholding(doc_on))
+		# Without apply_tds, customer category must not auto-apply.
+		self.assertEqual(_default_st_withheld_rate(doc_off, item), 0)
+		# Manual item rate still wins.
+		item.custom_sales_tax_withheld_rate = 5
+		self.assertEqual(_default_st_withheld_rate(doc_off, item), 5)
 
 	def test_ensure_pos_flag_from_profile(self):
 		doc = types.SimpleNamespace(

@@ -76,6 +76,9 @@ doctype_list_js = {
 app_include_css = ["/assets/fbr_integration/css/fbr.css"]
 app_include_js = ["/assets/fbr_integration/js/fbr_desk.js"]
 
+# POS screen: FBR success dialog + summary card / Send to FBR
+page_js = {"point-of-sale": "public/js/pos_fbr.js"}
+
 after_install = "fbr_integration.install.after_install"
 before_uninstall = "fbr_integration.install.before_uninstall"
 

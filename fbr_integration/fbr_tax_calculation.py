@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils import cint
 
 SCENARIO_TEMPLATE_ALIASES = {
 	"all taxes": ["all taxes", "taxable", "gst further extra", "gst+further+extra"],
@@ -234,15 +235,11 @@ def _get_item_tax_template_rows(template_name: str):
 	)
 
 
-def _st_withheld_rate_from_category(category_name: str) -> float:
-	"""Parse rate from FBR ST Withheld categories, else 0."""
+def _rate_from_withholding_category(category_name: str) -> float:
+	"""Current Tax Withholding Category rate, or 0."""
 	name = (category_name or "").strip()
-	if not name:
+	if not name or not frappe.db.exists("DocType", "Tax Withholding Rate"):
 		return 0
-	upper = name.upper()
-	if "ST WITHHELD" not in upper and "SALES TAX WITHHELD" not in upper:
-		return 0
-	# Prefer rate row from Tax Withholding Category
 	try:
 		from frappe.utils import getdate, nowdate
 
@@ -263,14 +260,27 @@ def _st_withheld_rate_from_category(category_name: str) -> float:
 	return 0
 
 
+def _invoice_considers_tax_withholding(doc) -> bool:
+	"""Core Sales Invoice field: Consider for Tax Withholding (apply_tds)."""
+	return bool(cint(getattr(doc, "apply_tds", 0)))
+
+
 def _default_st_withheld_rate(doc, item) -> float:
-	"""Item rate, else item/customer FBR ST Withheld category rate."""
+	"""Rate for FBR salesTaxWithheldAtSource.
+
+	- Always respects a rate typed on the item row.
+	- Auto rate from Customer/Item Tax Withholding Category only when
+	  Sales Invoice.apply_tds (Consider for Tax Withholding) is checked.
+	"""
 	existing = float(getattr(item, "custom_sales_tax_withheld_rate", None) or 0)
 	if existing:
 		return existing
 
+	if not _invoice_considers_tax_withholding(doc):
+		return 0
+
 	item_cat = getattr(item, "tax_withholding_category", None) or ""
-	rate = _st_withheld_rate_from_category(item_cat)
+	rate = _rate_from_withholding_category(item_cat)
 	if rate:
 		return rate
 
@@ -284,45 +294,52 @@ def _default_st_withheld_rate(doc, item) -> float:
 			)
 			or {}
 		)
-		rate = _st_withheld_rate_from_category(cust.get("tax_withholding_category") or "")
+		rate = _rate_from_withholding_category(cust.get("tax_withholding_category") or "")
 		if rate:
 			return rate
-		# Group named like FBR Sales Tax Withheld at Source → no single rate
 	return 0
 
 
 def _allocate_invoice_withholding_to_items(doc):
-	"""If apply_tds produced ST Withheld entries and item amounts are still 0, allocate."""
+	"""When apply_tds built tax_withholding_entries, push totals into FBR item field."""
+	if not _invoice_considers_tax_withholding(doc):
+		return
+
 	entries = doc.get("tax_withholding_entries") or []
 	if not entries:
 		return
 
+	# Prefer ST Withheld / FBR categories; otherwise use all apply_tds entry amounts.
 	st_total = 0.0
+	all_total = 0.0
 	for entry in entries:
+		amt = abs(float(getattr(entry, "withholding_amount", None) or 0))
+		all_total += amt
 		cat = (getattr(entry, "tax_withholding_category", None) or "").upper()
 		if "ST WITHHELD" in cat or "SALES TAX WITHHELD" in cat:
-			st_total += abs(float(getattr(entry, "withholding_amount", None) or 0))
+			st_total += amt
 
-	if st_total <= 0:
+	wh_total = st_total if st_total > 0 else all_total
+	if wh_total <= 0:
 		return
 
 	items = [i for i in (doc.items or []) if float(getattr(i, "amount", None) or 0) > 0]
 	if not items:
 		return
 
-	# Only allocate when items have no explicit withheld amount yet
-	if any(float(getattr(i, "custom_sales_tax_withheld_at_source", None) or 0) for i in items):
-		return
-
 	base = sum(abs(float(i.amount or 0)) for i in items) or 1
 	allocated = 0.0
 	for idx, item in enumerate(items):
 		if idx == len(items) - 1:
-			share = st_total - allocated
+			share = round(wh_total - allocated, 2)
 		else:
-			share = round(st_total * (abs(float(item.amount or 0)) / base), 2)
+			share = round(wh_total * (abs(float(item.amount or 0)) / base), 2)
 			allocated += share
 		item.custom_sales_tax_withheld_at_source = share
+		# Keep rate informative when derived from invoice entries
+		if not float(getattr(item, "custom_sales_tax_withheld_rate", None) or 0):
+			amt = abs(float(item.amount or 0))
+			item.custom_sales_tax_withheld_rate = round((share / amt) * 100, 6) if amt else 0
 
 
 def calculate_fbr_tax(doc, method=None):

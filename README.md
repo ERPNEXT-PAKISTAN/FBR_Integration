@@ -63,22 +63,21 @@ Public verification: `/fbr_verify?invoice=<FBR Invoice No>` looks up Sales Invoi
 
 ### Sales Tax Withheld at Source
 
-- Item fields `ST Withheld Rate %` / `ST Withheld at Source` map to FBR `salesTaxWithheldAtSource`
-- Install/migrate seeds Tax Withholding Groups/Categories and Chart of Accounts:
-  - `ST Withheld - X% (FBR)` under group **FBR Sales Tax Withheld at Source**
-  - `WH TAX - X% (Sales)` and `Withholding Tax - X% (Purchases)`
-- Assign an `ST Withheld - X% (FBR)` category on Customer (or item row) to auto-fill rates
+- Uses core Sales Invoice **Consider for Tax Withholding** (`apply_tds`):
+  - Checked automatically when Customer has Tax Withholding Category/Group
+  - When checked: category rate and/or `tax_withholding_entries` fill item `ST Withheld at Source`
+  - When unchecked: only a manually entered item rate/amount is sent
+- Item fields map to FBR `salesTaxWithheldAtSource`
+- Install/migrate seeds Tax Withholding Groups/Categories and Chart of Accounts
 
 ### POS → FBR
 
-This site’s POS Settings create **Sales Invoice** (`is_pos`). Best path (implemented):
+This site’s POS Settings create **Sales Invoice** (`is_pos`). **Each POS order = one SI = one FBR send.**
 
-1. POS completes order → SI submit (`is_pos` kept on)
-2. **FBR Invoice Settings → Auto Send POS Invoices on Submit** (default on) sends to FBR
-3. Failures never block checkout; use **Send to FBR** to retry
+1. Complete order → SI submit (`is_pos` on) → auto-send when settings allow
+2. POS screen shows an FBR dialog (invoice no + QR) and a summary card with **FBR Details** / **Send to FBR**
+3. Failures never block checkout; retry from the POS summary card
 4. Optional: **Auto Send All Sales Invoices on Submit** for non-POS invoices
-
-Do **not** send only from consolidated POS Invoice merge logs if you later switch POS Settings to POS Invoice mode — each fiscal sale needs its own FBR invoice.
 
 ### FBR Invoice Settings
 
