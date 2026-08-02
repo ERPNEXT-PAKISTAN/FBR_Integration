@@ -1011,6 +1011,24 @@ function matches(tt, keys) {
     return keys.some((k) => tt.includes(k));
 }
 
+function sum_st_withheld(frm) {
+    let total = 0;
+    (frm.doc.items || []).forEach((row) => {
+        total += parseFloat(row.custom_sales_tax_withheld_at_source) || 0;
+    });
+    if ("custom_sales_tax_withheld_at_source" in (frm.doc || {})) {
+        frm.set_value("custom_sales_tax_withheld_at_source", total);
+    }
+}
+
+function apply_st_withheld_amount(frm, cdt, cdn, amount) {
+    const row = locals[cdt][cdn];
+    const withheldRate = parseFloat(row.custom_sales_tax_withheld_rate) || 0;
+    const withheld = (amount * withheldRate) / 100;
+    setv(cdt, cdn, "custom_sales_tax_withheld_at_source", withheld);
+    sum_st_withheld(frm);
+}
+
 function recalc_fbr_item_row(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
     const qty = parseFloat(row.qty) || 0;
@@ -1029,6 +1047,7 @@ function recalc_fbr_item_row(frm, cdt, cdn) {
 
     setv(cdt, cdn, "custom_total_tax_amount", 0);
     setv(cdt, cdn, "custom_tax_inclusive_amount", amount);
+    apply_st_withheld_amount(frm, cdt, cdn, amount);
 
     if (!row.item_tax_template) {
         frm.refresh_field("items");
@@ -1085,6 +1104,7 @@ function recalc_fbr_item_row(frm, cdt, cdn) {
             const totalTax = sales + further + extra;
             setv(cdt, cdn, "custom_total_tax_amount", totalTax);
             setv(cdt, cdn, "custom_tax_inclusive_amount", amount + totalTax);
+            apply_st_withheld_amount(frm, cdt, cdn, amount);
 
             frm.refresh_field("items");
         },
@@ -1485,6 +1505,19 @@ frappe.ui.form.on("Sales Invoice Item", {
 
     rate(frm, cdt, cdn) {
         recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    custom_sales_tax_withheld_rate(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        const amount =
+            parseFloat(row.amount) ||
+            (parseFloat(row.qty) || 0) * (parseFloat(row.rate) || 0);
+        apply_st_withheld_amount(frm, cdt, cdn, amount);
+        frm.refresh_field("items");
+    },
+
+    custom_sales_tax_withheld_at_source(frm) {
+        sum_st_withheld(frm);
     },
 
     item_tax_template(frm, cdt, cdn) {

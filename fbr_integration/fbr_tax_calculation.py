@@ -49,6 +49,14 @@ def _scenario_aliases(scenario: str):
 	return []
 
 
+def ensure_pos_flag(doc, method=None):
+	"""Keep Is POS checked when invoice comes from a POS Profile / POS screen."""
+	if doc.doctype != "Sales Invoice":
+		return
+	if getattr(doc, "pos_profile", None) or int(getattr(doc, "is_created_using_pos", 0) or 0):
+		doc.is_pos = 1
+
+
 def sync_sales_invoice_master_defaults(doc, method=None):
 	"""Fill FBR fields from Customer/Item masters when invoice/item values are empty."""
 	if doc.doctype != "Sales Invoice":
@@ -226,7 +234,100 @@ def _get_item_tax_template_rows(template_name: str):
 	)
 
 
+def _st_withheld_rate_from_category(category_name: str) -> float:
+	"""Parse rate from FBR ST Withheld categories, else 0."""
+	name = (category_name or "").strip()
+	if not name:
+		return 0
+	upper = name.upper()
+	if "ST WITHHELD" not in upper and "SALES TAX WITHHELD" not in upper:
+		return 0
+	# Prefer rate row from Tax Withholding Category
+	try:
+		from frappe.utils import getdate, nowdate
+
+		today = getdate(nowdate())
+		rates = frappe.get_all(
+			"Tax Withholding Rate",
+			filters={"parent": name, "parenttype": "Tax Withholding Category"},
+			fields=["tax_withholding_rate", "from_date", "to_date"],
+			order_by="from_date desc",
+		)
+		for row in rates:
+			if getdate(row.from_date) <= today <= getdate(row.to_date):
+				return float(row.tax_withholding_rate or 0)
+		if rates:
+			return float(rates[0].tax_withholding_rate or 0)
+	except Exception:
+		pass
+	return 0
+
+
+def _default_st_withheld_rate(doc, item) -> float:
+	"""Item rate, else item/customer FBR ST Withheld category rate."""
+	existing = float(getattr(item, "custom_sales_tax_withheld_rate", None) or 0)
+	if existing:
+		return existing
+
+	item_cat = getattr(item, "tax_withholding_category", None) or ""
+	rate = _st_withheld_rate_from_category(item_cat)
+	if rate:
+		return rate
+
+	if doc.customer:
+		cust = (
+			frappe.db.get_value(
+				"Customer",
+				doc.customer,
+				["tax_withholding_category", "tax_withholding_group"],
+				as_dict=True,
+			)
+			or {}
+		)
+		rate = _st_withheld_rate_from_category(cust.get("tax_withholding_category") or "")
+		if rate:
+			return rate
+		# Group named like FBR Sales Tax Withheld at Source → no single rate
+	return 0
+
+
+def _allocate_invoice_withholding_to_items(doc):
+	"""If apply_tds produced ST Withheld entries and item amounts are still 0, allocate."""
+	entries = doc.get("tax_withholding_entries") or []
+	if not entries:
+		return
+
+	st_total = 0.0
+	for entry in entries:
+		cat = (getattr(entry, "tax_withholding_category", None) or "").upper()
+		if "ST WITHHELD" in cat or "SALES TAX WITHHELD" in cat:
+			st_total += abs(float(getattr(entry, "withholding_amount", None) or 0))
+
+	if st_total <= 0:
+		return
+
+	items = [i for i in (doc.items or []) if float(getattr(i, "amount", None) or 0) > 0]
+	if not items:
+		return
+
+	# Only allocate when items have no explicit withheld amount yet
+	if any(float(getattr(i, "custom_sales_tax_withheld_at_source", None) or 0) for i in items):
+		return
+
+	base = sum(abs(float(i.amount or 0)) for i in items) or 1
+	allocated = 0.0
+	for idx, item in enumerate(items):
+		if idx == len(items) - 1:
+			share = st_total - allocated
+		else:
+			share = round(st_total * (abs(float(item.amount or 0)) / base), 2)
+			allocated += share
+		item.custom_sales_tax_withheld_at_source = share
+
+
 def calculate_fbr_tax(doc, method=None):
+	invoice_withheld = 0.0
+
 	for item in doc.items:
 		scenario = get_effective_invoice_tax_scenario(doc)
 		template_name = resolve_item_tax_template_name(scenario)
@@ -243,7 +344,7 @@ def calculate_fbr_tax(doc, method=None):
 
 		amount = float(item.amount or 0)
 
-		# Reset
+		# Reset tax amounts (keep withheld rate if user/customer set it)
 		item.custom_sales_tax_rate = 0
 		item.custom_further_tax_rate = 0
 		item.custom_extra_tax_rate = 0
@@ -255,7 +356,12 @@ def calculate_fbr_tax(doc, method=None):
 		item.custom_total_tax_amount = 0
 		item.custom_tax_inclusive_amount = amount
 
+		withheld_rate = _default_st_withheld_rate(doc, item)
+		item.custom_sales_tax_withheld_rate = withheld_rate
+		item.custom_sales_tax_withheld_at_source = (amount * withheld_rate) / 100 if withheld_rate else 0
+
 		if not item.item_tax_template:
+			invoice_withheld += float(item.custom_sales_tax_withheld_at_source or 0)
 			continue
 
 		tax_rows = _get_item_tax_template_rows(item.item_tax_template)
@@ -266,6 +372,7 @@ def calculate_fbr_tax(doc, method=None):
 				title="FBR Tax Calc: No tax rows found",
 				message=f"Template: {item.item_tax_template} | Item: {item.item_code} | SI: {doc.name}",
 			)
+			invoice_withheld += float(item.custom_sales_tax_withheld_at_source or 0)
 			continue
 
 		# Determine rates
@@ -296,3 +403,11 @@ def calculate_fbr_tax(doc, method=None):
 		)
 
 		item.custom_tax_inclusive_amount = amount + float(item.custom_total_tax_amount or 0)
+		invoice_withheld += float(item.custom_sales_tax_withheld_at_source or 0)
+
+	_allocate_invoice_withholding_to_items(doc)
+	invoice_withheld = sum(
+		float(getattr(i, "custom_sales_tax_withheld_at_source", None) or 0) for i in (doc.items or [])
+	)
+	if hasattr(doc, "custom_sales_tax_withheld_at_source"):
+		doc.custom_sales_tax_withheld_at_source = invoice_withheld

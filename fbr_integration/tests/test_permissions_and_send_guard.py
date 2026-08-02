@@ -51,17 +51,19 @@ class TestSendGuard(unittest.TestCase):
 		mod = importlib.reload(mod)
 		assert_can_send_invoice_to_fbr = mod.assert_can_send_invoice_to_fbr
 
+		import frappe as frappe_mod
+
 		doc = types.SimpleNamespace(name="SI-1", doctype="Sales Invoice")
-		_frappe.session.user = "user@example.com"
-		_frappe.has_permission = lambda *a, **k: False
-		with self.assertRaises(FakePermissionError):
+		frappe_mod.session.user = "user@example.com"
+		frappe_mod.has_permission = lambda *a, **k: False
+		with self.assertRaises(frappe_mod.PermissionError):
 			assert_can_send_invoice_to_fbr(doc)
 
-		_frappe.has_permission = lambda *a, **k: True
+		frappe_mod.has_permission = lambda *a, **k: True
 		assert_can_send_invoice_to_fbr(doc)
 
-		_frappe.session.user = "Administrator"
-		_frappe.has_permission = lambda *a, **k: False
+		frappe_mod.session.user = "Administrator"
+		frappe_mod.has_permission = lambda *a, **k: False
 		assert_can_send_invoice_to_fbr(doc)
 
 

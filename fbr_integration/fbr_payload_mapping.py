@@ -243,9 +243,9 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 		"payload_section": "Item",
 		"payload_field": "salesTaxWithheldAtSource",
 		"source_doctype": "Sales Invoice Item",
-		"source_field": "",
-		"transform": "Float",
-		"description": "Current: constant 0.",
+		"source_field": "custom_sales_tax_withheld_at_source",
+		"transform": "Absolute Float",
+		"description": "Current: Sales Invoice Item → ST Withheld at Source (custom_sales_tax_withheld_at_source).",
 	},
 	{
 		"payload_section": "Item",

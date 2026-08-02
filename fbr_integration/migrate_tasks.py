@@ -12,9 +12,10 @@ from fbr_integration.fbr_payload_mapping import (
 )
 from fbr_integration.item_tax_templates import sync_item_tax_templates
 from fbr_integration.print_format_sync import sync_print_formats
+from fbr_integration.tax_withholding_sync import sync_withholding
 
 # Bump when fixture/sync logic changes and a full resync is required.
-FBR_SYNC_VERSION = "2026.08.02"
+FBR_SYNC_VERSION = "2026.08.03"
 
 
 def run_after_migrate():
@@ -28,6 +29,7 @@ def run_after_migrate():
 
 	if needs_full or needs_seed:
 		sync_item_tax_templates()
+		sync_withholding()
 		sync_payload_fields()
 		sync_payload_source_fields()
 		sync_payload_field_mappings()

@@ -11,6 +11,10 @@
   "ssl_applied",
   "section_break_kqlz",
   "integration_type",
+  "section_break_autosend",
+  "auto_send_pos_on_submit",
+  "column_break_autosend",
+  "auto_send_on_submit",
   "section_break_xdzu",
   "sandbox_api_url",
   "sandbox_security_token",
@@ -44,6 +48,29 @@
    "fieldtype": "Select",
    "label": "Integration Type",
    "options": "Production\nSandbox"
+  },
+  {
+   "fieldname": "section_break_autosend",
+   "fieldtype": "Section Break",
+   "label": "Auto Send"
+  },
+  {
+   "default": "1",
+   "description": "When POS completes an order (Sales Invoice with Is POS), send to FBR after submit. Failures do not block checkout.",
+   "fieldname": "auto_send_pos_on_submit",
+   "fieldtype": "Check",
+   "label": "Auto Send POS Invoices on Submit"
+  },
+  {
+   "fieldname": "column_break_autosend",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Also auto-send non-POS Sales Invoices on submit. Manual Send to FBR remains available.",
+   "fieldname": "auto_send_on_submit",
+   "fieldtype": "Check",
+   "label": "Auto Send All Sales Invoices on Submit"
   },
   {
    "fieldname": "section_break_xdzu",

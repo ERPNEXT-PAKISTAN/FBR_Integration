@@ -61,6 +61,25 @@ CI runs a matrix against Frappe/ERPNext **version-15** and **version-16**.
 
 Public verification: `/fbr_verify?invoice=<FBR Invoice No>` looks up Sales Invoice by `custom_fbr_invoice_no`.
 
+### Sales Tax Withheld at Source
+
+- Item fields `ST Withheld Rate %` / `ST Withheld at Source` map to FBR `salesTaxWithheldAtSource`
+- Install/migrate seeds Tax Withholding Groups/Categories and Chart of Accounts:
+  - `ST Withheld - X% (FBR)` under group **FBR Sales Tax Withheld at Source**
+  - `WH TAX - X% (Sales)` and `Withholding Tax - X% (Purchases)`
+- Assign an `ST Withheld - X% (FBR)` category on Customer (or item row) to auto-fill rates
+
+### POS → FBR
+
+This site’s POS Settings create **Sales Invoice** (`is_pos`). Best path (implemented):
+
+1. POS completes order → SI submit (`is_pos` kept on)
+2. **FBR Invoice Settings → Auto Send POS Invoices on Submit** (default on) sends to FBR
+3. Failures never block checkout; use **Send to FBR** to retry
+4. Optional: **Auto Send All Sales Invoices on Submit** for non-POS invoices
+
+Do **not** send only from consolidated POS Invoice merge logs if you later switch POS Settings to POS Invoice mode — each fiscal sale needs its own FBR invoice.
+
 ### FBR Invoice Settings
 
 - Enable integration and choose Sandbox or Production

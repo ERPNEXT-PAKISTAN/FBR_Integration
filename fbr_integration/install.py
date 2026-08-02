@@ -18,6 +18,10 @@ def after_install():
 	frappe.clear_cache()
 
 	item_tax_templates.sync_item_tax_templates()
+
+	from fbr_integration.tax_withholding_sync import sync_withholding
+
+	sync_withholding()
 	sync_payload_fields()
 	sync_payload_source_fields()
 	sync_payload_field_mappings()

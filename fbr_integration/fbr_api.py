@@ -619,7 +619,11 @@ def send_invoice_to_fbr(doc, method=None):
 				section="Item",
 			),
 			"salesTaxWithheldAtSource": resolve_payload_value(
-				"salesTaxWithheldAtSource", 0, doc, item=item, section="Item"
+				"salesTaxWithheldAtSource",
+				num(getattr(item, "custom_sales_tax_withheld_at_source", None) or 0),
+				doc,
+				item=item,
+				section="Item",
 			),
 			"extraTax": resolve_payload_value(
 				"extraTax",
@@ -847,5 +851,52 @@ def send_invoice_to_fbr(doc, method=None):
 	}
 
 
+def _should_auto_send_on_submit(doc) -> bool:
+	"""Respect FBR Invoice Settings for POS / all-invoice auto send."""
+	try:
+		settings = frappe.get_single("FBR Invoice Settings")
+	except Exception:
+		return False
+
+	if not getattr(settings, "enabled", 0):
+		return False
+
+	is_pos = int(getattr(doc, "is_pos", 0) or 0) or int(
+		getattr(doc, "is_created_using_pos", 0) or 0
+	)
+
+	if is_pos and int(getattr(settings, "auto_send_pos_on_submit", 1) or 0):
+		return True
+
+	if int(getattr(settings, "auto_send_on_submit", 0) or 0):
+		return True
+
+	return False
+
+
 def after_submit_invoice(doc, method=None):
-	send_invoice_to_fbr(doc)
+	"""Auto-send when settings allow (POS by default; all SI optional)."""
+	if not _should_auto_send_on_submit(doc):
+		return
+
+	# POS checkout must keep is_pos checked for ERPNext POS accounting.
+	if getattr(doc, "pos_profile", None) and not int(getattr(doc, "is_pos", 0) or 0):
+		frappe.db.set_value(doc.doctype, doc.name, "is_pos", 1, update_modified=False)
+		doc.is_pos = 1
+
+	if (getattr(doc, "custom_fbr_invoice_no", None) or "").strip():
+		return
+
+	try:
+		send_invoice_to_fbr(doc)
+	except Exception:
+		# Never block SI submit / POS checkout on FBR transport errors.
+		frappe.log_error(
+			title="FBR auto-send on submit failed",
+			message=frappe.get_traceback(),
+		)
+		frappe.msgprint(
+			"Sales Invoice submitted, but FBR auto-send failed. Use <b>Send to FBR</b> to retry.",
+			indicator="orange",
+			alert=True,
+		)

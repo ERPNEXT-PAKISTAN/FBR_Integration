@@ -17,32 +17,34 @@ add_to_apps_screen = [
 
 extend_bootinfo = "fbr_integration.compat.boot_session"
 
-AUTO_SEND_ON_SUBMIT = 0  # 1 = auto send on submit, 0 = manual button
+# Auto-send is gated in after_submit_invoice via FBR Invoice Settings
+# (POS on by default; all SI optional). Manual Send to FBR always available.
 
 doc_events = {
 	"Sales Invoice": {
 		"before_validate": [
 			"fbr_integration.fbr_tax_calculation.disable_update_stock_for_delivery_note_invoice",
 			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
+			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
 		],
 		"validate": [
+			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
 			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
 			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",
 		],
 		"before_save": [
+			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
 			"fbr_integration.fbr_tax_calculation.restore_submitted_sales_tax_rows",
 			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
 			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",
 		],
+		"on_submit": "fbr_integration.fbr_api.after_submit_invoice",
 	}
 }
-
-if AUTO_SEND_ON_SUBMIT:
-	doc_events["Sales Invoice"]["on_submit"] = "fbr_integration.fbr_api.after_submit_invoice"
 
 # Sales Invoice UI: live tax + send button + QR/barcode rendering
 doctype_js = {
