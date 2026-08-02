@@ -2,9 +2,16 @@
 
 FBR Integration for ERPNext — integrates with FBR's Digital Invoicing (DI) system to submit sales invoices directly to FBR.
 
+Works on **Frappe / ERPNext v15 and v16** with one install command. On v16, migrate also creates the Desktop Icon and Workspace Sidebar.
+
+### Requirements
+
+- Frappe + ERPNext (v15 or v16)
+- HRMS optional (not required for FBR)
+
 ### Installation
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+Same commands on v15 and v16:
 
 ```bash
 cd ~/frappe-bench
@@ -15,15 +22,18 @@ bench build --app fbr_integration
 bench restart
 ```
 
-### Updating an Existing Installation
+Then open:
 
-If you already have the app installed and want to pull the latest changes:
+- v15: `/app/fbr-pakistan`
+- v16: `/desk/fbr-pakistan` (Desktop Icon is also created)
+
+### Updating an Existing Installation
 
 ```bash
 cd ~/frappe-bench/apps/fbr_integration
-git fetch origin
+git fetch upstream
 git checkout main
-git pull origin main
+git pull upstream main
 
 cd ~/frappe-bench
 bench --site site1.local migrate
@@ -35,8 +45,23 @@ bench restart
 Important notes:
 
 - Do not run `bench get-app` for an app that is already installed in `apps/fbr_integration`.
-- If your repo uses `upstream` remote instead of `origin`, replace `origin` with `upstream` in the commands above.
-- If your local branch has custom commits/diverges, resolve git merge/rebase first, then run migrate/build.
+- If your repo uses `origin` instead of `upstream`, replace accordingly.
+- After API/Python changes on gunicorn `--preload`, use a full `bench restart`.
+
+### Dual version desk notes
+
+| Feature | v15 | v16 |
+| --- | --- | --- |
+| Workspace | Fixture / module JSON | Same + `type` / `app` / `module` |
+| Workspace Sidebar | Not used | Created by `compat.ensure_desk_navigation` |
+| Desktop Icon | If schema supports | App icon → FBR workspace |
+| In-app links | `/app/...` | Rewritten via `frappe.fbr.desk_path` |
+
+### FBR Invoice Settings
+
+- Enable integration and choose Sandbox or Production
+- Set API URL + security token
+- **SSL Applied**: when checked, HTTPS certificate verification is enabled for FBR calls
 
 ### Scenario Files
 
@@ -44,54 +69,22 @@ The authoritative FBR scenario source is kept in `fbr_integration/scenario_data/
 
 - `DI_Scenarios_Summary.txt` — JSON payloads with scenario descriptions
 
-The build process generates:
-- 28 individual scenario JSON files: `SN001.json` through `SN028.json`
-- Scenario index catalog: `index.json`
-
-These generated files are published to `fbr_integration/public/scenario_docs/` as static assets.
-The Sales Invoice form loads scenarios from this catalog for the searchable **Scenario Index** dialog and **View Scenario** detail popup.
-
-**To rebuild scenarios after editing the source text file:**
+Rebuild:
 
 ```bash
 cd ~/frappe-bench/apps/fbr_integration
 python3 fbr_integration/scenario_data/build_scenario_docs.py
-```
-
-The build script validates each scenario for:
-- Valid scenario ID format (SN001–SN028)
-- Required fields: title, description, sample payload
-- Required JSON payload keys: `invoiceType`, `scenarioId`, `items`
-
-Short command (after app environment is installed/updated):
-
-```bash
-fbr-build-scenarios
+# or: fbr-build-scenarios
 ```
 
 ### Contributing
 
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+This app uses `pre-commit` for code formatting and linting:
 
 ```bash
 cd apps/fbr_integration
 pre-commit install
 ```
-
-Pre-commit is configured to use the following tools for checking and formatting your code:
-
-- ruff
-- eslint
-- prettier
-- pyupgrade
-
-### CI
-
-This app can use GitHub Actions for CI. The following workflows are configured:
-
-- CI: Installs this app and runs unit tests on every push to `develop` branch.
-- Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
-
 
 ### License
 

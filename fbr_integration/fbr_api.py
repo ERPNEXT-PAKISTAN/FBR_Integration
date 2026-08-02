@@ -13,7 +13,7 @@ from fbr_integration.fbr_payload_mapping import (
 	resolve_payload_value,
 )
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# InsecureRequestWarning is disabled only when SSL Applied is off (verify=False).
 
 
 def safe_float(val):
@@ -442,9 +442,25 @@ def get_return_reason(doc):
 	return remarks or "Sales Return"
 
 
+def assert_can_send_invoice_to_fbr(doc):
+	"""Require write access on the Sales Invoice before calling FBR."""
+	if frappe.session.user == "Administrator":
+		return
+	if not frappe.has_permission("Sales Invoice", "write", doc=doc):
+		frappe.throw(
+			"You do not have permission to send this Sales Invoice to FBR.",
+			frappe.PermissionError,
+			title="Not Permitted",
+		)
+
+
 @frappe.whitelist()
 def send_to_fbr_si(name: str):
+	if not name:
+		frappe.throw("Sales Invoice name is required.")
+
 	doc = frappe.get_doc("Sales Invoice", name)
+	assert_can_send_invoice_to_fbr(doc)
 
 	# Enforce submission requirement in Production mode
 	settings = frappe.get_single("FBR Invoice Settings")
@@ -667,16 +683,20 @@ def send_invoice_to_fbr(doc, method=None):
 
 	apply_extra_payload_mappings(payload, doc, existing_fields=payload.keys())
 
-	# Debug log — visible in bench logs to help diagnose FBR rejections
-	frappe.log_error(
-		title="FBR Outgoing Payload",
-		message=json.dumps(payload, indent=2, ensure_ascii=False),
+	# Lightweight logger (avoid flooding Error Log with full payloads)
+	frappe.logger("fbr_integration").info(
+		"FBR outgoing payload for %s (%s chars)",
+		doc.name,
+		len(json.dumps(payload, ensure_ascii=False)),
 	)
 
 	headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+	verify_ssl = bool(cint(getattr(settings, "ssl_applied", 0)))
+	if not verify_ssl:
+		urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 	def _post_payload(body):
-		return requests.post(api_url, headers=headers, json=body, verify=False, timeout=90)
+		return requests.post(api_url, headers=headers, json=body, verify=verify_ssl, timeout=90)
 
 	# Send
 	resp = _post_payload(payload)
@@ -693,9 +713,8 @@ def send_invoice_to_fbr(doc, method=None):
 		invoice_type = safe_str(payload.get("invoiceType")).strip().lower()
 		if error_code == "0003" and invoice_type == "credit note":
 			payload["invoiceType"] = "Debit Note"
-			frappe.log_error(
-				title="FBR Outgoing Payload Retry",
-				message=json.dumps(payload, indent=2, ensure_ascii=False),
+			frappe.logger("fbr_integration").info(
+				"FBR retry Debit Note for credit-note return %s", doc.name
 			)
 			resp = _post_payload(payload)
 			log_fbr_exchange(doc.name, "retry_debit_note", payload, resp)
@@ -782,8 +801,16 @@ def send_invoice_to_fbr(doc, method=None):
 	if hasattr(doc, "custom_fbr_responsed"):
 		doc.custom_fbr_responsed = "Success" if status_code == "00" else "Error"
 
-	doc.save(ignore_permissions=True)
-	persist_fbr_response_fields(doc)
+	# Prefer field persistence; avoid blanket ignore_permissions saves.
+	try:
+		doc.flags.ignore_validate_update_after_submit = True
+		doc.save()
+	except frappe.PermissionError:
+		persist_fbr_response_fields(doc)
+	except Exception:
+		persist_fbr_response_fields(doc)
+	else:
+		persist_fbr_response_fields(doc)
 
 	# Raise if HTTP error
 	if resp.status_code >= 400:
@@ -800,11 +827,17 @@ def send_invoice_to_fbr(doc, method=None):
 				f"FBR Invalid Credentials\n\n{detail}\n\nFBR Response:\n{resp_text}",
 				title="FBR Invalid Credentials",
 			)
-		frappe.throw(f"? FBR HTTP Error\nStatus: {resp.status_code}\n\n{resp_text}")
+		frappe.throw(
+			f"FBR HTTP Error\nStatus: {resp.status_code}\n\n{resp_text}",
+			title="FBR HTTP Error",
+		)
 
 	# If FBR returned invalid
 	if status_code != "00":
-		frappe.throw(f"? FBR Validation Failed\n\n{json.dumps(res_json, indent=2, ensure_ascii=False)}")
+		frappe.throw(
+			f"FBR Validation Failed\n\n{json.dumps(res_json, indent=2, ensure_ascii=False)}",
+			title="FBR Validation Failed",
+		)
 
 	return {
 		"success": True,

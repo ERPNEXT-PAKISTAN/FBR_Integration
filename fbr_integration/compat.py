@@ -17,10 +17,9 @@ ICON_LABEL = "FBR Integration"
 ICON_LOGO = "/assets/fbr_integration/images/fbr/DI_invoicing.png"
 
 
-def workspace_route() -> str:
-	"""v15 uses /app/<workspace>; v16 uses /desk/<workspace>."""
-	slug = frappe.scrub(WORKSPACE).replace("_", "-")
-	return f"/desk/{slug}" if has_v16_desk() else f"/app/{slug}"
+def has_v16_desk() -> bool:
+	"""True when Workspace Sidebar exists (v16 desk navigation)."""
+	return bool(frappe.db.exists("DocType", "Workspace Sidebar"))
 
 
 def frappe_major() -> int:
@@ -30,9 +29,45 @@ def frappe_major() -> int:
 		return 0
 
 
-def has_v16_desk() -> bool:
-	"""True when Workspace Sidebar exists (v16 desk navigation)."""
-	return bool(frappe.db.exists("DocType", "Workspace Sidebar"))
+def desk_prefix() -> str:
+	"""v15 uses /app; v16 uses /desk."""
+	return "/desk" if has_v16_desk() else "/app"
+
+
+def desk_path(route: str) -> str:
+	"""Normalize a page/workspace route for the current Frappe major."""
+	route = (route or "").strip().lstrip("/")
+	if route.startswith("app/"):
+		route = route[4:]
+	elif route.startswith("desk/"):
+		route = route[5:]
+	return f"{desk_prefix()}/{route}"
+
+
+def workspace_route() -> str:
+	"""Canonical FBR workspace URL for Apps screen / Desktop Icon."""
+	return desk_path(frappe.scrub(WORKSPACE).replace("_", "-"))
+
+
+def boot_session(bootinfo):
+	"""Expose desk prefix to client JS (usage guide, KPI links, etc.)."""
+	try:
+		bootinfo.fbr_desk_prefix = desk_prefix()
+		bootinfo.fbr_workspace_route = workspace_route()
+	except Exception:
+		pass
+
+
+@frappe.whitelist()
+def get_desk_routes():
+	"""Optional API for clients that need absolute FBR desk routes."""
+	return {
+		"prefix": desk_prefix(),
+		"workspace": workspace_route(),
+		"financial_dashboard": desk_path("financial-dashboard"),
+		"usage_guide": desk_path("fbr-usage-guide"),
+		"invoice_settings": desk_path("fbr-invoice-settings"),
+	}
 
 
 def ensure_desk_navigation():
@@ -42,11 +77,27 @@ def ensure_desk_navigation():
 	"""
 	_ensure_workspace_fields()
 	if not has_v16_desk():
+		# Still refresh App launcher Desktop Icon link if schema supports it.
+		_ensure_desktop_icon()
+		frappe.db.commit()
 		return
 
 	_ensure_workspace_sidebar()
 	_ensure_desktop_icon()
 	frappe.db.commit()
+
+
+def cleanup_desk_navigation():
+	"""Remove v16 desk assets created by this app (used on uninstall)."""
+	for doctype, name in (
+		("Desktop Icon", ICON_LABEL),
+		("Workspace Sidebar", SIDEBAR),
+	):
+		if frappe.db.exists("DocType", doctype) and frappe.db.exists(doctype, name):
+			try:
+				frappe.delete_doc(doctype, name, force=1, ignore_permissions=True)
+			except Exception:
+				frappe.log_error(title=f"FBR uninstall: failed deleting {doctype} {name}")
 
 
 def _ensure_workspace_fields():
@@ -171,7 +222,7 @@ def _ensure_desktop_icon():
 		"standard": 1,
 		"hidden": 0,
 		"bg_color": "gray" if meta.has_field("bg_color") else None,
-		"sidebar": SIDEBAR if meta.has_field("sidebar") else None,
+		"sidebar": SIDEBAR if meta.has_field("sidebar") and has_v16_desk() else None,
 	}
 	values = {k: v for k, v in values.items() if v is not None}
 

@@ -1,7 +1,7 @@
 import frappe
 
 from fbr_integration import item_tax_templates
-from fbr_integration.compat import ensure_desk_navigation
+from fbr_integration.compat import cleanup_desk_navigation, ensure_desk_navigation
 from fbr_integration.fbr_payload_mapping import (
 	sync_payload_field_mappings,
 	sync_payload_fields,
@@ -23,5 +23,11 @@ def after_install():
 	sync_payload_field_mappings()
 	sync_print_formats()
 
-	# v15: no-op for sidebar/icon. v16: create Workspace Sidebar + Desktop Icon.
+	# v15: no-op for sidebar. v16: create Workspace Sidebar + Desktop Icon.
 	ensure_desk_navigation()
+
+
+def before_uninstall():
+	"""Remove desk assets this app created so they don't linger after uninstall."""
+	cleanup_desk_navigation()
+	frappe.db.commit()

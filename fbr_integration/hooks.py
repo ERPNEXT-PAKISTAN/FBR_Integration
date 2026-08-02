@@ -5,7 +5,7 @@ app_description = "FBR Digital Invoice Integration"
 app_email = "tymuur@outlook.com"
 app_license = "MIT"
 
-# Apps launcher entry (v15 + v16). Route is also corrected at migrate via compat.workspace_route().
+# Apps launcher entry. Desktop Icon link is corrected per major via compat.workspace_route().
 add_to_apps_screen = [
 	{
 		"name": "fbr_integration",
@@ -14,6 +14,8 @@ add_to_apps_screen = [
 		"route": "/app/fbr-pakistan",
 	}
 ]
+
+extend_bootinfo = "fbr_integration.compat.boot_session"
 
 AUTO_SEND_ON_SUBMIT = 0  # 1 = auto send on submit, 0 = manual button
 
@@ -68,20 +70,20 @@ doctype_list_js = {
 	],
 }
 
-# Purple button CSS (you already have fbr.css)
+# Purple button CSS + dual desk route helper
 app_include_css = ["/assets/fbr_integration/css/fbr.css"]
+app_include_js = ["/assets/fbr_integration/js/fbr_desk.js"]
 
 after_install = "fbr_integration.install.after_install"
+before_uninstall = "fbr_integration.install.before_uninstall"
 
+# Keep after_migrate light: patches run via patches.txt once. Re-sync masters + desk nav only.
 after_migrate = [
 	"fbr_integration.item_tax_templates.sync_item_tax_templates",
 	"fbr_integration.fbr_payload_mapping.sync_payload_fields",
 	"fbr_integration.fbr_payload_mapping.sync_payload_source_fields",
 	"fbr_integration.fbr_payload_mapping.sync_payload_field_mappings",
 	"fbr_integration.print_format_sync.sync_print_formats",
-	"fbr_integration.patches.remove_sales_invoice_update_stock_default.execute",
-	"fbr_integration.patches.fix_tax_payer_type_and_item_hs_mapping.execute",
-	"fbr_integration.patches.set_sales_invoice_update_after_submit_fields.execute",
 	# v15-safe: only builds Desktop Icon / Workspace Sidebar when those DocTypes exist (v16).
 	"fbr_integration.compat.ensure_desk_navigation",
 ]

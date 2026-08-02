@@ -1,4 +1,5 @@
 frappe.pages["fbr-usage-guide"].on_page_load = function (wrapper) {
+    setTimeout(() => { if (frappe.fbr && frappe.fbr.rewrite_links) frappe.fbr.rewrite_links(wrapper); }, 0);
     const page = frappe.ui.make_app_page({
         parent: wrapper,
         title: __("FBR Usage Guide"),
@@ -14,8 +15,8 @@ frappe.pages["fbr-usage-guide"].on_page_load = function (wrapper) {
                         <div style="font-size: 13px; opacity:0.95;">Central place for onboarding, scenarios, logs, doctypes, and operational shortcuts.</div>
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <a href="/app/fbr-pakistan" style="background:#fff;color:#1f4e79;font-size:12px;padding:6px 10px;border-radius:999px;font-weight:700;text-decoration:none;">Open Workspace</a>
-                        <a href="/app/sales-invoice" style="background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.35);color:#fff;font-size:12px;padding:6px 10px;border-radius:999px;font-weight:700;text-decoration:none;">Open Sales Invoice</a>
+                        <a data-fbr-route="fbr-pakistan" href="/app/fbr-pakistan" style="background:#fff;color:#1f4e79;font-size:12px;padding:6px 10px;border-radius:999px;font-weight:700;text-decoration:none;">Open Workspace</a>
+                        <a data-fbr-route="sales-invoice" href="/app/sales-invoice" style="background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.35);color:#fff;font-size:12px;padding:6px 10px;border-radius:999px;font-weight:700;text-decoration:none;">Open Sales Invoice</a>
                     </div>
                 </div>
             </div>
@@ -53,19 +54,19 @@ bench restart</pre>
             <div style="border:1px solid #dbe4ee;border-radius:12px;padding:13px;background:#fff;margin-bottom:16px;box-shadow:0 2px 8px rgba(16,24,40,0.04);">
                 <div style="font-weight:700;margin-bottom:8px;color:#1f2937;">Quick Access</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;font-size:13px;">
-                    <a href="/app/sales-invoice" target="_blank">Sales Invoice</a>
-                    <a href="/app/fbr-usage-guide" target="_blank">FBR Usage Guide</a>
-                    <a href="/app/fbr-home" target="_blank">FBR Home</a>
-                    <a href="/app/financial-dashboard" target="_blank">Financial Dashboard</a>
-                    <a href="/app/error-log" target="_blank">Error Log</a>
-                    <a href="/app/scheduled-job-log" target="_blank">Scheduled Job Log</a>
-                    <a href="/app/scenario-id" target="_blank">Scenario ID</a>
-                    <a href="/app/fbr-invoice-settings" target="_blank">FBR Invoice Settings</a>
-                    <a href="/app/fbr-payload-field-mapping/FBR%20Payload%20Field%20Mapping" target="_blank">FBR Payload Mapping</a>
-                    <a href="/app/fbr-payload-field" target="_blank">FBR Payload Field</a>
-                    <a href="/app/fbr-payload-source-field" target="_blank">FBR Payload Source Field</a>
-                    <a href="/app/query-report/FBR%20Sales%20Detail" target="_blank">FBR Sales Detail Report</a>
-                    <a href="/app/query-report/FBR%20Sales%20Summary" target="_blank">FBR Sales Summary Report</a>
+                    <a data-fbr-route="sales-invoice" href="/app/sales-invoice" target="_blank">Sales Invoice</a>
+                    <a data-fbr-route="fbr-usage-guide" href="/app/fbr-usage-guide" target="_blank">FBR Usage Guide</a>
+                    <a data-fbr-route="fbr-home" href="/app/fbr-home" target="_blank">FBR Home</a>
+                    <a data-fbr-route="financial-dashboard" href="/app/financial-dashboard" target="_blank">Financial Dashboard</a>
+                    <a data-fbr-route="error-log" href="/app/error-log" target="_blank">Error Log</a>
+                    <a data-fbr-route="scheduled-job-log" href="/app/scheduled-job-log" target="_blank">Scheduled Job Log</a>
+                    <a data-fbr-route="scenario-id" href="/app/scenario-id" target="_blank">Scenario ID</a>
+                    <a data-fbr-route="fbr-invoice-settings" href="/app/fbr-invoice-settings" target="_blank">FBR Invoice Settings</a>
+                    <a data-fbr-route="fbr-payload-field-mapping/FBR%20Payload%20Field%20Mapping" href="/app/fbr-payload-field-mapping/FBR%20Payload%20Field%20Mapping" target="_blank">FBR Payload Mapping</a>
+                    <a data-fbr-route="fbr-payload-field" href="/app/fbr-payload-field" target="_blank">FBR Payload Field</a>
+                    <a data-fbr-route="fbr-payload-source-field" href="/app/fbr-payload-source-field" target="_blank">FBR Payload Source Field</a>
+                    <a data-fbr-route="query-report/FBR%20Sales%20Detail" href="/app/query-report/FBR%20Sales%20Detail" target="_blank">FBR Sales Detail Report</a>
+                    <a data-fbr-route="query-report/FBR%20Sales%20Summary" href="/app/query-report/FBR%20Sales%20Summary" target="_blank">FBR Sales Summary Report</a>
                 </div>
             </div>
 
@@ -85,7 +86,7 @@ bench restart</pre>
                         <div style="font-weight:700;font-size:15px;color:#1a202c;">Actual FBR Payload Fields</div>
                         <div style="font-size:12px;color:#64748b;">Loaded from <b>/assets/fbr_integration/scenario_docs/SNxxx.json</b> sample payloads.</div>
                     </div>
-                    <a href="/app/fbr-payload-field" target="_blank" style="font-size:12px;font-weight:700;">Open FBR Payload Field</a>
+                    <a data-fbr-route="fbr-payload-field" href="/app/fbr-payload-field" target="_blank" style="font-size:12px;font-weight:700;">Open FBR Payload Field</a>
                 </div>
                 <div id="fbr_payload_fields_grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;">
                     <div style="color:#64748b;font-size:13px;">Loading payload fields from scenario JSON...</div>
@@ -176,7 +177,9 @@ bench restart</pre>
                             ${names
                                 .map(
                                     (fieldname) =>
-                                        `<a href="/app/fbr-payload-field/${encodeURIComponent(
+                                        `<a data-fbr-route="fbr-payload-field/${encodeURIComponent(
+                                            fieldname
+                                        )}" href="/app/fbr-payload-field/${encodeURIComponent(
                                             fieldname
                                         )}" target="_blank" title="${section}" style="font-size:12px;background:#fff;border:1px solid #cbd5e1;color:#0f172a;border-radius:999px;padding:3px 8px;text-decoration:none;">${frappe.utils.escape_html(
                                             fieldname
