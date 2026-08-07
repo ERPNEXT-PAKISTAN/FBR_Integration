@@ -231,10 +231,12 @@ fbr_integration.pos.patch = function () {
 	return true;
 };
 
-frappe.ready(function () {
+// Desk pages do not provide frappe.ready (website-only). Page JS is evaluated
+// on load; retry until the POS bundle defines erpnext.PointOfSale.
+(function () {
 	const try_patch = () => {
 		if (fbr_integration.pos.patch()) return;
 		setTimeout(try_patch, 300);
 	};
 	try_patch();
-});
+})();
