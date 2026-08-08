@@ -10,7 +10,7 @@ from datetime import date
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from frappe.utils import getdate
+from frappe.utils import cstr, getdate
 
 from fbr_integration.item_tax_templates import (
 	_create_tax_account,
@@ -68,6 +68,38 @@ def _resolve_or_create_account(company: str, account_name: str) -> str:
 	return _create_tax_account(company, account_name)
 
 
+def _ensure_rate_covers_today(doc, rate_row: dict, group_name: str) -> bool:
+	"""Extend or insert a rate so today's posting date matches this group.
+
+	ERPNext matches rates by (from_date..to_date) AND tax_withholding_group.
+	Expired windows surface as: "No Tax Withholding data found for the current posting date."
+	"""
+	today = getdate()
+	expected_group = rate_row.get("tax_withholding_group")
+	group_rates = [
+		row
+		for row in (doc.rates or [])
+		if (expected_group is None) or (cstr(row.tax_withholding_group) == cstr(expected_group))
+	]
+
+	for row in group_rates:
+		if getdate(row.from_date) <= today <= getdate(row.to_date):
+			return False
+
+	if group_rates:
+		# Extend the latest window forward (avoids overlapping rate rows).
+		last = max(group_rates, key=lambda r: getdate(r.to_date))
+		if getdate(last.to_date) < today:
+			last.to_date = rate_row["to_date"]
+			last.tax_withholding_rate = rate_row["tax_withholding_rate"]
+			if expected_group is not None and not last.tax_withholding_group:
+				last.tax_withholding_group = expected_group
+			return True
+
+	doc.append("rates", rate_row)
+	return True
+
+
 def _ensure_category(
 	*,
 	name: str,
@@ -107,9 +139,8 @@ def _ensure_category(
 			if row["company"] not in existing_companies:
 				doc.append("accounts", row)
 				changed = True
-		# Only seed a rate when the category has none — never overlap date windows.
-		if not (doc.rates or []):
-			doc.append("rates", rate_row)
+		# Seed or refresh rate windows so apply_tds works for the current posting date.
+		if _ensure_rate_covers_today(doc, rate_row, group_name):
 			changed = True
 		if changed:
 			doc.flags.ignore_permissions = True

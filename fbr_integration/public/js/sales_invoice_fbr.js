@@ -13,16 +13,18 @@ function get_fbr_invoice_settings(force) {
     if (!force && __fbr_invoice_settings_promise) {
         return __fbr_invoice_settings_promise;
     }
-    __fbr_invoice_settings_promise = frappe
-        .call({
+    // Wrap frappe.call — its thenable may lack Promise.finally on desk.
+    __fbr_invoice_settings_promise = Promise.resolve(
+        frappe.call({
             method: "frappe.client.get_value",
             args: {
                 doctype: "FBR Invoice Settings",
                 fieldname: ["integration_type", "enabled"],
             },
         })
+    )
         .then((r) => {
-            __fbr_invoice_settings = r.message || {};
+            __fbr_invoice_settings = (r && r.message) || {};
             return __fbr_invoice_settings;
         })
         .finally(() => {
