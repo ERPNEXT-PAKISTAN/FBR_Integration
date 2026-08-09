@@ -49,6 +49,7 @@ doc_events = {
 # Sales Invoice UI: live tax + send button + QR/barcode rendering
 doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice_fbr.js",
+	"FBR Invoice Settings": "public/js/fbr_invoice_settings.js",
 	"FBR Payload Field Mapping": [
 		"public/js/fbr_payload_field_mapping.js",
 		"public/js/fbr_payload_reference.js",

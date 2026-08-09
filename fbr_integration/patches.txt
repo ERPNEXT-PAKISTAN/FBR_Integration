@@ -13,3 +13,4 @@ fbr_integration.patches.remove_sales_invoice_update_stock_default
 fbr_integration.patches.narrow_allow_on_submit_to_fbr_fields
 fbr_integration.patches.sync_withholding_and_stw_mapping
 fbr_integration.patches.fix_invoice_ref_no_mapping
+fbr_integration.patches.add_multi_pos_credentials

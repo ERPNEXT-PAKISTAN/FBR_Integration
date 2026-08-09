@@ -15,6 +15,9 @@
   "auto_send_pos_on_submit",
   "column_break_autosend",
   "auto_send_on_submit",
+  "section_break_pos_credentials",
+  "pos_credentials",
+  "import_pos_credentials_html",
   "section_break_xdzu",
   "sandbox_api_url",
   "sandbox_security_token",
@@ -99,13 +102,31 @@
    "fieldname": "production_security_token",
    "fieldtype": "Password",
    "label": "Production Security Token"
+  },
+  {
+   "fieldname": "section_break_pos_credentials",
+   "fieldtype": "Section Break",
+   "label": "POS Credentials",
+   "description": "Each POS Profile can have its own FBR POS ID and security tokens. Desk POS and X POS invoices use the row matching Sales Invoice \u2192 POS Profile. If no row matches, the default Sandbox/Production tokens above are used."
+  },
+  {
+   "fieldname": "pos_credentials",
+   "fieldtype": "Table",
+   "label": "POS Credentials",
+   "options": "FBR POS Credential"
+  },
+  {
+   "fieldname": "import_pos_credentials_html",
+   "fieldtype": "HTML",
+   "label": "Import Help",
+   "options": "<p class='text-muted'>Tip: For X POS, leave X POS Profile FBR Integration disabled if you use this Digital Invoice app, to avoid double fiscalization. Map each POS Profile here with its unique FBR POS ID and token.</p>"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-02-23 11:46:44.075960",
+ "modified": "2026-08-09 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "FBR Integration",
  "name": "FBR Invoice Settings",

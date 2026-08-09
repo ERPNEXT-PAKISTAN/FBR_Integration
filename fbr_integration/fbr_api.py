@@ -115,8 +115,43 @@ def get_fbr_setting_password(settings, fieldname):
 	return normalize_fbr_token(value or getattr(settings, fieldname, ""))
 
 
-def get_fbr_connection_settings(settings):
-	"""Resolve endpoint/token for the active FBR environment."""
+def get_pos_credential_row(settings, pos_profile=None):
+	"""Return the enabled POS credential row for a POS Profile, if configured."""
+	pos_profile = safe_str(pos_profile).strip()
+	if not pos_profile:
+		return None
+	for row in settings.get("pos_credentials") or []:
+		if not cint(getattr(row, "enabled", 1)):
+			continue
+		if safe_str(row.pos_profile).strip() == pos_profile:
+			return row
+	return None
+
+
+def get_pos_row_password(row, fieldname):
+	"""Decrypt Password values stored on FBR POS Credential child rows."""
+	if not row or not getattr(row, "name", None):
+		return ""
+	try:
+		from frappe.utils.password import get_decrypted_password
+
+		value = get_decrypted_password(
+			"FBR POS Credential", row.name, fieldname=fieldname, raise_exception=False
+		)
+	except Exception:
+		value = None
+	if not value:
+		value = getattr(row, fieldname, None)
+	return normalize_fbr_token(value)
+
+
+def get_fbr_connection_settings(settings, pos_profile=None):
+	"""Resolve endpoint/token/(optional POS ID) for the active FBR environment.
+
+	When ``pos_profile`` matches an enabled row in POS Credentials, that row's
+	token / URL override / FBR POS ID are used. Otherwise fall back to the
+	site-wide Sandbox/Production settings.
+	"""
 	integration_type = safe_str(settings.integration_type).strip()
 	is_sandbox = integration_type == "Sandbox"
 
@@ -127,7 +162,22 @@ def get_fbr_connection_settings(settings):
 		api_url = safe_str(settings.production_api_url).strip()
 		token = get_fbr_setting_password(settings, "production_security_token")
 
-	return integration_type, is_sandbox, api_url, token
+	fbr_pos_id = ""
+	row = get_pos_credential_row(settings, pos_profile)
+	if row:
+		fbr_pos_id = safe_str(row.fbr_pos_id).strip()
+		if is_sandbox:
+			row_token = get_pos_row_password(row, "sandbox_security_token")
+			row_url = safe_str(row.sandbox_api_url).strip()
+		else:
+			row_token = get_pos_row_password(row, "production_security_token")
+			row_url = safe_str(row.production_api_url).strip()
+		if row_token:
+			token = row_token
+		if row_url:
+			api_url = row_url
+
+	return integration_type, is_sandbox, api_url, token, fbr_pos_id
 
 
 def tokens_match(settings):
@@ -478,7 +528,7 @@ def send_to_fbr_si(name: str):
 
 	# Enforce submission requirement in Production mode
 	settings = frappe.get_single("FBR Invoice Settings")
-	_, is_sandbox, _, _ = get_fbr_connection_settings(settings)
+	_, is_sandbox, _, _, _ = get_fbr_connection_settings(settings, getattr(doc, 'pos_profile', None))
 	if not is_sandbox and doc.docstatus != 1:
 		frappe.throw(
 			"Invoice must be submitted before sending to FBR in Production mode.",
@@ -500,7 +550,10 @@ def send_invoice_to_fbr(doc, method=None):
 	if not settings.enabled:
 		frappe.throw("FBR Integration Disabled")
 
-	integration_type, is_sandbox, api_url, token = get_fbr_connection_settings(settings)
+	pos_profile = safe_str(getattr(doc, 'pos_profile', '')).strip()
+	integration_type, is_sandbox, api_url, token, fbr_pos_id = get_fbr_connection_settings(
+		settings, pos_profile=pos_profile
+	)
 
 	if not api_url:
 		frappe.throw("FBR API URL missing in settings")
@@ -805,6 +858,9 @@ def send_invoice_to_fbr(doc, method=None):
 	if hasattr(doc, "custom_fbr_integration_type"):
 		doc.custom_fbr_integration_type = integration_type
 
+	if fbr_pos_id and hasattr(doc, "custom_fbr_pos_id"):
+		doc.custom_fbr_pos_id = fbr_pos_id
+
 	if hasattr(doc, "custom_fbr_invoice_status"):
 		doc.custom_fbr_invoice_status = status
 	if hasattr(doc, "custom_fbr_invoice_status_code"):
@@ -926,6 +982,10 @@ def after_submit_invoice(doc, method=None):
 	if (getattr(doc, "custom_fbr_invoice_no", None) or "").strip():
 		return
 
+	# X POS built-in FBR (IMS) already fiscalized — do not double-send to DI API.
+	if (getattr(doc, "fbr_invoice_number", None) or "").strip():
+		return
+
 	try:
 		send_invoice_to_fbr(doc)
 	except Exception:
@@ -939,3 +999,92 @@ def after_submit_invoice(doc, method=None):
 			indicator="orange",
 			alert=True,
 		)
+
+
+@frappe.whitelist()
+def import_pos_credentials_from_profiles():
+	"""Import FBR POS ID / token rows from POS Profiles that have X POS FBR fields.
+
+	Useful when migrating from X POS per-profile FBR settings into FBR Invoice Settings.
+	Does not overwrite existing POS Credential rows for the same POS Profile.
+	"""
+	frappe.only_for("System Manager")
+	if not frappe.db.exists("DocType", "POS Profile"):
+		frappe.throw("POS Profile DocType not found")
+
+	settings = frappe.get_single("FBR Invoice Settings")
+	existing = {
+		safe_str(row.pos_profile).strip()
+		for row in (settings.get("pos_credentials") or [])
+		if safe_str(row.pos_profile).strip()
+	}
+
+	profiles = frappe.get_all(
+		"POS Profile",
+		filters={"disabled": 0},
+		fields=["name", "enable_fbr_integration", "fbr_pos_id", "fbr_environment", "fbr_api_url"],
+	)
+	# enable_fbr_integration / fbr_* may be missing if xpos not installed
+	added = 0
+	for profile in profiles:
+		name = safe_str(profile.name).strip()
+		if not name or name in existing:
+			continue
+		# Prefer profiles with xpos FBR enabled; otherwise skip empty IDs
+		pos_id = ""
+		try:
+			pos_id = safe_str(frappe.db.get_value("POS Profile", name, "fbr_pos_id")).strip()
+		except Exception:
+			pos_id = ""
+		if not pos_id:
+			continue
+		enabled = 0
+		try:
+			enabled = cint(frappe.db.get_value("POS Profile", name, "enable_fbr_integration"))
+		except Exception:
+			enabled = 0
+
+		row = settings.append(
+			"pos_credentials",
+			{
+				"enabled": 1 if enabled else 0,
+				"pos_profile": name,
+				"fbr_pos_id": pos_id,
+			},
+		)
+		# Copy bearer token into the environment matching profile/settings
+		token = ""
+		try:
+			token = normalize_fbr_token(
+				frappe.get_doc("POS Profile", name).get_password("fbr_bearer_token") or ""
+			)
+		except Exception:
+			token = ""
+		env = ""
+		try:
+			env = safe_str(frappe.db.get_value("POS Profile", name, "fbr_environment")).strip()
+		except Exception:
+			env = ""
+		api_url = ""
+		try:
+			api_url = safe_str(frappe.db.get_value("POS Profile", name, "fbr_api_url")).strip()
+		except Exception:
+			api_url = ""
+
+		use_sandbox = (env or settings.integration_type or "").strip().lower() != "production"
+		if token:
+			if use_sandbox:
+				row.sandbox_security_token = token
+				if api_url:
+					row.sandbox_api_url = api_url
+			else:
+				row.production_security_token = token
+				if api_url:
+					row.production_api_url = api_url
+		added += 1
+		existing.add(name)
+
+	if added:
+		settings.flags.ignore_permissions = True
+		settings.save(ignore_permissions=True)
+	return {"added": added, "total_rows": len(settings.get("pos_credentials") or [])}
