@@ -82,20 +82,80 @@ ERPNext `is_return` maps to FBR as follows (DI API):
 
 Do **not** put the ERP Sales Invoice name in `invoiceRefNo` — FBR errors `0026` / `0057` mean the reference is missing or not a real FBR invoice number.
 
-### POS → FBR
+### POS → FBR (Digital Invoice)
 
-This site’s POS Settings create **Sales Invoice** (`is_pos`). **Each POS order = one SI = one FBR send.**
+Desk POS and **X POS** create **Sales Invoice** (`is_pos` + `pos_profile`). **Each POS order = one SI = one FBR DI send.**
 
-1. Complete order → SI submit (`is_pos` on) → auto-send when settings allow
-2. POS screen shows an FBR dialog (invoice no + QR) and a summary card with **FBR Details** / **Send to FBR**
-3. Failures never block checkout; retry from the POS summary card
+1. Complete order → SI submit → auto-send when **FBR Invoice Settings** allow
+2. Desk POS shows an FBR dialog (invoice no + QR) and a summary card with **FBR Details** / **Send to FBR**
+3. Failures never block checkout; retry from the POS summary / Sales Invoice **Send to FBR**
 4. Optional: **Auto Send All Sales Invoices on Submit** for non-POS invoices
 
-### FBR Invoice Settings
+### Two different FBR setting places (do not confuse)
 
-- Enable integration and choose Sandbox or Production
-- Set API URL + security token
-- **SSL Applied**: when checked, HTTPS certificate verification is enabled for FBR calls
+| Location | App | Purpose | Turn ON for DI? |
+| --- | --- | --- | --- |
+| **FBR Invoice Settings** (+ POS Credentials) | `fbr_integration` | FBR **Digital Invoice** (DI) API — `custom_fbr_invoice_no` | **Yes** |
+| **POS Profile → FBR / POS Settings tab** (`enable_fbr_integration`, `fbr_pos_id`, token, …) | `xpos` | X POS built-in **IMS** fiscalization — `fbr_invoice_number` | **No** (keep OFF when using this DI app) |
+
+Using **both ON** at once is not recommended: X POS may fiscalize with the old IMS API first, and DI auto-send is skipped when `fbr_invoice_number` is already set.
+
+### FBR Invoice Settings (required for DI)
+
+Path: **FBR Pakistan → FBR Invoice Settings** (or search *FBR Invoice Settings*).
+
+**A) Company / default settings (always configure and keep Enabled ON)**
+
+| Field | Meaning |
+| --- | --- |
+| **Enabled** | Master switch for DI integration |
+| **Integration Type** | `Sandbox` or `Production` |
+| **Sandbox / Production API URL** | DI endpoint for that environment |
+| **Sandbox / Production Security Token** | Default Bearer token (fallback when a POS has no credential row) |
+| **SSL Applied** | When checked, HTTPS certificate verification is on |
+| **Auto Send POS Invoices on Submit** | ON = auto-send after POS SI submit (desk POS + X POS) |
+| **Auto Send All Sales Invoices on Submit** | Optional for non-POS invoices |
+
+**B) POS Credentials table (required when you have more than one POS)**
+
+Each physical / logical POS needs its **own** FBR registration ID and usually its own token. Add one row per **POS Profile**:
+
+| Column | Meaning |
+| --- | --- |
+| **Enabled** | ON for that POS |
+| **POS Profile** | ERPNext / X POS profile name (e.g. `Model Town`, `Branch 2`) — must match invoice `pos_profile` |
+| **FBR POS ID** | Unique FBR POS Registration / POS ID for that terminal |
+| **Sandbox Security Token** | Token for this POS in Sandbox |
+| **Production Security Token** | Token for this POS in Production |
+| **Sandbox / Production API URL** | Optional overrides; blank = use company default URLs above |
+
+Resolution on send:
+
+1. Read `Sales Invoice.pos_profile`
+2. If an **enabled** POS Credentials row matches → use that row’s POS ID + token (+ URL if set)
+3. Else → fall back to company default token/URL
+4. Store used POS ID on the invoice in **FBR POS ID** (`custom_fbr_pos_id`)
+
+Button **Import from POS Profiles** (System Manager): copies `fbr_pos_id` / bearer token from X POS Profile fields into this table (does not overwrite existing rows). After import, turn **OFF** `enable_fbr_integration` on those POS Profiles if you use DI only.
+
+### POS Profile FBR tab (X POS only — optional / separate)
+
+On **POS Profile**, X POS adds fields such as:
+
+| Field | Meaning |
+| --- | --- |
+| `enable_fbr_integration` | Enables X POS’s own FBR send (IMS API), not this DI app |
+| `fbr_environment` | Sandbox / Production for X POS IMS |
+| `fbr_pos_id` | POS ID sent as `POSID` in X POS IMS payload |
+| `fbr_bearer_token` | Token for X POS IMS API |
+| `fbr_api_url` / `fbr_local_service_url` | Cloud / local fiscal service URLs |
+
+**Recommended setup for Digital Invoice + multi POS**
+
+1. **FBR Invoice Settings**: Enabled ON, URLs + default token set, Auto Send POS ON  
+2. **POS Credentials**: one enabled row per POS Profile (`Model Town`, …) with unique **FBR POS ID** + tokens  
+3. **POS Profile** `enable_fbr_integration`: **OFF** for every profile used with DI  
+4. Ensure each sale’s invoice has the correct **POS Profile** name so the matching credential row is selected  
 
 ### Scenario Files
 
