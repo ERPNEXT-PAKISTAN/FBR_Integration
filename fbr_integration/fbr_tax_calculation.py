@@ -361,7 +361,24 @@ def _allocate_invoice_withholding_to_items(doc):
 			item.custom_sales_tax_withheld_rate = round((share / amt) * 100, 6) if amt else 0
 
 
+
+def sync_item_apply_tds_with_parent(doc, method=None):
+	"""Keep item Consider for Tax Withholding aligned with the invoice checkbox.
+
+	- Parent unchecked → every item row unchecked (no per-line WHT).
+	- Parent checked → leave item flags as set in the UI (user may uncheck
+	  specific lines). New rows default from client to match parent.
+	"""
+	parent_on = bool(cint(getattr(doc, "apply_tds", 0)))
+	if parent_on:
+		return
+	for item in doc.get("items") or []:
+		if cint(getattr(item, "apply_tds", 0)):
+			item.apply_tds = 0
+
+
 def calculate_fbr_tax(doc, method=None):
+	sync_item_apply_tds_with_parent(doc)
 	invoice_withheld = 0.0
 
 	for item in doc.items:

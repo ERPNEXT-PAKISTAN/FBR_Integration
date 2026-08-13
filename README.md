@@ -77,12 +77,13 @@ Do **not** reinstall `fbr_e_invoicing`. Use only `fbr_integration`.
 
 ### Sales Tax Withheld at Source
 
-- Optional via **Consider for Tax Withholding** (`apply_tds`) on:
-  - **Sales Invoice** (parent) — master switch; off = no WHT / no FBR ST withheld auto-charge
-  - **Sales Invoice Item** (child) — per-line switch (now editable); off = skip that line
-- Parent is auto-checked on new invoices when Customer has Tax Withholding Category/Group (ERPNext core). Uncheck to skip WHT on that invoice.
+- Optional via **Consider for Tax Withholding** (`apply_tds`):
+  - **Sales Invoice** (parent) is the main control: check/uncheck updates **all item rows**
+  - After parent is checked, uncheck only the item rows you want to exclude
+  - Parent unchecked → all item rows forced unchecked (client + server)
+- Parent is auto-checked on new invoices when Customer has Tax Withholding Category/Group (ERPNext core). Uncheck parent to skip WHT on that invoice.
 - When parent + item are checked: category rate and/or `tax_withholding_entries` fill item `ST Withheld at Source`
-- When either is unchecked: that line’s FBR ST withheld fields stay / clear to zero
+- When either is unchecked: that line’s FBR ST withheld is cleared
 - Item fields map to FBR `salesTaxWithheldAtSource`
 - Install/migrate seeds Tax Withholding Groups/Categories and Chart of Accounts
 

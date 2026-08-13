@@ -1338,6 +1338,16 @@ async function show_success_popup_with_qr_barcode(frm) {
     }, 200);
 }
 
+
+function sync_item_apply_tds_from_parent(frm) {
+	const checked = cint(frm.doc.apply_tds) ? 1 : 0;
+	(frm.doc.items || []).forEach((row) => {
+		if (cint(row.apply_tds) === checked) return;
+		frappe.model.set_value(row.doctype, row.name, "apply_tds", checked);
+	});
+	frm.refresh_field("items");
+}
+
 frappe.ui.form.on("Sales Invoice", {
     async setup(frm) {
         if (frm.is_new()) {
@@ -1347,6 +1357,19 @@ frappe.ui.form.on("Sales Invoice", {
         }
         bind_item_scenario_detail_preview(frm);
     },
+
+    apply_tds(frm) {
+        // Parent Consider for Tax Withholding drives all item rows.
+        sync_item_apply_tds_from_parent(frm);
+        frm.clear_table("tax_withholding_entries");
+        frm.refresh_field("tax_withholding_entries");
+    },
+
+    customer(frm) {
+        // ERPNext may set apply_tds from Customer without triggering apply_tds().
+        setTimeout(() => sync_item_apply_tds_from_parent(frm), 400);
+    },
+
 
     async is_return(frm) {
         await ensure_return_credit_note(frm, { notify: true });
@@ -1411,6 +1434,9 @@ frappe.ui.form.on("Sales Invoice", {
     },
 
     refresh(frm) {
+        if (frm.doc.docstatus === 0 && !cint(frm.doc.apply_tds)) {
+            sync_item_apply_tds_from_parent(frm);
+        }
         sync_qr_field_on_form(frm);
         sync_return_source_invoice_no(frm);
         render_qr_preview(frm);
@@ -1537,3 +1563,11 @@ frappe.ui.form.on("Sales Invoice Item", {
         await apply_fbr_item_tax_template(frm, cdt, cdn, { notify: false });
     },
 });
+
+frappe.ui.form.on("Sales Invoice Item", {
+    items_add(frm, cdt, cdn) {
+        // New rows follow parent Consider for Tax Withholding.
+        frappe.model.set_value(cdt, cdn, "apply_tds", cint(frm.doc.apply_tds) ? 1 : 0);
+    },
+});
+
