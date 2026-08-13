@@ -61,6 +61,20 @@ CI runs a matrix against Frappe/ERPNext **version-15** and **version-16**.
 
 Public verification: `/fbr_verify?invoice=<FBR Invoice No>` looks up Sales Invoice by `custom_fbr_invoice_no`.
 
+### Old app ``fbr_e_invoicing`` (removed)
+
+This site previously used **`fbr_e_invoicing`**. That app is **uninstalled and not on disk**.
+Its patch `setup_pakistan_tax_accounts_and_item_templates` created ~40 regional
+Sales/Purchases Service Tax Item Tax Templates.
+
+**Current `fbr_integration` does not create those.** It only syncs **SN001–SN028**
+scenario Item Tax Templates. Migrate patches:
+
+- `cleanup_legacy_item_tax_templates` — delete/disable non-SN leftovers
+- `purge_fbr_e_invoicing_remnants` — clear Patch Log / desktop icons / modules from the old app
+
+Do **not** reinstall `fbr_e_invoicing`. Use only `fbr_integration`.
+
 ### Sales Tax Withheld at Source
 
 - Uses core Sales Invoice **Consider for Tax Withholding** (`apply_tds`):

@@ -16,3 +16,4 @@ fbr_integration.patches.fix_invoice_ref_no_mapping
 fbr_integration.patches.add_multi_pos_credentials
 fbr_integration.patches.cleanup_legacy_item_tax_templates
 fbr_integration.patches.restore_referenced_invoice_no
+fbr_integration.patches.purge_fbr_e_invoicing_remnants
