@@ -21,6 +21,16 @@ from fbr_integration.fbr_tax_calculation import (  # noqa: E402
 
 
 class TestWithholdingHelpers(unittest.TestCase):
+
+	def test_item_apply_tds_gate(self):
+		item_on = types.SimpleNamespace(apply_tds=1, tax_withholding_category="")
+		item_off = types.SimpleNamespace(apply_tds=0, tax_withholding_category="")
+		doc_on = types.SimpleNamespace(apply_tds=1, customer="C1")
+		doc_off = types.SimpleNamespace(apply_tds=0, customer="C1")
+		self.assertTrue(_item_considers_tax_withholding(doc_on, item_on))
+		self.assertFalse(_item_considers_tax_withholding(doc_on, item_off))
+		self.assertFalse(_item_considers_tax_withholding(doc_off, item_on))
+
 	def test_apply_tds_gates_auto_rate(self):
 		item = types.SimpleNamespace(
 			custom_sales_tax_withheld_rate=0,

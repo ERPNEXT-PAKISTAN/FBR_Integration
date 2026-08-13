@@ -265,19 +265,34 @@ def _invoice_considers_tax_withholding(doc) -> bool:
 	return bool(cint(getattr(doc, "apply_tds", 0)))
 
 
+def _item_considers_tax_withholding(doc, item) -> bool:
+	"""Parent + child Consider for Tax Withholding must both allow the line.
+
+	- Invoice.apply_tds off → no auto withholding on any line.
+	- Item.apply_tds off → skip that line (when the child checkbox is used).
+	- Missing item.apply_tds (older rows) → treat as on when invoice is on.
+	"""
+	if not _invoice_considers_tax_withholding(doc):
+		return False
+	if hasattr(item, "apply_tds"):
+		return bool(cint(getattr(item, "apply_tds", 1)))
+	return True
+
+
 def _default_st_withheld_rate(doc, item) -> float:
 	"""Rate for FBR salesTaxWithheldAtSource.
 
-	- Always respects a rate typed on the item row.
-	- Auto rate from Customer/Item Tax Withholding Category only when
-	  Sales Invoice.apply_tds (Consider for Tax Withholding) is checked.
+	- Manual rate typed on the item row is kept only when withholding is allowed
+	  for that line (invoice + item Consider for Tax Withholding).
+	- Auto rate from Customer/Item Tax Withholding Category only when both
+	  Sales Invoice.apply_tds and item.apply_tds are checked.
 	"""
+	if not _item_considers_tax_withholding(doc, item):
+		return 0
+
 	existing = float(getattr(item, "custom_sales_tax_withheld_rate", None) or 0)
 	if existing:
 		return existing
-
-	if not _invoice_considers_tax_withholding(doc):
-		return 0
 
 	item_cat = getattr(item, "tax_withholding_category", None) or ""
 	rate = _rate_from_withholding_category(item_cat)
@@ -323,7 +338,11 @@ def _allocate_invoice_withholding_to_items(doc):
 	if wh_total <= 0:
 		return
 
-	items = [i for i in (doc.items or []) if float(getattr(i, "amount", None) or 0) > 0]
+	items = [
+		i
+		for i in (doc.items or [])
+		if float(getattr(i, "amount", None) or 0) > 0 and _item_considers_tax_withholding(doc, i)
+	]
 	if not items:
 		return
 
@@ -374,8 +393,15 @@ def calculate_fbr_tax(doc, method=None):
 		item.custom_tax_inclusive_amount = amount
 
 		withheld_rate = _default_st_withheld_rate(doc, item)
-		item.custom_sales_tax_withheld_rate = withheld_rate
-		item.custom_sales_tax_withheld_at_source = (amount * withheld_rate) / 100 if withheld_rate else 0
+		# If Consider for Tax Withholding is off (invoice or row), clear FBR withheld fields.
+		if not _item_considers_tax_withholding(doc, item):
+			item.custom_sales_tax_withheld_rate = 0
+			item.custom_sales_tax_withheld_at_source = 0
+		else:
+			item.custom_sales_tax_withheld_rate = withheld_rate
+			item.custom_sales_tax_withheld_at_source = (
+				(amount * withheld_rate) / 100 if withheld_rate else 0
+			)
 
 		if not item.item_tax_template:
 			invoice_withheld += float(item.custom_sales_tax_withheld_at_source or 0)
