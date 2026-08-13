@@ -323,14 +323,34 @@ def _company_currency(company):
 	)
 
 
+def _existing_company(name):
+	"""Return company name only if the Company document still exists."""
+	name = (name or "").strip()
+	if name and frappe.db.exists("Company", name):
+		return name
+	return None
+
+
 def _first_company(company=None):
-	if company:
-		return company
-	return (
-		frappe.defaults.get_user_default("Company")
-		or frappe.db.get_single_value("Global Defaults", "default_company")
-		or frappe.get_all("Company", pluck="name", limit=1)[0]
-	)
+	"""Resolve company for KPI/dashboard APIs.
+
+	Stale user defaults (deleted companies) previously made fiscal-year KPIs
+	return all zeros on the FBR workspace.
+	"""
+	for candidate in (
+		company,
+		frappe.defaults.get_user_default("Company"),
+		frappe.db.get_single_value("Global Defaults", "default_company"),
+		frappe.db.get_default("company"),
+	):
+		resolved = _existing_company(candidate)
+		if resolved:
+			return resolved
+
+	companies = frappe.get_all("Company", pluck="name", limit=1)
+	if not companies:
+		frappe.throw("No Company found. Please create a Company first.")
+	return companies[0]
 
 
 def _income_expense_summary(company, from_date, to_date):
