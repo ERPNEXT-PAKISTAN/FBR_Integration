@@ -569,11 +569,19 @@ def send_invoice_to_fbr(doc, method=None):
 		seller_province = addr.state or ""
 
 	buyer_address = ""
-	buyer_province = ""
 	if doc.customer_address:
 		addr = frappe.get_doc("Address", doc.customer_address)
 		buyer_address = f"{addr.address_line1}, {addr.city}"
-		buyer_province = addr.state or ""
+
+	# FBR buyerProvince: Sales Invoice Territory (synced from Buyer Province names).
+	buyer_province = (
+		safe_str(getattr(doc, "territory", "")).strip()
+		or safe_str(getattr(doc, "custom_buyer_province", "")).strip()
+	)
+	if not buyer_province and doc.customer_address:
+		buyer_province = safe_str(
+			frappe.db.get_value("Address", doc.customer_address, "state")
+		).strip()
 
 	is_return_invoice = cint(getattr(doc, "is_return", 0)) == 1
 	if is_return_invoice:

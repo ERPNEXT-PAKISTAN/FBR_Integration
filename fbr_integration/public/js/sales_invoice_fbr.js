@@ -1370,6 +1370,25 @@ frappe.ui.form.on("Sales Invoice", {
         setTimeout(() => sync_item_apply_tds_from_parent(frm), 400);
     },
 
+    custom_buyer_province(frm) {
+        // FBR buyerProvince is sent from Territory — keep it aligned with Buyer Province.
+        const province = (frm.doc.custom_buyer_province || "").trim();
+        if (province && frm.doc.territory !== province) {
+            frm.set_value("territory", province);
+        }
+    },
+
+    territory(frm) {
+        const territory = (frm.doc.territory || "").trim();
+        if (!territory || frm.doc.custom_buyer_province) {
+            return;
+        }
+        frappe.db.exists("Buyer Province", territory).then((exists) => {
+            if (exists) {
+                frm.set_value("custom_buyer_province", territory);
+            }
+        });
+    },
 
     async is_return(frm) {
         await ensure_return_credit_note(frm, { notify: true });

@@ -105,10 +105,13 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 	{
 		"payload_section": "Header",
 		"payload_field": "buyerProvince",
-		"source_doctype": "Address",
-		"source_field": "state",
+		"source_doctype": "Sales Invoice",
+		"source_field": "territory",
 		"transform": "FBR Text",
-		"description": "Current: Customer Address → State. If mapped to Address, app reads the invoice customer_address record.",
+		"description": (
+			"Sales Invoice → Territory (province names synced from Buyer Province). "
+			"Fallback: custom_buyer_province, then customer Address state."
+		),
 	},
 	{
 		"payload_section": "Header",

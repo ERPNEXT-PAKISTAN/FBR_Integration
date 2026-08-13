@@ -18,3 +18,4 @@ fbr_integration.patches.cleanup_legacy_item_tax_templates
 fbr_integration.patches.restore_referenced_invoice_no
 fbr_integration.patches.purge_fbr_e_invoicing_remnants
 fbr_integration.patches.make_item_apply_tds_editable
+fbr_integration.patches.sync_territories_from_buyer_provinces
