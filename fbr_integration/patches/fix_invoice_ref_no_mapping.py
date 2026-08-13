@@ -30,7 +30,6 @@ def execute():
 			update_modified=False,
 		)
 
-	# Disable legacy non-API fields if present
-	for payload_field in ("referencedInvoiceNo", "sourceInvoiceNo"):
-		for name in frappe.get_all(detail_dt, filters={"payload_field": payload_field}, pluck="name"):
-			frappe.db.set_value(detail_dt, name, "enabled", 0, update_modified=False)
+	# Disable unused legacy alias only; keep referencedInvoiceNo (ERP voucher number).
+	for name in frappe.get_all(detail_dt, filters={"payload_field": "sourceInvoiceNo"}, pluck="name"):
+		frappe.db.set_value(detail_dt, name, "enabled", 0, update_modified=False)

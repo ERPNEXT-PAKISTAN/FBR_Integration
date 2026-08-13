@@ -112,6 +112,17 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 	},
 	{
 		"payload_section": "Header",
+		"payload_field": "referencedInvoiceNo",
+		"source_doctype": "Sales Invoice",
+		"source_field": "name",
+		"transform": "Text",
+		"description": (
+			"ERPNext Sales Invoice / voucher number for local traceability. "
+			"Not the FBR invoiceRefNo (that must be the original FBR DI number on returns)."
+		),
+	},
+	{
+		"payload_section": "Header",
 		"payload_field": "invoiceRefNo",
 		"source_doctype": "Sales Invoice",
 		"source_field": "custom_fbr_source_invoice_no",

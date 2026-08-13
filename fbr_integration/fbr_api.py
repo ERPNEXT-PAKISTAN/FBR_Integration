@@ -747,6 +747,10 @@ def send_invoice_to_fbr(doc, method=None):
 		"buyerProvince": resolve_payload_value("buyerProvince", safe_fbr_text(buyer_province), doc),
 		# FBR official reference field (empty on Sale Invoice; original FBR no on Credit/Debit Note)
 		"invoiceRefNo": resolve_payload_value("invoiceRefNo", fbr_invoice_ref_no, doc),
+		# ERPNext Sales Invoice / voucher number (legacy DI field used for local traceability)
+		"referencedInvoiceNo": resolve_payload_value(
+			"referencedInvoiceNo", safe_str(doc.name), doc
+		),
 		"scenarioId": resolve_payload_value("scenarioId", safe_str(doc.custom_scenario_id), doc),
 		"remarks": resolve_payload_value("remarks", safe_fbr_text(getattr(doc, "remarks", "")), doc),
 		"buyerRegistrationType": resolve_payload_value(
@@ -771,9 +775,13 @@ def send_invoice_to_fbr(doc, method=None):
 		if safe_str(payload.get("invoiceRefNo")).strip() == safe_str(doc.name).strip():
 			payload["invoiceRefNo"] = ""
 
-	# Drop non-API legacy keys if a custom mapping reintroduced them.
-	payload.pop("referencedInvoiceNo", None)
+	# Keep referencedInvoiceNo (ERP voucher). Drop only unused legacy alias.
 	payload.pop("sourceInvoiceNo", None)
+
+	# Always send ERPNext voucher number in referencedInvoiceNo (do not let mappings blank it).
+	payload["referencedInvoiceNo"] = safe_str(
+		payload.get("referencedInvoiceNo") or getattr(doc, "name", "")
+	).strip()
 
 	# Lightweight logger (avoid flooding Error Log with full payloads)
 	frappe.logger("fbr_integration").info(
