@@ -16,6 +16,7 @@ _frappe.utils = types.SimpleNamespace(
 from fbr_integration.fbr_tax_calculation import (  # noqa: E402
 	_default_st_withheld_rate,
 	_invoice_considers_tax_withholding,
+	_item_considers_tax_withholding,
 	ensure_pos_flag,
 )
 
@@ -42,9 +43,10 @@ class TestWithholdingHelpers(unittest.TestCase):
 		self.assertTrue(_invoice_considers_tax_withholding(doc_on))
 		# Without apply_tds, customer category must not auto-apply.
 		self.assertEqual(_default_st_withheld_rate(doc_off, item), 0)
-		# Manual item rate still wins.
+		# Manual item rate is also ignored while withholding is off.
 		item.custom_sales_tax_withheld_rate = 5
-		self.assertEqual(_default_st_withheld_rate(doc_off, item), 5)
+		self.assertEqual(_default_st_withheld_rate(doc_off, item), 0)
+		self.assertEqual(_default_st_withheld_rate(doc_on, item), 5)
 
 	def test_ensure_pos_flag_from_profile(self):
 		doc = types.SimpleNamespace(
@@ -94,13 +96,18 @@ class TestAutoSendGate(unittest.TestCase):
 			auto_send_pos_on_submit=1,
 			auto_send_on_submit=0,
 		)
-		_frappe.get_single = lambda *a, **k: settings
+		sys.modules["frappe"].get_single = lambda *a, **k: settings
 
 		pos_doc = types.SimpleNamespace(is_pos=1, is_created_using_pos=1)
 		plain_doc = types.SimpleNamespace(is_pos=0, is_created_using_pos=0)
 
 		self.assertTrue(mod._should_auto_send_on_submit(pos_doc))
 		self.assertFalse(mod._should_auto_send_on_submit(plain_doc))
+
+		consolidated = types.SimpleNamespace(
+			is_pos=1, is_created_using_pos=1, is_consolidated=1
+		)
+		self.assertFalse(mod._should_auto_send_on_submit(consolidated))
 
 		settings.auto_send_on_submit = 1
 		self.assertTrue(mod._should_auto_send_on_submit(plain_doc))

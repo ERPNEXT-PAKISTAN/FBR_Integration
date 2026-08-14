@@ -20,5 +20,5 @@ def get_item_tax_template_rates(template_name: str):
 
 
 @frappe.whitelist()
-def resolve_item_tax_template_name(scenario: str | None = None):
-	return _resolve_item_tax_template_name(scenario)
+def resolve_item_tax_template_name(scenario: str | None = None, company: str | None = None):
+	return _resolve_item_tax_template_name(scenario, company=company)

@@ -1,6 +1,12 @@
 import frappe
 from frappe.utils import cint
 
+DEFAULT_INVOICE_TYPE = "Sale Invoice"
+DEFAULT_SCENARIO_DETAIL = "SN001 - Goods at Standard Rate (Registered Buyer)"
+DEFAULT_SCENARIO_ID = "SN001"
+DEFAULT_ITEM_TAX_TEMPLATE_TITLE = "SN001 - 18% Goods at Standard Rate to Registered Buyers"
+FBR_INVOICE_DOCTYPES = ("Sales Invoice", "POS Invoice")
+
 SCENARIO_TEMPLATE_ALIASES = {
 	"all taxes": ["all taxes", "taxable", "gst further extra", "gst+further+extra"],
 	"pakistan tax": ["pakistan tax", "taxable", "gst further extra", "gst+further+extra"],
@@ -23,6 +29,13 @@ SCENARIO_ID_TEMPLATE_ALIASES = {
 
 def _normalize_text(value):
 	return " ".join((value or "").lower().replace("/", " ").replace("-", " ").replace("_", " ").split())
+
+
+def _extract_scenario_id(scenario: str) -> str:
+	text = (scenario or "").strip().upper()
+	if text.startswith("SN") and len(text) >= 5 and text[2:5].isdigit():
+		return text[:5]
+	return ""
 
 
 def _scenario_aliases(scenario: str):
@@ -50,18 +63,131 @@ def _scenario_aliases(scenario: str):
 	return []
 
 
+def is_fbr_invoice_doctype(doc) -> bool:
+	return getattr(doc, "doctype", None) in FBR_INVOICE_DOCTYPES
+
+
 def ensure_pos_flag(doc, method=None):
 	"""Keep Is POS checked when invoice comes from a POS Profile / POS screen."""
-	if doc.doctype != "Sales Invoice":
+	if not is_fbr_invoice_doctype(doc):
 		return
 	if getattr(doc, "pos_profile", None) or int(getattr(doc, "is_created_using_pos", 0) or 0):
 		doc.is_pos = 1
 
 
+def _link_exists(doctype: str, name: str) -> bool:
+	if not doctype or not name:
+		return False
+	try:
+		return bool(frappe.db.exists(doctype, name))
+	except Exception:
+		return False
+
+
+def _resolve_default_scenario_detail() -> str:
+	if _link_exists("Scenario ID", DEFAULT_SCENARIO_DETAIL):
+		return DEFAULT_SCENARIO_DETAIL
+	try:
+		name = frappe.db.get_value("Scenario ID", {"scenario_id": DEFAULT_SCENARIO_ID}, "name")
+		if name:
+			return name
+	except Exception:
+		pass
+	return ""
+
+
+def apply_default_invoice_type_and_scenario(doc, method=None):
+	"""Fill Sale Invoice + SN001 when FBR header fields are empty.
+
+	Desk forms, POS/API inserts, and Send to FBR all need these so FBR
+	does not reject a payload with a blank invoiceType or scenarioId.
+	Returns are left to enforce_return_invoice_type (Credit Note).
+	"""
+	if not is_fbr_invoice_doctype(doc):
+		return
+
+	is_return = cint(getattr(doc, "is_return", 0)) == 1
+	if (
+		not is_return
+		and hasattr(doc, "custom_invoice_type")
+		and not (getattr(doc, "custom_invoice_type", None) or "").strip()
+		and _link_exists("Invoice Type", DEFAULT_INVOICE_TYPE)
+	):
+		doc.custom_invoice_type = DEFAULT_INVOICE_TYPE
+
+	if hasattr(doc, "custom_scenario_detail") and not (
+		getattr(doc, "custom_scenario_detail", None) or ""
+	).strip():
+		scenario_detail = _resolve_default_scenario_detail()
+		if scenario_detail:
+			doc.custom_scenario_detail = scenario_detail
+
+	detail = (getattr(doc, "custom_scenario_detail", None) or "").strip()
+	if hasattr(doc, "custom_scenario_id") and not (
+		getattr(doc, "custom_scenario_id", None) or ""
+	).strip():
+		scenario_id = ""
+		if detail:
+			try:
+				scenario_id = frappe.db.get_value("Scenario ID", detail, "scenario_id") or ""
+			except Exception:
+				scenario_id = ""
+		doc.custom_scenario_id = scenario_id or (DEFAULT_SCENARIO_ID if detail else "")
+
+	apply_scenario_tax_templates_to_items(doc, overwrite=False)
+
+
+def apply_scenario_tax_templates_to_items(doc, overwrite=False):
+	"""Apply the parent scenario's Item Tax Template to invoice items.
+
+	Empty rows get the template. When overwrite=True (parent scenario changed),
+	existing templates are updated too. Fields stay editable.
+	"""
+	scenario = get_effective_invoice_tax_scenario(doc) or DEFAULT_SCENARIO_DETAIL
+	detail = (getattr(doc, "custom_scenario_detail", None) or "").strip()
+	template_name = ""
+	try:
+		template_name = resolve_item_tax_template_name(
+			scenario, company=getattr(doc, "company", None)
+		)
+	except Exception:
+		template_name = ""
+
+	for item in doc.get("items") or []:
+		if detail and hasattr(item, "custom_scenario_detail"):
+			item_detail = (getattr(item, "custom_scenario_detail", None) or "").strip()
+			if overwrite or not item_detail:
+				item.custom_scenario_detail = detail
+
+		if not template_name or not hasattr(item, "item_tax_template"):
+			continue
+		current = (getattr(item, "item_tax_template", None) or "").strip()
+		if overwrite or not current:
+			item.item_tax_template = template_name
+
+
+def persist_fbr_header_defaults(doc):
+	"""Write filled FBR header defaults onto an already-saved invoice."""
+	name = getattr(doc, "name", None)
+	doctype = getattr(doc, "doctype", None)
+	if not name or not doctype or not frappe.db.exists(doctype, name):
+		return
+
+	updates = {}
+	for field in ("custom_invoice_type", "custom_scenario_detail", "custom_scenario_id"):
+		value = (getattr(doc, field, None) or "").strip()
+		if value:
+			updates[field] = value
+	if updates:
+		frappe.db.set_value(doctype, name, updates, update_modified=False)
+
+
 def sync_sales_invoice_master_defaults(doc, method=None):
 	"""Fill FBR fields from Customer/Item masters when invoice/item values are empty."""
-	if doc.doctype != "Sales Invoice":
+	if not is_fbr_invoice_doctype(doc):
 		return
+
+	apply_default_invoice_type_and_scenario(doc)
 
 	if doc.customer:
 		customer_defaults = (
@@ -109,7 +235,7 @@ def sync_return_source_invoice_no(doc, method=None):
 	number, so keep `custom_fbr_source_invoice_no` aligned with the source invoice's
 	`custom_fbr_invoice_no`.
 	"""
-	if doc.doctype != "Sales Invoice":
+	if not is_fbr_invoice_doctype(doc):
 		return
 
 	if not getattr(doc, "is_return", 0):
@@ -122,10 +248,37 @@ def sync_return_source_invoice_no(doc, method=None):
 	if not return_against:
 		return
 
-	source_fbr_no = (
-		frappe.db.get_value("Sales Invoice", return_against, "custom_fbr_invoice_no") or ""
-	).strip()
-	doc.custom_fbr_source_invoice_no = source_fbr_no
+	doc.custom_fbr_source_invoice_no = get_source_fbr_invoice_no(return_against)
+
+
+def get_source_fbr_invoice_no(return_against: str) -> str:
+	"""Look up custom_fbr_invoice_no on Sales Invoice or POS Invoice."""
+	name = (return_against or "").strip()
+	if not name:
+		return ""
+	for doctype in FBR_INVOICE_DOCTYPES:
+		try:
+			if not frappe.db.exists(doctype, name):
+				continue
+			if not frappe.db.has_column(doctype, "custom_fbr_invoice_no"):
+				continue
+			value = (frappe.db.get_value(doctype, name, "custom_fbr_invoice_no") or "").strip()
+			if value:
+				return value
+		except Exception:
+			continue
+	return ""
+
+
+def get_fbr_invoice_doc(name: str):
+	"""Load a Sales Invoice or POS Invoice by name."""
+	invoice_name = (name or "").strip()
+	if not invoice_name:
+		frappe.throw("Invoice name is required.")
+	for doctype in FBR_INVOICE_DOCTYPES:
+		if frappe.db.exists(doctype, invoice_name):
+			return frappe.get_doc(doctype, invoice_name)
+	frappe.throw(f"Invoice {invoice_name} not found.")
 
 
 def disable_update_stock_for_delivery_note_invoice(doc, method=None):
@@ -186,33 +339,109 @@ def get_effective_invoice_tax_scenario(doc):
 	return scenario_id
 
 
-def resolve_item_tax_template_name(scenario: str | None = None):
-	aliases = _scenario_aliases(scenario)
-	if not aliases:
-		return ""
-	templates = (
-		frappe.get_all(
-			"Item Tax Template",
-			fields=["name"],
-			order_by="name asc",
-			ignore_permissions=True,
-		)
-		or []
-	)
-	normalized_templates = [(template["name"], _normalize_text(template["name"])) for template in templates]
+def resolve_item_tax_template_name(scenario: str | None = None, company: str | None = None):
+	"""Return the Item Tax Template for an FBR scenario, preferring the invoice company.
 
+	SN001 on company SSC resolves to
+	"SN001 - 18% Goods at Standard Rate to Registered Buyers - SSC".
+	"""
+	scenario = (scenario or "").strip() or DEFAULT_SCENARIO_DETAIL
+	scenario_id = _extract_scenario_id(scenario)
+	company = (company or "").strip()
+
+	templates = _list_item_tax_templates(company)
+	if not templates and company:
+		templates = _list_item_tax_templates(None)
+	if not templates:
+		return _fallback_template_name(company, scenario_id)
+
+	if scenario_id:
+		prefixed = [
+			row
+			for row in templates
+			if _template_matches_scenario(row, scenario_id)
+		]
+		if prefixed:
+			return _prefer_company_template(prefixed, company)
+
+	aliases = _scenario_aliases(scenario)
+	normalized_templates = [
+		(row["name"], _normalize_text(row.get("name") or ""), _normalize_text(row.get("title") or ""))
+		for row in templates
+	]
 	for alias in aliases:
 		alias_norm = _normalize_text(alias)
-		exact_matches = [name for name, normalized in normalized_templates if normalized == alias_norm]
-		if exact_matches:
-			return exact_matches[0]
-
-		partial_matches = [
-			name for name, normalized in normalized_templates if alias_norm and alias_norm in normalized
+		if not alias_norm:
+			continue
+		exact = [name for name, name_n, title_n in normalized_templates if alias_norm in (name_n, title_n)]
+		if exact:
+			return exact[0]
+		partial = [
+			name
+			for name, name_n, title_n in normalized_templates
+			if alias_norm in name_n or alias_norm in title_n
 		]
-		if partial_matches:
-			return partial_matches[0]
+		if partial:
+			return partial[0]
 
+	return _fallback_template_name(company, scenario_id)
+
+
+def _list_item_tax_templates(company: str | None):
+	filters = {"disabled": 0}
+	if company:
+		filters["company"] = company
+	try:
+		return (
+			frappe.get_all(
+				"Item Tax Template",
+				filters=filters,
+				fields=["name", "title"],
+				order_by="name asc",
+				ignore_permissions=True,
+			)
+			or []
+		)
+	except Exception:
+		return []
+
+
+def _template_matches_scenario(row, scenario_id: str) -> bool:
+	needle = scenario_id.upper()
+	name = (row.get("name") or "").upper()
+	title = (row.get("title") or "").upper()
+	return name.startswith(f"{needle} ") or name.startswith(f"{needle}-") or title.startswith(needle)
+
+
+def _prefer_company_template(rows, company: str | None) -> str:
+	if company:
+		try:
+			abbr = frappe.get_cached_value("Company", company, "abbr") or ""
+		except Exception:
+			abbr = ""
+		if abbr:
+			suffix = f" - {abbr}"
+			for row in rows:
+				if (row.get("name") or "").endswith(suffix):
+					return row["name"]
+	return rows[0]["name"]
+
+
+def _fallback_template_name(company: str | None, scenario_id: str) -> str:
+	if scenario_id and scenario_id != DEFAULT_SCENARIO_ID:
+		return ""
+	title = DEFAULT_ITEM_TAX_TEMPLATE_TITLE
+	candidates = [title]
+	if company:
+		try:
+			abbr = frappe.get_cached_value("Company", company, "abbr") or ""
+		except Exception:
+			abbr = ""
+		if abbr:
+			candidates.insert(0, f"{title} - {abbr}")
+	for name in candidates:
+		if _link_exists("Item Tax Template", name):
+			return name
 	return ""
 
 
@@ -378,12 +607,17 @@ def sync_item_apply_tds_with_parent(doc, method=None):
 
 
 def calculate_fbr_tax(doc, method=None):
+	if not is_fbr_invoice_doctype(doc):
+		return
+
 	sync_item_apply_tds_with_parent(doc)
 	invoice_withheld = 0.0
 
 	for item in doc.items:
 		scenario = get_effective_invoice_tax_scenario(doc)
-		template_name = resolve_item_tax_template_name(scenario)
+		template_name = resolve_item_tax_template_name(
+			scenario, company=getattr(doc, "company", None)
+		)
 
 		if template_name and not (item.item_tax_template or "").strip():
 			item.item_tax_template = template_name

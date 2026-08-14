@@ -1,13 +1,81 @@
 /**
- * POS → FBR UI
- * - Each completed POS order is a Sales Invoice submitted individually;
- *   server auto-sends to FBR when settings allow.
- * - After submit / on past-order summary: show FBR no + QR + Send/Retry.
+ * POS → FBR UI (ERPNext desk Point of Sale)
+ * Works for Sales Invoice and POS Invoice (POS Settings → Invoice Type).
+ * XPOS uses the same server hooks; this file only patches the desk POS page.
  */
 frappe.provide("fbr_integration.pos");
 
+fbr_integration.pos.INVOICE_DOCTYPES = ["Sales Invoice", "POS Invoice"];
+fbr_integration.pos.DEFAULT_INVOICE_TYPE = "Sale Invoice";
+fbr_integration.pos.DEFAULT_SCENARIO_DETAIL =
+	"SN001 - Goods at Standard Rate (Registered Buyer)";
+fbr_integration.pos._template_cache = {};
+
+fbr_integration.pos.is_invoice_doc = function (doc) {
+	return !!(doc && fbr_integration.pos.INVOICE_DOCTYPES.includes(doc.doctype));
+};
+
 fbr_integration.pos.esc = function (s) {
 	return frappe.utils.escape_html((s || "").toString());
+};
+
+fbr_integration.pos.apply_invoice_defaults = function (frm) {
+	if (!frm || !frm.doc || cint(frm.doc.docstatus) !== 0) return;
+	if (!fbr_integration.pos.is_invoice_doc(frm.doc)) return;
+
+	if (!cint(frm.doc.is_return) && !(cstr(frm.doc.custom_invoice_type) || "").trim()) {
+		frm.doc.custom_invoice_type = fbr_integration.pos.DEFAULT_INVOICE_TYPE;
+	}
+	if (!(cstr(frm.doc.custom_scenario_detail) || "").trim()) {
+		frm.doc.custom_scenario_detail = fbr_integration.pos.DEFAULT_SCENARIO_DETAIL;
+		if (!(cstr(frm.doc.custom_scenario_id) || "").trim()) {
+			frm.doc.custom_scenario_id = "SN001";
+		}
+	}
+};
+
+fbr_integration.pos.apply_item_defaults = function (frm) {
+	if (!frm || !frm.doc || cint(frm.doc.docstatus) !== 0) return Promise.resolve();
+	if (!fbr_integration.pos.is_invoice_doc(frm.doc)) return Promise.resolve();
+
+	fbr_integration.pos.apply_invoice_defaults(frm);
+	const rows = (frm.doc.items || []).filter((row) => row && row.item_code);
+	if (!rows.length) return Promise.resolve();
+
+	const scenario =
+		(cstr(frm.doc.custom_scenario_detail) || "").trim() ||
+		fbr_integration.pos.DEFAULT_SCENARIO_DETAIL;
+	const cacheKey = `${cstr(frm.doc.company)}::${scenario}`;
+	const apply_template = (templateName) => {
+		if (!templateName) return;
+		rows.forEach((row) => {
+			if (!(cstr(row.custom_scenario_detail) || "").trim()) {
+				row.custom_scenario_detail = scenario;
+			}
+			if (!(cstr(row.item_tax_template) || "").trim()) {
+				row.item_tax_template = templateName;
+			}
+		});
+	};
+
+	if (fbr_integration.pos._template_cache[cacheKey]) {
+		apply_template(fbr_integration.pos._template_cache[cacheKey]);
+		return Promise.resolve();
+	}
+
+	return frappe
+		.call({
+			method: "fbr_integration.api.resolve_item_tax_template_name",
+			args: { scenario: scenario, company: frm.doc.company },
+		})
+		.then((r) => {
+			const templateName = (r && r.message) || "";
+			if (templateName) {
+				fbr_integration.pos._template_cache[cacheKey] = templateName;
+			}
+			apply_template(templateName);
+		})
+		.catch(() => {});
 };
 
 fbr_integration.pos.show_status_dialog = function (invoice_name, opts) {
@@ -37,7 +105,7 @@ fbr_integration.pos.show_status_dialog = function (invoice_name, opts) {
 				: d.fbr_error
 				? d.fbr_error
 				: __(
-						"Sales Invoice is saved. Use Send to FBR if auto-send is off or failed."
+						"Invoice is saved. Use Send to FBR if auto-send is off or failed."
 				  );
 
 			const dialog = new frappe.ui.Dialog({
@@ -109,7 +177,7 @@ fbr_integration.pos.show_status_dialog = function (invoice_name, opts) {
 };
 
 fbr_integration.pos.inject_summary_card = function (summary, doc) {
-	if (!summary || !summary.$summary_container || !doc || doc.doctype !== "Sales Invoice") {
+	if (!summary || !summary.$summary_container || !fbr_integration.pos.is_invoice_doc(doc)) {
 		return;
 	}
 
@@ -190,15 +258,29 @@ fbr_integration.pos.patch = function () {
 	if (Ctrl.__fbr_pos_patched) return true;
 	Ctrl.__fbr_pos_patched = true;
 
+	const _make_new = Ctrl.prototype.make_new_invoice;
+	Ctrl.prototype.make_new_invoice = function () {
+		return Promise.resolve(_make_new.call(this)).then(() => {
+			fbr_integration.pos.apply_invoice_defaults(this.frm);
+		});
+	};
+
+	const _on_cart = Ctrl.prototype.on_cart_update;
+	Ctrl.prototype.on_cart_update = function (args) {
+		return Promise.resolve(_on_cart.call(this, args)).then((res) => {
+			return fbr_integration.pos.apply_item_defaults(this.frm).then(() => res);
+		});
+	};
+
 	const _init_payments = Ctrl.prototype.init_payments;
 	Ctrl.prototype.init_payments = function () {
 		_init_payments.call(this);
 		const payment = this.payment;
 		if (!payment || !payment.events || payment.events.__fbr_submit_wrapped) return;
 
-		const original_submit = payment.events.submit_invoice;
 		payment.events.__fbr_submit_wrapped = true;
 		payment.events.submit_invoice = () => {
+			fbr_integration.pos.apply_invoice_defaults(this.frm);
 			this.frm.savesubmit().then((r) => {
 				this.toggle_components(false);
 				this.toggle_submitted_invoice_summary(true);
@@ -207,7 +289,6 @@ fbr_integration.pos.patch = function () {
 					indicator: "green",
 					message: __("POS invoice {0} created successfully", [name]),
 				});
-				// Auto-send runs on_submit server-side; briefly wait then show FBR result.
 				setTimeout(() => {
 					if (name) {
 						fbr_integration.pos.show_status_dialog(name, { freeze: false });
@@ -221,7 +302,7 @@ fbr_integration.pos.patch = function () {
 	Summary.prototype.load_summary_of = function (doc, after_submission = false) {
 		_load_summary.call(this, doc, after_submission);
 		fbr_integration.pos.inject_summary_card(this, doc);
-		if (after_submission && doc && doc.doctype === "Sales Invoice") {
+		if (after_submission && fbr_integration.pos.is_invoice_doc(doc)) {
 			setTimeout(() => {
 				fbr_integration.pos.show_status_dialog(doc.name);
 			}, 500);

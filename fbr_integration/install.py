@@ -19,6 +19,10 @@ def after_install():
 
 	item_tax_templates.sync_item_tax_templates()
 
+	from fbr_integration.pos_invoice_fields import sync_pos_invoice_fbr_fields
+
+	sync_pos_invoice_fbr_fields()
+
 	from fbr_integration.tax_withholding_sync import sync_withholding
 
 	sync_withholding()

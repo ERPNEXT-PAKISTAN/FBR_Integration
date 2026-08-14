@@ -24,8 +24,15 @@ for pkg in ("requests", "urllib3"):
 
 from fbr_integration.fbr_api import format_extra_tax_for_payload  # noqa: E402
 from fbr_integration.fbr_tax_calculation import (  # noqa: E402
+	DEFAULT_INVOICE_TYPE,
+	DEFAULT_ITEM_TAX_TEMPLATE_TITLE,
+	DEFAULT_SCENARIO_DETAIL,
+	DEFAULT_SCENARIO_ID,
+	apply_default_invoice_type_and_scenario,
 	get_effective_invoice_tax_scenario,
+	resolve_item_tax_template_name,
 )
+from fbr_integration import fbr_tax_calculation as tax_mod  # noqa: E402
 from fbr_integration.item_tax_templates import get_item_tax_template_specs  # noqa: E402
 
 
@@ -35,6 +42,18 @@ class DummyDoc:
 
 	def get(self, key, default=None):
 		return getattr(self, key, default)
+
+
+def _stub_default_masters():
+	tax_mod.frappe.db.exists = lambda *a, **k: True
+	tax_mod.frappe.db.get_value = lambda *a, **k: DEFAULT_SCENARIO_ID
+	tax_mod.frappe.get_cached_value = lambda *a, **k: "SSC"
+	tax_mod.frappe.get_all = lambda *a, **k: [
+		{
+			"name": f"{DEFAULT_ITEM_TAX_TEMPLATE_TITLE} - SSC",
+			"title": DEFAULT_ITEM_TAX_TEMPLATE_TITLE,
+		}
+	]
 
 
 class TestFbrTaxCalculation(unittest.TestCase):
@@ -57,6 +76,109 @@ class TestFbrTaxCalculation(unittest.TestCase):
 
 		doc.custom_scenario_id = ""
 		self.assertEqual(get_effective_invoice_tax_scenario(doc), "")
+
+	def test_apply_defaults_sets_sale_invoice_and_sn001(self):
+		_stub_default_masters()
+
+		item = DummyDoc(
+			item_code="ITEM-001",
+			custom_scenario_detail="",
+			item_tax_template="",
+		)
+		doc = DummyDoc(
+			doctype="Sales Invoice",
+			is_return=0,
+			customer=None,
+			company="MOOSA CORPORATION",
+			custom_invoice_type="",
+			custom_scenario_detail="",
+			custom_scenario_id="",
+			items=[item],
+		)
+
+		apply_default_invoice_type_and_scenario(doc)
+
+		self.assertEqual(doc.custom_invoice_type, DEFAULT_INVOICE_TYPE)
+		self.assertEqual(doc.custom_scenario_detail, DEFAULT_SCENARIO_DETAIL)
+		self.assertEqual(doc.custom_scenario_id, DEFAULT_SCENARIO_ID)
+		self.assertEqual(item.custom_scenario_detail, DEFAULT_SCENARIO_DETAIL)
+		self.assertEqual(item.item_tax_template, f"{DEFAULT_ITEM_TAX_TEMPLATE_TITLE} - SSC")
+
+	def test_apply_defaults_on_pos_invoice(self):
+		_stub_default_masters()
+
+		item = DummyDoc(
+			item_code="ITEM-001",
+			custom_scenario_detail="",
+			item_tax_template="",
+		)
+		doc = DummyDoc(
+			doctype="POS Invoice",
+			is_return=0,
+			customer=None,
+			company="MOOSA CORPORATION",
+			custom_invoice_type="",
+			custom_scenario_detail="",
+			custom_scenario_id="",
+			items=[item],
+		)
+
+		apply_default_invoice_type_and_scenario(doc)
+
+		self.assertEqual(doc.custom_invoice_type, DEFAULT_INVOICE_TYPE)
+		self.assertEqual(doc.custom_scenario_detail, DEFAULT_SCENARIO_DETAIL)
+		self.assertEqual(doc.custom_scenario_id, DEFAULT_SCENARIO_ID)
+		self.assertEqual(item.item_tax_template, f"{DEFAULT_ITEM_TAX_TEMPLATE_TITLE} - SSC")
+
+	def test_apply_defaults_does_not_overwrite_existing_values(self):
+		_stub_default_masters()
+
+		doc = DummyDoc(
+			doctype="Sales Invoice",
+			is_return=0,
+			customer=None,
+			custom_invoice_type="Debit Note",
+			custom_scenario_detail="SN002 - Goods at Standard Rate (Unregistered Buyer)",
+			custom_scenario_id="SN002",
+			items=[],
+		)
+
+		apply_default_invoice_type_and_scenario(doc)
+
+		self.assertEqual(doc.custom_invoice_type, "Debit Note")
+		self.assertEqual(
+			doc.custom_scenario_detail,
+			"SN002 - Goods at Standard Rate (Unregistered Buyer)",
+		)
+		self.assertEqual(doc.custom_scenario_id, "SN002")
+
+	def test_resolve_item_tax_template_prefers_company_sn001(self):
+		_stub_default_masters()
+		self.assertEqual(
+			resolve_item_tax_template_name(
+				DEFAULT_SCENARIO_DETAIL, company="MOOSA CORPORATION"
+			),
+			f"{DEFAULT_ITEM_TAX_TEMPLATE_TITLE} - SSC",
+		)
+
+	def test_apply_defaults_skips_invoice_type_on_return(self):
+		_stub_default_masters()
+
+		doc = DummyDoc(
+			doctype="Sales Invoice",
+			is_return=1,
+			customer=None,
+			custom_invoice_type="",
+			custom_scenario_detail="",
+			custom_scenario_id="",
+			items=[],
+		)
+
+		apply_default_invoice_type_and_scenario(doc)
+
+		self.assertEqual(doc.custom_invoice_type, "")
+		self.assertEqual(doc.custom_scenario_detail, DEFAULT_SCENARIO_DETAIL)
+		self.assertEqual(doc.custom_scenario_id, DEFAULT_SCENARIO_ID)
 
 	def test_format_extra_tax_for_payload_uses_blank_for_reduced_rate_scenarios(self):
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN005"), "")

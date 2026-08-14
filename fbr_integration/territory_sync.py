@@ -56,7 +56,7 @@ def on_buyer_province_update(doc, method=None):
 
 def sync_invoice_territory_from_buyer_province(doc, method=None):
 	"""Fill empty Territory / Buyer Province from each other when names match."""
-	if doc.doctype != "Sales Invoice":
+	if doc.doctype not in ("Sales Invoice", "POS Invoice"):
 		return
 
 	province = (getattr(doc, "custom_buyer_province", None) or "").strip()

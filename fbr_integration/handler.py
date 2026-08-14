@@ -1,6 +1,20 @@
 import frappe
 from frappe.utils import cint
 
+from fbr_integration.fbr_tax_calculation import get_fbr_invoice_doc
+
+
+def _assert_can_read_invoice(doc):
+	doctype = getattr(doc, "doctype", None) or "Sales Invoice"
+	if frappe.session.user != "Administrator" and not frappe.has_permission(
+		doctype, "read", doc=doc
+	):
+		frappe.throw(
+			f"You do not have permission to read this {doctype}.",
+			frappe.PermissionError,
+			title="Not Permitted",
+		)
+
 
 @frappe.whitelist()
 def send_to_fbr_si(name: str):
@@ -11,19 +25,9 @@ def send_to_fbr_si(name: str):
 
 @frappe.whitelist()
 def get_pos_fbr_status(name: str):
-	"""POS summary payload: FBR number, status, QR/barcode after each SI submit."""
-	if not name:
-		frappe.throw("Sales Invoice name is required.")
-
-	doc = frappe.get_doc("Sales Invoice", name)
-	if frappe.session.user != "Administrator" and not frappe.has_permission(
-		"Sales Invoice", "read", doc=doc
-	):
-		frappe.throw(
-			"You do not have permission to read this Sales Invoice.",
-			frappe.PermissionError,
-			title="Not Permitted",
-		)
+	"""POS summary payload: FBR number, status, QR/barcode after each POS submit."""
+	doc = get_fbr_invoice_doc(name)
+	_assert_can_read_invoice(doc)
 
 	fbr_no = (getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
 	status = (getattr(doc, "custom_fbr_invoice_status", None) or "").strip()
@@ -45,6 +49,7 @@ def get_pos_fbr_status(name: str):
 	return {
 		"ok": bool(fbr_no),
 		"sales_invoice": doc.name,
+		"doctype": doc.doctype,
 		"is_pos": cint(getattr(doc, "is_pos", 0)),
 		"customer": doc.customer,
 		"customer_name": doc.customer_name,
@@ -62,21 +67,9 @@ def get_pos_fbr_status(name: str):
 
 @frappe.whitelist()
 def get_fbr_codes(name: str):
-	"""
-	Returns QR + Barcode data urls for Sales Invoice using custom_fbr_invoice_no.
-	"""
-	if not name:
-		frappe.throw("Sales Invoice name is required.")
-
-	doc = frappe.get_doc("Sales Invoice", name)
-	if frappe.session.user != "Administrator" and not frappe.has_permission(
-		"Sales Invoice", "read", doc=doc
-	):
-		frappe.throw(
-			"You do not have permission to read this Sales Invoice.",
-			frappe.PermissionError,
-			title="Not Permitted",
-		)
+	"""Returns QR + Barcode data urls using custom_fbr_invoice_no."""
+	doc = get_fbr_invoice_doc(name)
+	_assert_can_read_invoice(doc)
 
 	fbr_no = (getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
 	if not fbr_no:

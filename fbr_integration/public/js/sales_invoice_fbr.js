@@ -462,6 +462,9 @@ function show_scenario_browser(frm) {
 const FBR_PRINT_FORMAT = "FBR Sales Invoice";
 const FBR_LOGO_URL = "/assets/fbr_integration/images/fbr/DI_invoicing.png";
 const FBR_DEFAULT_SCENARIO = "Pakistan Tax";
+const FBR_DEFAULT_INVOICE_TYPE = "Sale Invoice";
+const FBR_DEFAULT_SCENARIO_DETAIL =
+    "SN001 - Goods at Standard Rate (Registered Buyer)";
 const fbrScenarioTemplateCache = new Map();
 
 function normalize_fbr_text(value) {
@@ -801,6 +804,24 @@ function is_return_checked(doc) {
     return Number((doc && doc.is_return) || 0) === 1;
 }
 
+async function ensure_sale_invoice_fbr_defaults(frm) {
+    if (!frm || !frm.doc || cint(frm.doc.docstatus) !== 0) return;
+
+    if (
+        !is_return_checked(frm.doc) &&
+        !(frm.doc.custom_invoice_type || "").toString().trim()
+    ) {
+        await frm.set_value("custom_invoice_type", FBR_DEFAULT_INVOICE_TYPE);
+    }
+
+    if (!(frm.doc.custom_scenario_detail || "").toString().trim()) {
+        await frm.set_value(
+            "custom_scenario_detail",
+            FBR_DEFAULT_SCENARIO_DETAIL
+        );
+    }
+}
+
 async function ensure_return_credit_note(frm, options = {}) {
     if (!frm || !frm.doc) return;
 
@@ -850,27 +871,36 @@ async function sync_return_source_invoice_no(frm) {
     const linkedInvoice = (frm.doc.return_against || "").toString().trim();
     if (!linkedInvoice) return;
 
-    const r = await frappe.db.get_value(
-        "Sales Invoice",
-        linkedInvoice,
-        "custom_fbr_invoice_no"
-    );
+    let fbrNo = "";
+    for (const dt of ["Sales Invoice", "POS Invoice"]) {
+        try {
+            const r = await frappe.db.get_value(
+                dt,
+                linkedInvoice,
+                "custom_fbr_invoice_no"
+            );
+            fbrNo = ((r && r.message && r.message.custom_fbr_invoice_no) || "")
+                .toString()
+                .trim();
+            if (fbrNo) break;
+        } catch (e) {
+            // Missing doctype/field/doc — try the other invoice type.
+        }
+    }
 
-    const sourceFbrNo = (((r || {}).message || {}).custom_fbr_invoice_no || "")
-        .toString()
-        .trim();
     if (
-        (frm.doc.custom_fbr_source_invoice_no || "").toString().trim() !==
-        sourceFbrNo
+        (frm.doc.custom_fbr_source_invoice_no || "").toString().trim() !== fbrNo
     ) {
-        await frm.set_value("custom_fbr_source_invoice_no", sourceFbrNo);
+        await frm.set_value("custom_fbr_source_invoice_no", fbrNo);
     }
 }
 
-async function resolve_fbr_item_tax_template(scenario) {
-    const key = normalize_fbr_text(scenario);
+async function resolve_fbr_item_tax_template(scenario, company) {
+    const scenarioKey = normalize_fbr_text(scenario);
+    const companyKey = normalize_fbr_text(company);
+    const key = `${companyKey}::${scenarioKey}`;
 
-    if (!key) {
+    if (!scenarioKey && !companyKey) {
         return "";
     }
 
@@ -880,7 +910,10 @@ async function resolve_fbr_item_tax_template(scenario) {
             frappe
                 .call({
                     method: "fbr_integration.api.resolve_item_tax_template_name",
-                    args: { scenario },
+                    args: {
+                        scenario: scenario || "",
+                        company: company || "",
+                    },
                 })
                 .then((r) => (r.message || "").toString().trim())
         );
@@ -900,7 +933,10 @@ async function apply_fbr_item_tax_template(frm, cdt, cdn, options = {}) {
 
     const forceApply = should_force_apply_scenario(options);
     const scenario = get_effective_fbr_scenario(frm);
-    const templateName = await resolve_fbr_item_tax_template(scenario);
+    const templateName = await resolve_fbr_item_tax_template(
+        scenario,
+        frm.doc.company
+    );
     const currentTemplate = (row.item_tax_template || "").toString().trim();
 
     if (templateName) {
@@ -938,7 +974,10 @@ async function sync_fbr_item_tax_templates(frm, options = {}) {
 
     for (const target of targets) {
         const scenario = get_effective_fbr_scenario(frm);
-        const templateName = await resolve_fbr_item_tax_template(scenario);
+        const templateName = await resolve_fbr_item_tax_template(
+            scenario,
+            frm.doc.company
+        );
 
         const currentTemplate = (target.row.item_tax_template || "")
             .toString()
@@ -969,8 +1008,14 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
     if (!rows.length) return;
 
     const scenario = get_effective_invoice_fbr_scenario(frm);
-    const templateName = await resolve_fbr_item_tax_template(scenario);
+    const templateName = await resolve_fbr_item_tax_template(
+        scenario,
+        frm.doc.company
+    );
     const targetTemplate = (templateName || "").toString().trim();
+    const parentDetail = (frm.doc.custom_scenario_detail || "")
+        .toString()
+        .trim();
     const changedTargets = [];
 
     frm.__fbr_bulk_updating = true;
@@ -979,6 +1024,18 @@ async function apply_invoice_scenario_to_all_items(frm, options = {}) {
             const cdt = row.doctype || "Sales Invoice Item";
             const cdn = row.name;
             const current = (row.item_tax_template || "").toString().trim();
+            if (
+                parentDetail &&
+                (forceApply ||
+                    !(row.custom_scenario_detail || "").toString().trim())
+            ) {
+                await frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "custom_scenario_detail",
+                    parentDetail
+                );
+            }
             if (!targetTemplate) {
                 continue;
             }
@@ -1348,9 +1405,11 @@ function sync_item_apply_tds_from_parent(frm) {
 	frm.refresh_field("items");
 }
 
-frappe.ui.form.on("Sales Invoice", {
+function register_fbr_invoice_form_handlers(doctype) {
+frappe.ui.form.on(doctype, {
     async setup(frm) {
         if (frm.is_new()) {
+            await ensure_sale_invoice_fbr_defaults(frm);
             await ensure_return_credit_note(frm);
             await sync_return_source_invoice_no(frm);
             await clear_fbr_response_fields(frm);
@@ -1359,14 +1418,16 @@ frappe.ui.form.on("Sales Invoice", {
     },
 
     apply_tds(frm) {
-        // Parent Consider for Tax Withholding drives all item rows.
+        if (!frm.fields_dict.apply_tds) return;
         sync_item_apply_tds_from_parent(frm);
-        frm.clear_table("tax_withholding_entries");
-        frm.refresh_field("tax_withholding_entries");
+        if (frm.fields_dict.tax_withholding_entries) {
+            frm.clear_table("tax_withholding_entries");
+            frm.refresh_field("tax_withholding_entries");
+        }
     },
 
     customer(frm) {
-        // ERPNext may set apply_tds from Customer without triggering apply_tds().
+        if (!frm.fields_dict.apply_tds) return;
         setTimeout(() => sync_item_apply_tds_from_parent(frm), 400);
     },
 
@@ -1437,7 +1498,10 @@ frappe.ui.form.on("Sales Invoice", {
         ) {
             await frm.set_value("custom_scenario_id", scenarioId);
         }
-        await apply_invoice_scenario_to_all_items(frm, { notify: true });
+        await apply_invoice_scenario_to_all_items(frm, {
+            notify: true,
+            forceApply: true,
+        });
         await render_selected_scenario_detail_fields(frm);
         render_all_item_scenario_detail_fields(frm);
     },
@@ -1447,13 +1511,21 @@ frappe.ui.form.on("Sales Invoice", {
             frm,
             frm.doc.custom_scenario_id
         );
-        await apply_invoice_scenario_to_all_items(frm, { notify: true });
+        await apply_invoice_scenario_to_all_items(frm, {
+            notify: true,
+            forceApply: true,
+        });
         await render_selected_scenario_detail_fields(frm);
         render_all_item_scenario_detail_fields(frm);
     },
 
     refresh(frm) {
-        if (frm.doc.docstatus === 0 && !cint(frm.doc.apply_tds)) {
+        if (frm.doc.docstatus === 0) {
+            ensure_sale_invoice_fbr_defaults(frm).then(function () {
+                apply_invoice_scenario_to_all_items(frm, { forceApply: false });
+            });
+        }
+        if (frm.doc.docstatus === 0 && frm.fields_dict.apply_tds && !cint(frm.doc.apply_tds)) {
             sync_item_apply_tds_from_parent(frm);
         }
         sync_qr_field_on_form(frm);
@@ -1540,8 +1612,12 @@ frappe.ui.form.on("Sales Invoice", {
         });
     },
 });
+}
+register_fbr_invoice_form_handlers("Sales Invoice");
+register_fbr_invoice_form_handlers("POS Invoice");
 
-frappe.ui.form.on("Sales Invoice Item", {
+function register_fbr_invoice_item_handlers(doctype) {
+frappe.ui.form.on(doctype, {
     form_render(frm, cdt, cdn) {
         render_item_scenario_detail_fields(frm, cdn);
     },
@@ -1573,7 +1649,10 @@ frappe.ui.form.on("Sales Invoice Item", {
     },
 
     item_code(frm, cdt, cdn) {
-        apply_fbr_item_tax_template(frm, cdt, cdn, { notify: false });
+        apply_fbr_item_tax_template(frm, cdt, cdn, {
+            notify: false,
+            forceApply: true,
+        });
     },
 
     async custom_scenario_detail(frm, cdt, cdn) {
@@ -1581,12 +1660,28 @@ frappe.ui.form.on("Sales Invoice Item", {
         if (frm.__fbr_bulk_updating) return;
         await apply_fbr_item_tax_template(frm, cdt, cdn, { notify: false });
     },
-});
 
-frappe.ui.form.on("Sales Invoice Item", {
     items_add(frm, cdt, cdn) {
-        // New rows follow parent Consider for Tax Withholding.
-        frappe.model.set_value(cdt, cdn, "apply_tds", cint(frm.doc.apply_tds) ? 1 : 0);
+        if (frm.fields_dict.apply_tds) {
+            frappe.model.set_value(
+                cdt,
+                cdn,
+                "apply_tds",
+                cint(frm.doc.apply_tds) ? 1 : 0
+            );
+        }
+        if ((frm.doc.custom_scenario_detail || "").toString().trim()) {
+            frappe.model.set_value(
+                cdt,
+                cdn,
+                "custom_scenario_detail",
+                frm.doc.custom_scenario_detail
+            );
+        }
+        apply_fbr_item_tax_template(frm, cdt, cdn, { notify: false });
     },
 });
+}
+register_fbr_invoice_item_handlers("Sales Invoice Item");
+register_fbr_invoice_item_handlers("POS Invoice Item");
 

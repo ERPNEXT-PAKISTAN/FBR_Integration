@@ -399,15 +399,15 @@ def get_source_invoice_no_for_return(doc):
 		if manual:
 			return manual
 
-	# 2) From Return Against → original SI's custom_fbr_invoice_no
+	# 2) From Return Against → original invoice's custom_fbr_invoice_no
 	return_against = safe_str(getattr(doc, "return_against", "")).strip()
 	if return_against:
 		try:
-			source_fbr_no = frappe.db.get_value(
-				"Sales Invoice", return_against, "custom_fbr_invoice_no"
-			)
+			from fbr_integration.fbr_tax_calculation import get_source_fbr_invoice_no
+
+			source_fbr_no = get_source_fbr_invoice_no(return_against)
 			if source_fbr_no:
-				return safe_str(source_fbr_no).strip()
+				return source_fbr_no
 		except Exception:
 			pass
 
@@ -507,12 +507,13 @@ def get_return_reason(doc):
 
 
 def assert_can_send_invoice_to_fbr(doc):
-	"""Require write access on the Sales Invoice before calling FBR."""
+	"""Require write access on the invoice before calling FBR."""
 	if frappe.session.user == "Administrator":
 		return
-	if not frappe.has_permission("Sales Invoice", "write", doc=doc):
+	doctype = getattr(doc, "doctype", None) or "Sales Invoice"
+	if not frappe.has_permission(doctype, "write", doc=doc):
 		frappe.throw(
-			"You do not have permission to send this Sales Invoice to FBR.",
+			f"You do not have permission to send this {doctype} to FBR.",
 			frappe.PermissionError,
 			title="Not Permitted",
 		)
@@ -520,10 +521,12 @@ def assert_can_send_invoice_to_fbr(doc):
 
 @frappe.whitelist()
 def send_to_fbr_si(name: str):
-	if not name:
-		frappe.throw("Sales Invoice name is required.")
+	from fbr_integration.fbr_tax_calculation import get_fbr_invoice_doc
 
-	doc = frappe.get_doc("Sales Invoice", name)
+	if not name:
+		frappe.throw("Invoice name is required.")
+
+	doc = get_fbr_invoice_doc(name)
 	assert_can_send_invoice_to_fbr(doc)
 
 	# Enforce submission requirement in Production mode
@@ -536,7 +539,7 @@ def send_to_fbr_si(name: str):
 		)
 
 	# Prevent duplicate submission
-	if (doc.custom_fbr_invoice_no or "").strip():
+	if (getattr(doc, "custom_fbr_invoice_no", None) or "").strip():
 		return {"success": False, "already_sent": True, "invoice_no": doc.custom_fbr_invoice_no}
 
 	return send_invoice_to_fbr(doc)
@@ -544,6 +547,13 @@ def send_to_fbr_si(name: str):
 
 def send_invoice_to_fbr(doc, method=None):
 	enforce_return_invoice_type(doc)
+	from fbr_integration.fbr_tax_calculation import (
+		apply_default_invoice_type_and_scenario,
+		persist_fbr_header_defaults,
+	)
+
+	apply_default_invoice_type_and_scenario(doc)
+	persist_fbr_header_defaults(doc)
 
 	settings = frappe.get_single("FBR Invoice Settings")
 
@@ -970,6 +980,9 @@ def _should_auto_send_on_submit(doc) -> bool:
 		return False
 
 	if not getattr(settings, "enabled", 0):
+		return False
+
+	if cint(getattr(doc, "is_consolidated", 0)):
 		return False
 
 	is_pos = int(getattr(doc, "is_pos", 0) or 0) or int(

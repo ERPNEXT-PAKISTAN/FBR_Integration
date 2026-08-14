@@ -48,6 +48,31 @@ doc_events = {
 		],
 		"on_submit": "fbr_integration.fbr_api.after_submit_invoice",
 	},
+	"POS Invoice": {
+		"before_validate": [
+			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
+			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
+		],
+		"validate": [
+			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
+			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
+			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
+			"fbr_integration.territory_sync.sync_invoice_territory_from_buyer_province",
+			"fbr_integration.fbr_tax_calculation.sync_item_apply_tds_with_parent",
+			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
+			"fbr_integration.fbr_api.enforce_return_invoice_type",
+		],
+		"before_save": [
+			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
+			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
+			"fbr_integration.fbr_tax_calculation.sync_sales_invoice_master_defaults",
+			"fbr_integration.territory_sync.sync_invoice_territory_from_buyer_province",
+			"fbr_integration.fbr_tax_calculation.sync_item_apply_tds_with_parent",
+			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
+			"fbr_integration.fbr_api.enforce_return_invoice_type",
+		],
+		"on_submit": "fbr_integration.fbr_api.after_submit_invoice",
+	},
 	"Buyer Province": {
 		"after_insert": "fbr_integration.territory_sync.on_buyer_province_update",
 		"on_update": "fbr_integration.territory_sync.on_buyer_province_update",
@@ -57,6 +82,7 @@ doc_events = {
 # Sales Invoice UI: live tax + send button + QR/barcode rendering
 doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice_fbr.js",
+	"POS Invoice": "public/js/sales_invoice_fbr.js",
 	"FBR Invoice Settings": "public/js/fbr_invoice_settings.js",
 	"FBR Payload Field Mapping": [
 		"public/js/fbr_payload_field_mapping.js",

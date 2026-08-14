@@ -763,9 +763,9 @@ def _get_source_value(row, doc, item=None):
 	if not source_doctype or not source_field:
 		return None
 
-	if source_doctype == "Sales Invoice":
+	if source_doctype in ("Sales Invoice", "POS Invoice"):
 		source_doc = doc
-	elif source_doctype == "Sales Invoice Item":
+	elif source_doctype in ("Sales Invoice Item", "POS Invoice Item"):
 		source_doc = item
 	elif source_doctype == "Address":
 		source_doc = _get_address_doc(doc, payload_field)
