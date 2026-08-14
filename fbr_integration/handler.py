@@ -29,7 +29,10 @@ def get_pos_fbr_status(name: str):
 	doc = get_fbr_invoice_doc(name)
 	_assert_can_read_invoice(doc)
 
-	fbr_no = (getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
+	fbr_no = (
+		(getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
+		or (getattr(doc, "fbr_invoice_number", None) or "").strip()
+	)
 	status = (getattr(doc, "custom_fbr_invoice_status", None) or "").strip()
 	status_code = (getattr(doc, "custom_fbr_invoice_status_code", None) or "").strip()
 	error = (getattr(doc, "custom_fbr_invoice_error", None) or "").strip()
@@ -71,7 +74,10 @@ def get_fbr_codes(name: str):
 	doc = get_fbr_invoice_doc(name)
 	_assert_can_read_invoice(doc)
 
-	fbr_no = (getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
+	fbr_no = (
+		(getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
+		or (getattr(doc, "fbr_invoice_number", None) or "").strip()
+	)
 	if not fbr_no:
 		return {
 			"ok": False,
