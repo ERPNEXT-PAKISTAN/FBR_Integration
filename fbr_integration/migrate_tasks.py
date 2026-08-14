@@ -22,10 +22,13 @@ FBR_SYNC_VERSION = "2026.08.03"
 
 def run_after_migrate():
 	"""Always refresh desk nav; run heavy syncs only when version changes or empty."""
+	from fbr_integration.pos_invoice_fields import sync_pos_invoice_fbr_fields
+
 	ensure_desk_navigation()
 	sync_print_formats()
 	sync_xpos_print_formats()
 	ensure_pos_workspace_links()
+	sync_pos_invoice_fbr_fields()
 	ensure_desk_navigation()
 
 	current = frappe.db.get_default("fbr_integration_sync_version")

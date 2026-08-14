@@ -10,7 +10,16 @@ _frappe.utils = types.SimpleNamespace(
 	getdate=lambda d: d,
 	nowdate=lambda: "2026-08-02",
 	cint=lambda v=0: int(v or 0),
+	cstr=lambda v="": "" if v is None else str(v),
 )
+import sys
+
+sys.modules["frappe.utils"].cstr = _frappe.utils.cstr
+sys.modules["frappe.utils"].getdate = _frappe.utils.getdate
+sys.modules["frappe.utils"].cint = _frappe.utils.cint
+_frappe.msgprint = lambda *a, **k: None
+_frappe.get_cached_doc = lambda *a, **k: types.SimpleNamespace(rates=[])
+_frappe.get_single = lambda *a, **k: types.SimpleNamespace()
 
 
 from fbr_integration.fbr_tax_calculation import (  # noqa: E402
@@ -18,6 +27,7 @@ from fbr_integration.fbr_tax_calculation import (  # noqa: E402
 	_invoice_considers_tax_withholding,
 	_item_considers_tax_withholding,
 	ensure_pos_flag,
+	gate_pos_tax_withholding,
 )
 
 
@@ -67,6 +77,71 @@ class TestWithholdingHelpers(unittest.TestCase):
 		)
 		ensure_pos_flag(doc)
 		self.assertEqual(doc.is_pos, 1)
+
+
+class TestPosWithholdingGate(unittest.TestCase):
+	def _pos_doc(self, **kwargs):
+		item = types.SimpleNamespace(
+			apply_tds=1,
+			tax_withholding_category=kwargs.pop("item_category", "TCS"),
+		)
+		defaults = dict(
+			doctype="Sales Invoice",
+			is_pos=1,
+			is_created_using_pos=1,
+			pos_profile="Main POS",
+			apply_tds=1,
+			custom_apply_tax_withholding=0,
+			posting_date="2026-08-14",
+			tax_withholding_group="",
+			customer="C1",
+			items=[item],
+		)
+		defaults.update(kwargs)
+		doc = types.SimpleNamespace(**defaults)
+		doc.get = lambda key, default=None, _doc=doc: getattr(_doc, key, default)
+		return doc
+
+	def test_pos_unchecks_withholding_by_default(self):
+		doc = self._pos_doc(custom_apply_tax_withholding=0, apply_tds=1)
+		gate_pos_tax_withholding(doc)
+		self.assertEqual(doc.apply_tds, 0)
+		self.assertEqual(doc.items[0].apply_tds, 0)
+
+	def test_non_pos_leaves_apply_tds_alone(self):
+		doc = self._pos_doc(is_pos=0, is_created_using_pos=0, pos_profile=None, apply_tds=1)
+		gate_pos_tax_withholding(doc)
+		self.assertEqual(doc.apply_tds, 1)
+
+	def test_pos_checked_skips_when_rate_missing(self):
+		messages = []
+		import frappe as frappe_mod
+
+		frappe_mod.msgprint = lambda *a, **k: messages.append(a[0] if a else "")
+		frappe_mod.db.exists = lambda *a, **k: False
+		doc = self._pos_doc(custom_apply_tax_withholding=1, apply_tds=0)
+		gate_pos_tax_withholding(doc)
+		self.assertEqual(doc.apply_tds, 0)
+		self.assertTrue(messages)
+
+	def test_pos_checked_keeps_apply_tds_when_rate_exists(self):
+		import frappe as frappe_mod
+
+		frappe_mod.db.exists = lambda *a, **k: True
+		cat = types.SimpleNamespace(
+			rates=[
+				types.SimpleNamespace(
+					from_date="2026-01-01",
+					to_date="2026-12-31",
+					tax_withholding_group="",
+				)
+			]
+		)
+		cat.get = lambda key, default=None, _cat=cat: getattr(_cat, key, default)
+		frappe_mod.get_cached_doc = lambda *a, **k: cat
+		doc = self._pos_doc(custom_apply_tax_withholding=1, apply_tds=0)
+		gate_pos_tax_withholding(doc)
+		self.assertEqual(doc.apply_tds, 1)
 
 
 class TestAutoSendGate(unittest.TestCase):

@@ -19,6 +19,66 @@ fbr_integration.pos.esc = function (s) {
 	return frappe.utils.escape_html((s || "").toString());
 };
 
+fbr_integration.pos.wht_default = function () {
+	return cint((frappe.boot && frappe.boot.fbr_apply_tax_withholding_on_pos) || 0);
+};
+
+fbr_integration.pos.checkbox_wht_on = function (ctrl) {
+	const $box = fbr_integration.pos.wht_input(ctrl);
+	if ($box && $box.length) {
+		return $box.prop("checked") ? 1 : 0;
+	}
+	if (ctrl && ctrl.frm && ctrl.frm.doc) {
+		return cint(ctrl.frm.doc.custom_apply_tax_withholding);
+	}
+	return fbr_integration.pos.wht_default();
+};
+
+fbr_integration.pos.wht_input = function (ctrl) {
+	const $root =
+		(ctrl &&
+			ctrl.$components_wrapper &&
+			ctrl.$components_wrapper.find(".customer-cart-container")) ||
+		$(".point-of-sale-app .customer-cart-container");
+	return $root.find(".fbr-pos-wht input");
+};
+
+fbr_integration.pos.sync_wht_to_frm = function (frm, on) {
+	if (!frm || !frm.doc || !fbr_integration.pos.is_invoice_doc(frm.doc)) return;
+	const value = cint(on);
+	frm.doc.custom_apply_tax_withholding = value;
+	frm.doc.apply_tds = value;
+	(frm.doc.items || []).forEach((row) => {
+		if (row) row.apply_tds = value;
+	});
+};
+
+fbr_integration.pos.inject_wht_checkbox = function (ctrl) {
+	if (!ctrl || !ctrl.$components_wrapper) return;
+	const $cart = ctrl.$components_wrapper.find(".customer-cart-container");
+	if (!$cart.length) return;
+	if (!$cart.find(".fbr-pos-wht").length) {
+		const checked = fbr_integration.pos.wht_default() ? "checked" : "";
+		const html = `<label class="fbr-pos-wht">
+			<input type="checkbox" ${checked}>
+			<span>${__("Apply Tax Withholding")}</span>
+		</label>`;
+		const $customer = $cart.find(".customer-section");
+		if ($customer.length) {
+			$(html).insertAfter($customer);
+		} else {
+			$cart.prepend(html);
+		}
+		$cart.find(".fbr-pos-wht input").on("change", function () {
+			fbr_integration.pos.sync_wht_to_frm(ctrl.frm, this.checked ? 1 : 0);
+		});
+	}
+	if (ctrl.frm && ctrl.frm.doc && cint(ctrl.frm.doc.docstatus) === 0) {
+		const on = fbr_integration.pos.checkbox_wht_on(ctrl);
+		fbr_integration.pos.sync_wht_to_frm(ctrl.frm, on);
+	}
+};
+
 fbr_integration.pos.apply_invoice_defaults = function (frm) {
 	if (!frm || !frm.doc || cint(frm.doc.docstatus) !== 0) return;
 	if (!fbr_integration.pos.is_invoice_doc(frm.doc)) return;
@@ -78,6 +138,170 @@ fbr_integration.pos.apply_item_defaults = function (frm) {
 		.catch(() => {});
 };
 
+fbr_integration.pos.show_retry_dialog = function (invoice_name, opts) {
+	opts = opts || {};
+	return frappe
+		.call({
+			method: "fbr_integration.handler.get_pos_fbr_retry_form",
+			args: { name: invoice_name },
+			freeze: true,
+			freeze_message: __("Loading FBR fields..."),
+		})
+		.then((r) => {
+			const d = r.message || {};
+			if (d.ok && (d.fbr_invoice_no || "").trim()) {
+				return fbr_integration.pos.show_status_dialog(invoice_name, opts);
+			}
+			const fields = d.fields || {};
+			const items = (d.items || []).map((row) => Object.assign({}, row));
+			const errorLine = (d.fbr_error || "").trim();
+
+			const dialog = new frappe.ui.Dialog({
+				title: __("Correct FBR fields"),
+				size: "large",
+				fields: [
+					{
+						fieldtype: "HTML",
+						fieldname: "error_html",
+					},
+					{ fieldtype: "Section Break", label: __("Invoice") },
+					{
+						fieldtype: "Link",
+						fieldname: "custom_invoice_type",
+						options: "Invoice Type",
+						label: __("Invoice Type"),
+						default: fields.custom_invoice_type,
+					},
+					{
+						fieldtype: "Link",
+						fieldname: "custom_scenario_detail",
+						options: "Scenario ID",
+						label: __("Scenario Detail"),
+						default: fields.custom_scenario_detail,
+					},
+					{
+						fieldtype: "Link",
+						fieldname: "custom_tax_payer_type",
+						options: "Tax Payer Type",
+						label: __("Tax Payer Type"),
+						default: fields.custom_tax_payer_type,
+					},
+					{ fieldtype: "Column Break" },
+					{
+						fieldtype: "Link",
+						fieldname: "custom_buyer_province",
+						options: "Buyer Province",
+						label: __("Buyer Province"),
+						default: fields.custom_buyer_province,
+					},
+					{
+						fieldtype: "Data",
+						fieldname: "tax_id",
+						label: __("NTN / CNIC"),
+						default: fields.tax_id,
+					},
+					{
+						fieldtype: "Data",
+						fieldname: "custom_fbr_source_invoice_no",
+						label: __("FBR Source Invoice No"),
+						default: fields.custom_fbr_source_invoice_no,
+					},
+					{ fieldtype: "Section Break", label: __("Items") },
+					{
+						fieldtype: "Table",
+						fieldname: "items",
+						cannot_add_rows: true,
+						cannot_delete_rows: true,
+						in_place_edit: true,
+						data: items,
+						get_data: () => items,
+						fields: [
+							{ fieldtype: "Data", fieldname: "name", hidden: 1 },
+							{
+								fieldtype: "Data",
+								fieldname: "item_code",
+								label: __("Item"),
+								in_list_view: 1,
+								read_only: 1,
+								columns: 2,
+							},
+							{
+								fieldtype: "Link",
+								fieldname: "item_tax_template",
+								options: "Item Tax Template",
+								label: __("Tax Template"),
+								in_list_view: 1,
+								columns: 2,
+							},
+							{
+								fieldtype: "Link",
+								fieldname: "custom_hs_code",
+								options: "HS Code",
+								label: __("HS Code"),
+								in_list_view: 1,
+								columns: 2,
+							},
+							{
+								fieldtype: "Link",
+								fieldname: "custom_scenario_detail",
+								options: "Scenario ID",
+								label: __("Scenario"),
+								in_list_view: 1,
+								columns: 2,
+							},
+						],
+					},
+				],
+				primary_action_label: __("Save and Send to FBR"),
+				primary_action: (values) => {
+					const item_rows = (dialog.fields_dict.items.grid.get_data() || items).map((row) => ({
+						name: row.name,
+						item_tax_template: row.item_tax_template,
+						custom_hs_code: row.custom_hs_code,
+						custom_scenario_detail: row.custom_scenario_detail,
+						custom_sale_type: row.custom_sale_type,
+					}));
+					frappe.call({
+						method: "fbr_integration.handler.update_and_send_to_fbr",
+						args: {
+							name: invoice_name,
+							values: {
+								custom_invoice_type: values.custom_invoice_type,
+								custom_scenario_detail: values.custom_scenario_detail,
+								custom_tax_payer_type: values.custom_tax_payer_type,
+								custom_buyer_province: values.custom_buyer_province,
+								tax_id: values.tax_id,
+								custom_fbr_source_invoice_no: values.custom_fbr_source_invoice_no,
+							},
+							items: item_rows,
+						},
+						freeze: true,
+						freeze_message: __("Sending to FBR..."),
+						callback: () => {
+							dialog.hide();
+							fbr_integration.pos.show_status_dialog(invoice_name, {
+								freeze: true,
+								on_refresh: opts.on_refresh,
+							});
+							if (typeof opts.on_refresh === "function") {
+								opts.on_refresh();
+							}
+						},
+					});
+				},
+			});
+
+			const banner = errorLine
+				? `<div class="fbr-pos-retry-banner">${fbr_integration.pos.esc(errorLine)}</div>`
+				: `<div class="fbr-pos-retry-banner info">${__(
+						"Correct the FBR fields below, then send."
+				  )}</div>`;
+			dialog.fields_dict.error_html.$wrapper.html(banner);
+			dialog.show();
+			return d;
+		});
+};
+
 fbr_integration.pos.show_status_dialog = function (invoice_name, opts) {
 	opts = opts || {};
 	return frappe
@@ -112,27 +336,14 @@ fbr_integration.pos.show_status_dialog = function (invoice_name, opts) {
 				title: title,
 				size: "small",
 				fields: [{ fieldtype: "HTML", fieldname: "body" }],
-				primary_action_label: ok ? __("Close") : __("Send to FBR"),
+				primary_action_label: ok ? __("Close") : __("Correct & Send to FBR"),
 				primary_action: () => {
 					if (ok) {
 						dialog.hide();
 						return;
 					}
-					frappe.call({
-						method: "fbr_integration.handler.send_to_fbr_si",
-						args: { name: invoice_name },
-						freeze: true,
-						freeze_message: __("Sending to FBR..."),
-						callback: () => {
-							dialog.hide();
-							fbr_integration.pos.show_status_dialog(invoice_name, {
-								freeze: true,
-							});
-							if (typeof opts.on_refresh === "function") {
-								opts.on_refresh();
-							}
-						},
-					});
+					dialog.hide();
+					fbr_integration.pos.show_retry_dialog(invoice_name, opts);
 				},
 			});
 
@@ -194,7 +405,7 @@ fbr_integration.pos.inject_summary_card = function (summary, doc) {
 					"FBR Details"
 				)}</button>
 				<button type="button" class="btn btn-xs btn-default fbr-pos-send-btn" style="display:none;">${__(
-					"Send to FBR"
+					"Correct & Send to FBR"
 				)}</button>
 			</div>
 		</div>
@@ -234,16 +445,7 @@ fbr_integration.pos.inject_summary_card = function (summary, doc) {
 		fbr_integration.pos.show_status_dialog(doc.name, { on_refresh: refresh_card });
 	});
 	mount.find(".fbr-pos-send-btn").on("click", () => {
-		frappe.call({
-			method: "fbr_integration.handler.send_to_fbr_si",
-			args: { name: doc.name },
-			freeze: true,
-			freeze_message: __("Sending to FBR..."),
-			callback: () => {
-				refresh_card();
-				fbr_integration.pos.show_status_dialog(doc.name);
-			},
-		});
+		fbr_integration.pos.show_retry_dialog(doc.name, { on_refresh: refresh_card });
 	});
 
 	refresh_card();
@@ -262,15 +464,29 @@ fbr_integration.pos.patch = function () {
 	const _make_new = Ctrl.prototype.make_new_invoice;
 	Ctrl.prototype.make_new_invoice = function () {
 		return Promise.resolve(_make_new.call(this)).then(() => {
+			fbr_integration.pos.inject_wht_checkbox(this);
+			const $input = fbr_integration.pos.wht_input(this);
+			if ($input.length) {
+				$input.prop("checked", !!fbr_integration.pos.wht_default());
+			}
 			fbr_integration.pos.apply_invoice_defaults(this.frm);
+			fbr_integration.pos.sync_wht_to_frm(this.frm, fbr_integration.pos.checkbox_wht_on(this));
 		});
 	};
 
 	const _on_cart = Ctrl.prototype.on_cart_update;
 	Ctrl.prototype.on_cart_update = function (args) {
 		return Promise.resolve(_on_cart.call(this, args)).then((res) => {
+			fbr_integration.pos.inject_wht_checkbox(this);
+			fbr_integration.pos.sync_wht_to_frm(this.frm, fbr_integration.pos.checkbox_wht_on(this));
 			return fbr_integration.pos.apply_item_defaults(this.frm).then(() => res);
 		});
+	};
+
+	const _init_cart = Ctrl.prototype.init_item_cart;
+	Ctrl.prototype.init_item_cart = function () {
+		_init_cart.call(this);
+		setTimeout(() => fbr_integration.pos.inject_wht_checkbox(this), 50);
 	};
 
 	const _init_payments = Ctrl.prototype.init_payments;
@@ -282,6 +498,7 @@ fbr_integration.pos.patch = function () {
 		payment.events.__fbr_submit_wrapped = true;
 		payment.events.submit_invoice = () => {
 			fbr_integration.pos.apply_invoice_defaults(this.frm);
+			fbr_integration.pos.sync_wht_to_frm(this.frm, fbr_integration.pos.checkbox_wht_on(this));
 			this.frm.savesubmit().then((r) => {
 				this.toggle_components(false);
 				this.toggle_submitted_invoice_summary(true);
@@ -370,7 +587,19 @@ fbr_integration.pos.paint_past_order_fbr = function (list) {
 					)}</div></div>`;
 				} else {
 					this.className = "fbr-pos-order-fbr pending";
-					this.textContent = __("FBR not sent");
+					this.innerHTML = `<span>${__("FBR not sent")}</span><button type="button" class="btn btn-xs btn-primary fbr-correct-btn">${__(
+						"Correct & Send"
+					)}</button>`;
+					$(this)
+						.find(".fbr-correct-btn")
+						.off("click")
+						.on("click", (ev) => {
+							ev.preventDefault();
+							ev.stopPropagation();
+							fbr_integration.pos.show_retry_dialog(name, {
+								on_refresh: () => fbr_integration.pos.paint_past_order_fbr(list),
+							});
+						});
 				}
 			});
 		});

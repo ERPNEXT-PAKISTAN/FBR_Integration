@@ -15,6 +15,8 @@
   "auto_send_pos_on_submit",
   "column_break_autosend",
   "auto_send_on_submit",
+  "section_break_pos_wht",
+  "apply_tax_withholding_on_pos",
   "section_break_pos_credentials",
   "pos_credentials",
   "import_pos_credentials_html",
@@ -74,6 +76,18 @@
    "fieldname": "auto_send_on_submit",
    "fieldtype": "Check",
    "label": "Auto Send All Sales Invoices on Submit"
+  },
+  {
+   "fieldname": "section_break_pos_wht",
+   "fieldtype": "Section Break",
+   "label": "POS Tax Withholding"
+  },
+  {
+   "default": "0",
+   "description": "Unchecked: POS does not apply Consider for Tax Withholding (recommended). Checked: POS checkbox defaults on; cashier can still uncheck per invoice. Missing withholding rates never block checkout.",
+   "fieldname": "apply_tax_withholding_on_pos",
+   "fieldtype": "Check",
+   "label": "Apply Tax Withholding on POS"
   },
   {
    "fieldname": "section_break_xdzu",

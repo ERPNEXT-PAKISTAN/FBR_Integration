@@ -296,5 +296,21 @@ def get_pos_invoice_fbr_custom_fields() -> dict:
 
 def sync_pos_invoice_fbr_fields():
 	create_custom_fields(get_pos_invoice_fbr_custom_fields(), ignore_validate=True, update=True)
+	create_custom_fields(get_apply_wht_custom_fields(), ignore_validate=True, update=True)
 	frappe.clear_cache(doctype="POS Invoice")
 	frappe.clear_cache(doctype="POS Invoice Item")
+	frappe.clear_cache(doctype="Sales Invoice")
+
+
+def get_apply_wht_custom_fields() -> dict:
+	field = {
+		"fieldname": "custom_apply_tax_withholding",
+		"label": "Apply Tax Withholding (POS)",
+		"fieldtype": "Check",
+		"default": "0",
+		"description": "When checked, this POS invoice uses Consider for Tax Withholding. Leave unchecked to skip withholding on POS.",
+	}
+	return {
+		"Sales Invoice": [{**field, "insert_after": "apply_tds"}],
+		"POS Invoice": [{**field, "insert_after": "pos_profile"}],
+	}

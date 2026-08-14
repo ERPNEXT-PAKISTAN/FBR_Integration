@@ -117,6 +117,20 @@
 		var orig = window.fetch;
 		window.fetch = function (input, init) {
 			var url = typeof input === "string" ? input : (input && input.url) || "";
+			var method = methodFromUrl(url);
+			if (method === "fbr_integration.handler.send_to_fbr_si") {
+				var body = parseBody(init);
+				var invoiceName = body && body.name;
+				if (invoiceName) {
+					showRetry(invoiceName);
+					return Promise.resolve(
+						new Response(JSON.stringify({ message: { deferred: true } }), {
+							status: 200,
+							headers: { "Content-Type": "application/json" },
+						})
+					);
+				}
+			}
 			return orig.apply(this, arguments).then(function (res) {
 				try {
 					onFetch(url, init, res.clone());
@@ -165,6 +179,21 @@
 			})
 			.catch(function () {
 				renderDialog(invoiceName, { ok: false, fbr_error: "Could not load FBR status." });
+			});
+	}
+
+	function showRetry(invoiceName) {
+		closeDialog();
+		api("fbr_integration.handler.get_pos_fbr_retry_form", { name: invoiceName })
+			.then(function (d) {
+				if (d && d.ok && String(d.fbr_invoice_no || "").trim()) {
+					renderDialog(invoiceName, d);
+					return;
+				}
+				renderRetry(invoiceName, d || {});
+			})
+			.catch(function () {
+				renderRetry(invoiceName, { fbr_error: "Could not load FBR fields." });
 			});
 	}
 
@@ -219,7 +248,7 @@
 			"</tbody></table></div>" +
 			'<div class="fbr-xpos-actions">' +
 			'<button type="button" class="fbr-xpos-close">Close</button>' +
-			(ok ? "" : '<button type="button" class="primary fbr-xpos-send">Send to FBR</button>') +
+			(ok ? "" : '<button type="button" class="primary fbr-xpos-send">Correct &amp; Send to FBR</button>') +
 			"</div></div>";
 
 		overlay.addEventListener("click", function (ev) {
@@ -229,18 +258,134 @@
 		var sendBtn = overlay.querySelector(".fbr-xpos-send");
 		if (sendBtn) {
 			sendBtn.addEventListener("click", function () {
-				sendBtn.disabled = true;
-				sendBtn.textContent = "Sending…";
-				api("fbr_integration.handler.send_to_fbr_si", { name: invoiceName })
-					.then(function () {
-						showDialog(invoiceName);
-					})
-					.catch(function () {
-						sendBtn.disabled = false;
-						sendBtn.textContent = "Send to FBR";
-					});
+				showRetry(invoiceName);
 			});
 		}
+		document.body.appendChild(overlay);
+	}
+
+	function inputRow(name, label, value) {
+		return (
+			'<label class="fbr-xpos-field"><span>' +
+			esc(label) +
+			'</span><input name="' +
+			esc(name) +
+			'" value="' +
+			esc(value || "") +
+			'"></label>'
+		);
+	}
+
+	function selectRow(name, label, value, options) {
+		var opts = (options || []).slice();
+		var current = String(value || "");
+		if (current && opts.indexOf(current) < 0) {
+			opts.unshift(current);
+		}
+		var html =
+			'<label class="fbr-xpos-field"><span>' +
+			esc(label) +
+			'</span><select name="' +
+			esc(name) +
+			'"><option value="">—</option>';
+		opts.forEach(function (opt) {
+			var selected = String(opt) === current ? " selected" : "";
+			html += '<option value="' + esc(opt) + '"' + selected + ">" + esc(opt) + "</option>";
+		});
+		html += "</select></label>";
+		return html;
+	}
+
+	function renderRetry(invoiceName, d) {
+		closeDialog();
+		var fields = (d && d.fields) || {};
+		var items = (d && d.items) || [];
+		var options = (d && d.options) || {};
+		var errorLine =
+			(d && d.fbr_error) || "Correct the FBR fields below, then send.";
+		var itemRows = items
+			.map(function (row, idx) {
+				return (
+					'<div class="fbr-xpos-item" data-row="' +
+					esc(row.name || "") +
+					'">' +
+					'<div class="fbr-xpos-item-name">' +
+					esc((row.item_code || "") + " — " + (row.item_name || "")) +
+					"</div>" +
+					selectRow("item_tax_template_" + idx, "Tax Template", row.item_tax_template, options["Item Tax Template"]) +
+					selectRow("custom_hs_code_" + idx, "HS Code", row.custom_hs_code, options["HS Code"]) +
+					selectRow("custom_scenario_detail_" + idx, "Scenario", row.custom_scenario_detail, options["Scenario ID"]) +
+					"</div>"
+				);
+			})
+			.join("");
+
+		var overlay = document.createElement("div");
+		overlay.id = "fbr-xpos-overlay";
+		overlay.className = "fbr-xpos-overlay";
+		overlay.innerHTML =
+			'<div class="fbr-xpos-card fbr-xpos-card-wide" role="dialog" aria-modal="true">' +
+			"<h3>Correct FBR fields</h3>" +
+			'<div class="fbr-xpos-sub">' +
+			esc(invoiceName) +
+			"</div>" +
+			'<div class="fbr-xpos-body">' +
+			'<div class="fbr-xpos-banner pending">' +
+			esc(errorLine) +
+			"</div>" +
+			'<form class="fbr-xpos-form">' +
+			selectRow("custom_invoice_type", "Invoice Type", fields.custom_invoice_type, options["Invoice Type"]) +
+			selectRow("custom_scenario_detail", "Scenario Detail", fields.custom_scenario_detail, options["Scenario ID"]) +
+			selectRow("custom_tax_payer_type", "Tax Payer Type", fields.custom_tax_payer_type, options["Tax Payer Type"]) +
+			selectRow("custom_buyer_province", "Buyer Province", fields.custom_buyer_province, options["Buyer Province"]) +
+			inputRow("tax_id", "NTN / CNIC", fields.tax_id) +
+			inputRow("custom_fbr_source_invoice_no", "FBR Source Invoice No", fields.custom_fbr_source_invoice_no) +
+			'<div class="fbr-xpos-items">' +
+			itemRows +
+			"</div></form></div>" +
+			'<div class="fbr-xpos-actions">' +
+			'<button type="button" class="fbr-xpos-close">Close</button>' +
+			'<button type="button" class="primary fbr-xpos-send">Save and Send to FBR</button>' +
+			"</div></div>";
+
+		overlay.addEventListener("click", function (ev) {
+			if (ev.target === overlay) closeDialog();
+		});
+		overlay.querySelector(".fbr-xpos-close").addEventListener("click", closeDialog);
+		overlay.querySelector(".fbr-xpos-send").addEventListener("click", function () {
+			var btn = overlay.querySelector(".fbr-xpos-send");
+			btn.disabled = true;
+			btn.textContent = "Sending…";
+			var form = overlay.querySelector(".fbr-xpos-form");
+			var values = {};
+			["custom_invoice_type", "custom_scenario_detail", "custom_tax_payer_type", "custom_buyer_province", "tax_id", "custom_fbr_source_invoice_no"].forEach(function (name) {
+				var el = form.querySelector('[name="' + name + '"]');
+				values[name] = el ? el.value : "";
+			});
+			var itemPayload = items.map(function (row, idx) {
+				var wrap = overlay.querySelectorAll(".fbr-xpos-item")[idx];
+				return {
+					name: row.name,
+					item_tax_template: wrap ? wrap.querySelector('[name="item_tax_template_' + idx + '"]').value : row.item_tax_template,
+					custom_hs_code: wrap ? wrap.querySelector('[name="custom_hs_code_' + idx + '"]').value : row.custom_hs_code,
+					custom_scenario_detail: wrap
+						? wrap.querySelector('[name="custom_scenario_detail_' + idx + '"]').value
+						: row.custom_scenario_detail,
+				};
+			});
+			api("fbr_integration.handler.update_and_send_to_fbr", {
+				name: invoiceName,
+				values: values,
+				items: itemPayload,
+			})
+				.then(function () {
+					showDialog(invoiceName);
+				})
+				.catch(function () {
+					btn.disabled = false;
+					btn.textContent = "Save and Send to FBR";
+				});
+		});
 		document.body.appendChild(overlay);
 	}
 
@@ -286,7 +431,13 @@
 					"</div></div>";
 			} else {
 				wrap.className = "fbr-xpos-history pending";
-				wrap.textContent = "FBR not sent";
+				wrap.style.cursor = "pointer";
+				wrap.textContent = "FBR not sent — tap to correct & send";
+				wrap.addEventListener("click", function (ev) {
+					ev.preventDefault();
+					ev.stopPropagation();
+					showRetry(name);
+				});
 			}
 			host.parentElement ? host.parentElement.appendChild(wrap) : host.appendChild(wrap);
 		});
@@ -317,18 +468,9 @@
 				} else {
 					box.innerHTML =
 						"<h4>FBR Digital Invoice</h4><div>Not sent to FBR yet</div>" +
-						'<div class="fbr-xpos-actions" style="padding:10px 0 0;"><button type="button" class="primary">Send to FBR</button></div>';
+						'<div class="fbr-xpos-actions" style="padding:10px 0 0;"><button type="button" class="primary">Correct &amp; Send to FBR</button></div>';
 					box.querySelector("button").addEventListener("click", function () {
-						var btn = this;
-						btn.disabled = true;
-						api("fbr_integration.handler.send_to_fbr_si", { name: invoiceName })
-							.then(function () {
-								box.remove();
-								injectPreview(invoiceName);
-							})
-							.catch(function () {
-								btn.disabled = false;
-							});
+						showRetry(invoiceName);
 					});
 				}
 				var mount = dialog.querySelector("h3, h2") || dialog.firstElementChild;

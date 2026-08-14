@@ -26,6 +26,7 @@ doc_events = {
 			"fbr_integration.fbr_tax_calculation.disable_update_stock_for_delivery_note_invoice",
 			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
 			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
+			"fbr_integration.fbr_tax_calculation.gate_pos_tax_withholding",
 		],
 		"validate": [
 			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
@@ -52,6 +53,7 @@ doc_events = {
 		"before_validate": [
 			"fbr_integration.fbr_tax_calculation.sync_return_source_invoice_no",
 			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",
+			"fbr_integration.fbr_tax_calculation.gate_pos_tax_withholding",
 		],
 		"validate": [
 			"fbr_integration.fbr_tax_calculation.ensure_pos_flag",

@@ -75,6 +75,93 @@ def ensure_pos_flag(doc, method=None):
 		doc.is_pos = 1
 
 
+def _is_pos_invoice(doc) -> bool:
+	return bool(
+		cint(getattr(doc, "is_pos", 0))
+		or cint(getattr(doc, "is_created_using_pos", 0))
+		or getattr(doc, "pos_profile", None)
+	)
+
+
+def _pos_wht_setting_enabled() -> bool:
+	try:
+		return bool(cint(frappe.db.get_single_value("FBR Invoice Settings", "apply_tax_withholding_on_pos")))
+	except Exception:
+		return False
+
+
+def _clear_invoice_apply_tds(doc):
+	if hasattr(doc, "apply_tds"):
+		doc.apply_tds = 0
+	for item in doc.get("items") or []:
+		if hasattr(item, "apply_tds"):
+			item.apply_tds = 0
+
+
+def _has_applicable_wht_rate(doc) -> bool:
+	"""True when a Tax Withholding Category rate window matches posting date + group."""
+	from frappe.utils import cstr, getdate
+
+	posting = getdate(getattr(doc, "posting_date", None))
+	if not posting:
+		return False
+	group = cstr(getattr(doc, "tax_withholding_group", None))
+	cats = {
+		cstr(getattr(item, "tax_withholding_category", None))
+		for item in (doc.get("items") or [])
+		if getattr(item, "tax_withholding_category", None)
+	}
+	if not cats and getattr(doc, "customer", None):
+		cat = frappe.db.get_value("Customer", doc.customer, "tax_withholding_category")
+		if cat:
+			cats.add(cstr(cat))
+	if not cats:
+		return False
+
+	for cat in cats:
+		if not frappe.db.exists("Tax Withholding Category", cat):
+			continue
+		try:
+			cat_doc = frappe.get_cached_doc("Tax Withholding Category", cat)
+		except Exception:
+			continue
+		for row in cat_doc.get("rates") or []:
+			try:
+				if getdate(row.from_date) <= posting <= getdate(row.to_date) and cstr(
+					row.tax_withholding_group
+				) == group:
+					return True
+			except Exception:
+				continue
+	return False
+
+
+def gate_pos_tax_withholding(doc, method=None):
+	"""POS: Consider for Tax Withholding is opt-in and must never block checkout.
+
+	Default is off (FBR Invoice Settings + POS checkbox). If withholding is on
+	but no rate exists for the posting date, skip it instead of throwing.
+	"""
+	if not is_fbr_invoice_doctype(doc) or not _is_pos_invoice(doc):
+		return
+	if not hasattr(doc, "apply_tds"):
+		return
+
+	explicit = bool(cint(getattr(doc, "custom_apply_tax_withholding", 0)))
+	if not explicit:
+		_clear_invoice_apply_tds(doc)
+		return
+
+	doc.apply_tds = 1
+	if not _has_applicable_wht_rate(doc):
+		_clear_invoice_apply_tds(doc)
+		frappe.msgprint(
+			"Tax withholding was skipped: no Tax Withholding rate found for this posting date.",
+			indicator="orange",
+			alert=True,
+		)
+
+
 def _link_exists(doctype: str, name: str) -> bool:
 	if not doctype or not name:
 		return False

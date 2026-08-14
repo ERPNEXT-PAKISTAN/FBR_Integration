@@ -18,6 +18,11 @@
 	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
 	overflow: hidden;
 }
+.fbr-xpos-card-wide {
+	max-width: 560px;
+	max-height: calc(100vh - 32px);
+	overflow: auto;
+}
 .fbr-xpos-card h3 {
 	margin: 0;
 	padding: 16px 18px 10px;
@@ -153,6 +158,43 @@
 }
 .fbr-xpos-preview.pending h4 {
 	color: #9a3412;
+}
+.fbr-xpos-form {
+	display: grid;
+	gap: 8px;
+}
+.fbr-xpos-field {
+	display: grid;
+	gap: 4px;
+	font-size: 12px;
+	color: #4b5563;
+}
+.fbr-xpos-field input,
+.fbr-xpos-field select {
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	padding: 7px 9px;
+	font-size: 13px;
+	color: #111827;
+	background: #fff;
+	width: 100%;
+}
+.fbr-xpos-items {
+	display: grid;
+	gap: 10px;
+	margin-top: 6px;
+}
+.fbr-xpos-item {
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	padding: 10px;
+	background: #f8fafc;
+}
+.fbr-xpos-item-name {
+	font-size: 12px;
+	font-weight: 700;
+	margin-bottom: 8px;
+	color: #111827;
 }
 .dark .fbr-xpos-card,
 html.dark .fbr-xpos-card {

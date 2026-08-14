@@ -42,4 +42,38 @@
 .fbr-pos-order-fbr.pending {
   color: #9a3412;
   font-weight: 600;
+  justify-content: space-between;
+}
+.fbr-pos-wht {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 12px 0;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  background: #f8fafc;
+  cursor: pointer;
+  user-select: none;
+}
+.fbr-pos-wht input {
+  margin: 0;
+}
+.fbr-pos-retry-banner {
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 13px;
+  font-weight: 600;
+}
+.fbr-pos-retry-banner.info {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
 }

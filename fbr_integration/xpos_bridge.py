@@ -13,7 +13,7 @@ from __future__ import annotations
 import frappe
 from frappe.utils import cstr
 
-ASSET_VERSION = "2026.08.14"
+ASSET_VERSION = "2026.08.14.2"
 SCRIPT_ID = "fbr-xpos-bridge"
 FBR_BLOCK_MARKERS = (
 	"fbr_pos_receipt_block",

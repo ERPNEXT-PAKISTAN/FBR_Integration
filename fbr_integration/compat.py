@@ -54,6 +54,9 @@ def boot_session(bootinfo):
 	try:
 		bootinfo.fbr_desk_prefix = desk_prefix()
 		bootinfo.fbr_workspace_route = workspace_route()
+		bootinfo.fbr_apply_tax_withholding_on_pos = int(
+			frappe.db.get_single_value("FBR Invoice Settings", "apply_tax_withholding_on_pos") or 0
+		)
 	except Exception:
 		pass
 
