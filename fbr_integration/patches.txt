@@ -21,3 +21,5 @@ fbr_integration.patches.make_item_apply_tds_editable
 fbr_integration.patches.sync_territories_from_buyer_provinces
 fbr_integration.patches.set_default_invoice_type_and_scenario
 fbr_integration.patches.sync_pos_invoice_fbr_fields
+fbr_integration.patches.sync_xpos_fbr_bridge
+fbr_integration.patches.add_pos_workspace_reports

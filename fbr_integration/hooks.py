@@ -114,6 +114,15 @@ app_include_js = ["/assets/fbr_integration/js/fbr_desk.js"]
 # POS screen: FBR success dialog + summary card / Send to FBR
 page_js = {"point-of-sale": "public/js/pos_fbr.js"}
 
+# Stock XPOS (/xpos from any vendor): overlay UI + receipt FBR block
+after_request = ["fbr_integration.xpos_bridge.inject_xpos_bridge"]
+jinja = {
+	"methods": [
+		"fbr_integration.xpos_bridge.fbr_invoice_no",
+		"fbr_integration.xpos_bridge.fbr_pos_receipt_block",
+	]
+}
+
 after_install = "fbr_integration.install.after_install"
 before_uninstall = "fbr_integration.install.before_uninstall"
 
@@ -181,6 +190,10 @@ fixtures = [
 					"Sales Invoice Summary",
 					"Purchase Receipts Summary",
 					"Purchase Invoice Summary",
+					"FBR POS Order History",
+					"FBR POS Sales Summary",
+					"FBR POS Item Wise",
+					"FBR POS Closing Summary",
 				],
 			]
 		],

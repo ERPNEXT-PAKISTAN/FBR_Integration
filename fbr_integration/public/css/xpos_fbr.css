@@ -1,0 +1,165 @@
+/* FBR overlay on stock XPOS (injected by fbr_integration). */
+.fbr-xpos-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 99999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(15, 23, 42, 0.45);
+	padding: 16px;
+}
+.fbr-xpos-card {
+	width: 100%;
+	max-width: 360px;
+	background: #fff;
+	color: #111827;
+	border-radius: 14px;
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+	overflow: hidden;
+}
+.fbr-xpos-card h3 {
+	margin: 0;
+	padding: 16px 18px 10px;
+	font-size: 16px;
+	border-bottom: 1px solid #e5e7eb;
+}
+.fbr-xpos-card .fbr-xpos-sub {
+	padding: 0 18px 12px;
+	font-size: 12px;
+	color: #6b7280;
+}
+.fbr-xpos-body {
+	padding: 0 18px 16px;
+}
+.fbr-xpos-banner {
+	padding: 10px 12px;
+	border-radius: 10px;
+	margin-bottom: 12px;
+	font-size: 13px;
+	font-weight: 600;
+}
+.fbr-xpos-banner.ok {
+	background: #edf7f2;
+	border: 1px solid #86efac;
+	color: #166534;
+}
+.fbr-xpos-banner.pending {
+	background: #fff7ed;
+	border: 1px solid #fdba74;
+	color: #9a3412;
+}
+.fbr-xpos-qr {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 12px;
+}
+.fbr-xpos-qr img {
+	width: 140px;
+	height: 140px;
+	object-fit: contain;
+	border: 1px solid #e5e7eb;
+	border-radius: 8px;
+	background: #fff;
+	padding: 6px;
+}
+.fbr-xpos-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+.fbr-xpos-table td {
+	padding: 6px 0;
+}
+.fbr-xpos-table td:last-child {
+	text-align: right;
+	font-weight: 600;
+	word-break: break-all;
+}
+.fbr-xpos-muted {
+	color: #6b7280;
+	font-weight: 400;
+}
+.fbr-xpos-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 0 18px 16px;
+}
+.fbr-xpos-actions button {
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-size: 13px;
+	cursor: pointer;
+	border: 1px solid #d1d5db;
+	background: #fff;
+}
+.fbr-xpos-actions button.primary {
+	background: #0f766e;
+	border-color: #0f766e;
+	color: #fff;
+}
+.fbr-xpos-actions button:disabled {
+	opacity: 0.6;
+	cursor: wait;
+}
+.fbr-xpos-history {
+	margin-top: 6px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.fbr-xpos-history img {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+	border: 1px solid #e5e7eb;
+	border-radius: 6px;
+	background: #fff;
+	padding: 2px;
+}
+.fbr-xpos-history .label {
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	color: #0f766e;
+	font-weight: 700;
+}
+.fbr-xpos-history .no {
+	font-size: 11px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-weight: 600;
+	word-break: break-all;
+}
+.fbr-xpos-history.pending {
+	font-size: 11px;
+	color: #b45309;
+}
+.fbr-xpos-preview {
+	margin: 12px 0;
+	padding: 12px;
+	border-radius: 10px;
+	border: 1px solid #99f6e4;
+	background: #f0fdfa;
+}
+.fbr-xpos-preview.pending {
+	border-color: #fdba74;
+	background: #fff7ed;
+}
+.fbr-xpos-preview h4 {
+	margin: 0 0 8px;
+	font-size: 13px;
+	color: #115e59;
+}
+.fbr-xpos-preview.pending h4 {
+	color: #9a3412;
+}
+.dark .fbr-xpos-card,
+html.dark .fbr-xpos-card {
+	background: #111827;
+	color: #f9fafb;
+}
+.dark .fbr-xpos-card h3,
+html.dark .fbr-xpos-card h3 {
+	border-bottom-color: #374151;
+}

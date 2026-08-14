@@ -31,7 +31,13 @@ def after_install():
 	sync_payload_field_mappings()
 	sync_print_formats()
 
-	# v15: no-op for sidebar. v16: create Workspace Sidebar + Desktop Icon.
+	from fbr_integration.xpos_bridge import sync_xpos_print_formats
+
+	sync_xpos_print_formats()
+
+	from fbr_integration.workspace_pos import ensure_pos_workspace_links
+
+	ensure_pos_workspace_links()
 	ensure_desk_navigation()
 
 

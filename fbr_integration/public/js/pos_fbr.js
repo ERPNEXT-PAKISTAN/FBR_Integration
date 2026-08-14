@@ -254,7 +254,8 @@ fbr_integration.pos.patch = function () {
 
 	const Ctrl = erpnext.PointOfSale.Controller;
 	const Summary = erpnext.PointOfSale.PastOrderSummary;
-	if (!Ctrl || !Summary) return false;
+	const List = erpnext.PointOfSale.PastOrderList;
+	if (!Ctrl || !Summary || !List) return false;
 	if (Ctrl.__fbr_pos_patched) return true;
 	Ctrl.__fbr_pos_patched = true;
 
@@ -309,7 +310,70 @@ fbr_integration.pos.patch = function () {
 		}
 	};
 
+	fbr_integration.pos.patch_past_order_list(List);
+
 	return true;
+};
+
+fbr_integration.pos.patch_past_order_list = function (List) {
+	if (!List || List.__fbr_pos_list_patched) return;
+	List.__fbr_pos_list_patched = true;
+
+	const _refresh = List.prototype.refresh_list;
+	List.prototype.refresh_list = function () {
+		const me = this;
+		const result = _refresh.apply(this, arguments);
+		const paint = () => fbr_integration.pos.paint_past_order_fbr(me);
+		if (result && typeof result.then === "function") {
+			return result.then(paint);
+		}
+		setTimeout(paint, 400);
+		return result;
+	};
+};
+
+fbr_integration.pos.paint_past_order_fbr = function (list) {
+	if (!list || !list.$invoices_container) return;
+	const names = [];
+	list.$invoices_container.find(".invoice-wrapper").each(function () {
+		const $row = $(this);
+		const name = $row.attr("data-invoice-name");
+		if (!name) return;
+		names.push(name);
+		if (!$row.find(".fbr-pos-order-fbr").length) {
+			$row.append(
+				`<div class="fbr-pos-order-fbr" data-fbr-name="${fbr_integration.pos.esc(name)}">${__(
+					"Loading FBR…"
+				)}</div>`
+			);
+		}
+	});
+	if (!names.length) return;
+
+	frappe
+		.call({
+			method: "fbr_integration.handler.get_pos_fbr_status_bulk",
+			args: { names },
+		})
+		.then((r) => {
+			const map = (r && r.message) || {};
+			list.$invoices_container.find(".fbr-pos-order-fbr").each(function () {
+				const name = this.getAttribute("data-fbr-name");
+				const d = map[name] || {};
+				const fbrNo = (d.fbr_invoice_no || "").trim();
+				if (fbrNo) {
+					this.className = "fbr-pos-order-fbr";
+					this.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${encodeURIComponent(
+						fbrNo
+					)}" alt="FBR QR"><div><div class="fbr-label">${__("FBR Invoice")}</div><div class="fbr-no">${fbr_integration.pos.esc(
+						fbrNo
+					)}</div></div>`;
+				} else {
+					this.className = "fbr-pos-order-fbr pending";
+					this.textContent = __("FBR not sent");
+				}
+			});
+		});
 };
 
 // Desk pages do not provide frappe.ready (website-only). Page JS is evaluated

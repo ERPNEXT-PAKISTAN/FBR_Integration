@@ -7,3 +7,39 @@
   background-color: #5a34a3 !important;
   border-color: #5a34a3 !important;
 }
+
+.fbr-pos-order-fbr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 11px;
+  width: 100%;
+}
+.fbr-pos-order-fbr img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 2px;
+  flex: 0 0 40px;
+}
+.fbr-pos-order-fbr .fbr-label {
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 700;
+  color: #0f766e;
+  font-size: 10px;
+}
+.fbr-pos-order-fbr .fbr-no {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  word-break: break-all;
+  line-height: 1.2;
+}
+.fbr-pos-order-fbr.pending {
+  color: #9a3412;
+  font-weight: 600;
+}

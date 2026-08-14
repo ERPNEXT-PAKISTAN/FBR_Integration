@@ -69,6 +69,38 @@ def get_pos_fbr_status(name: str):
 
 
 @frappe.whitelist()
+def get_pos_fbr_status_bulk(names=None):
+	"""Map invoice name → FBR number/status for XPOS order history (no QR)."""
+	if isinstance(names, str):
+		names = frappe.parse_json(names)
+	if not isinstance(names, (list, tuple)):
+		names = []
+
+	out = {}
+	for name in list(names)[:80]:
+		name = (name or "").strip()
+		if not name:
+			continue
+		try:
+			doc = get_fbr_invoice_doc(name)
+			_assert_can_read_invoice(doc)
+			fbr_no = (
+				(getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
+				or (getattr(doc, "fbr_invoice_number", None) or "").strip()
+			)
+			out[name] = {
+				"ok": bool(fbr_no),
+				"sales_invoice": doc.name,
+				"doctype": doc.doctype,
+				"fbr_invoice_no": fbr_no,
+				"fbr_status": (getattr(doc, "custom_fbr_invoice_status", None) or "").strip(),
+			}
+		except Exception:
+			continue
+	return out
+
+
+@frappe.whitelist()
 def get_fbr_codes(name: str):
 	"""Returns QR + Barcode data urls using custom_fbr_invoice_no."""
 	doc = get_fbr_invoice_doc(name)
