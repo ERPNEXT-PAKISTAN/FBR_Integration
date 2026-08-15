@@ -79,6 +79,72 @@ def safe_fbr_item_text(val):
 	return " ".join(text.split())
 
 
+
+def _as_date(value):
+	from datetime import date, datetime
+
+	if isinstance(value, datetime):
+		return value.date()
+	if isinstance(value, date):
+		return value
+	text = str(value or "").strip()[:10]
+	if not text:
+		return None
+	try:
+		return date.fromisoformat(text)
+	except ValueError:
+		return None
+
+
+def fbr_safe_invoice_date(posting_date) -> str:
+	"""YYYY-MM-DD that FBR will not reject as 0043 (future vs their clock).
+
+	FBR validates invoiceDate against a UTC calendar. After midnight in Pakistan
+	(UTC+5) ERPNext posting_date is already the new local day, so sending that
+	date fails with: Invoice date is greater than current date.
+	"""
+	from datetime import datetime, timezone
+
+	utc_today = datetime.now(timezone.utc).date()
+	posting = _as_date(posting_date)
+	if not posting:
+		return str(utc_today)
+	if posting > utc_today:
+		return str(utc_today)
+	return str(posting)
+
+
+def first_fbr_validation_error(validation) -> tuple:
+	"""Header error, or first item-level invoiceStatuses error (FBR often leaves header empty)."""
+	validation = validation or {}
+	error = (validation.get("error") or "").strip()
+	error_code = (validation.get("errorCode") or "").strip()
+	if error or error_code:
+		return error, error_code
+	for st in validation.get("invoiceStatuses") or []:
+		item_error = (st.get("error") or "").strip()
+		item_code = (st.get("errorCode") or "").strip()
+		status_code = str(st.get("statusCode") or "")
+		if (item_error or item_code) and status_code not in ("00",):
+			return item_error, item_code
+	return "", ""
+
+
+def fbr_error_from_stored_response(raw) -> tuple:
+	if not raw:
+		return "", ""
+	if isinstance(raw, str):
+		try:
+			raw = json.loads(raw)
+		except Exception:
+			return "", ""
+	if isinstance(raw, list):
+		return first_fbr_validation_error({"invoiceStatuses": raw})
+	if not isinstance(raw, dict):
+		return "", ""
+	return first_fbr_validation_error(raw.get("validationResponse") or raw)
+
+
 def normalize_registration_no(val):
 	"""Keep FBR registration values alphanumeric, e.g. NTN/CNIC or C-prefixed registration."""
 	return re.sub(r"[^A-Za-z0-9]+", "", safe_str(val)).upper()
@@ -379,7 +445,14 @@ def persist_fbr_response_fields(doc):
 		"custom_qr_code",
 		"custom_fbr_responsed",
 	):
-		if hasattr(doc, fieldname):
+		has_col = getattr(frappe.db, "has_column", None)
+		column_ok = True
+		if callable(has_col):
+			try:
+				column_ok = bool(has_col(doc.doctype, fieldname))
+			except Exception:
+				column_ok = True
+		if hasattr(doc, fieldname) and column_ok:
 			fields[fieldname] = getattr(doc, fieldname)
 
 	if fields:
@@ -754,7 +827,7 @@ def send_invoice_to_fbr(doc, method=None):
 
 	payload = {
 		"invoiceType": resolve_payload_value("invoiceType", default_invoice_type, doc),
-		"invoiceDate": resolve_payload_value("invoiceDate", str(doc.posting_date), doc),
+		"invoiceDate": resolve_payload_value("invoiceDate", fbr_safe_invoice_date(doc.posting_date), doc),
 		"sellerNTNCNIC": resolve_payload_value("sellerNTNCNIC", seller_registration_no, doc),
 		"sellerBusinessName": resolve_payload_value("sellerBusinessName", safe_fbr_text(doc.company), doc),
 		"sellerAddress": resolve_payload_value("sellerAddress", safe_fbr_text(seller_address), doc),
@@ -801,6 +874,7 @@ def send_invoice_to_fbr(doc, method=None):
 	voucher_no = safe_str(getattr(doc, "name", "")).strip()
 	payload["referencedInvoiceNo"] = voucher_no
 	payload["sourceInvoiceNo"] = voucher_no
+	payload["invoiceDate"] = fbr_safe_invoice_date(payload.get("invoiceDate") or getattr(doc, "posting_date", None))
 
 	# Lightweight logger (avoid flooding Error Log with full payloads)
 	frappe.logger("fbr_integration").info(
@@ -878,8 +952,7 @@ def send_invoice_to_fbr(doc, method=None):
 	validation = res_json.get("validationResponse", {}) or {}
 	status_code = validation.get("statusCode", "")
 	status = validation.get("status", "")
-	error = validation.get("error", "")
-	error_code = validation.get("errorCode", "")
+	error, error_code = first_fbr_validation_error(validation)
 
 	# Fill ALL your SI fields (if exist)
 	if hasattr(doc, "custom_fbr_integration_type"):

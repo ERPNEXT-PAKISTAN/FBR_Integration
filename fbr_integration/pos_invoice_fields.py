@@ -302,6 +302,7 @@ def sync_pos_invoice_fbr_fields():
 	create_custom_fields(get_pos_invoice_fbr_custom_fields(), ignore_validate=True, update=True)
 	create_custom_fields(get_apply_wht_custom_fields(), ignore_validate=True, update=True)
 	create_custom_fields(get_clear_fbr_error_button_fields(), ignore_validate=True, update=True)
+	create_custom_fields(get_sales_invoice_fbr_error_fields(), ignore_validate=True, update=True)
 	frappe.clear_cache(doctype="POS Invoice")
 	frappe.clear_cache(doctype="POS Invoice Item")
 	frappe.clear_cache(doctype="Sales Invoice")
@@ -331,4 +332,27 @@ def get_clear_fbr_error_button_fields() -> dict:
 	return {
 		"Sales Invoice": [{**field, "insert_after": "custom_fbr_response"}],
 		"POS Invoice": [{**field, "insert_after": "custom_fbr_di_section"}],
+	}
+
+
+def get_sales_invoice_fbr_error_fields() -> dict:
+	"""POS status dialog reads these on Sales Invoice (desk POS / XPOS create SI)."""
+	allow = {"read_only": 1, "allow_on_submit": 1, "no_copy": 1}
+	return {
+		"Sales Invoice": [
+			{
+				"fieldname": "custom_fbr_invoice_error",
+				"label": "FBR Invoice Error",
+				"fieldtype": "Small Text",
+				"insert_after": "custom_fbr_invoice_status_code",
+				**allow,
+			},
+			{
+				"fieldname": "custom_fbr_invoice_error_code",
+				"label": "FBR Error Code",
+				"fieldtype": "Data",
+				"insert_after": "custom_fbr_invoice_error",
+				**allow,
+			},
+		]
 	}

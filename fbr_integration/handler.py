@@ -102,6 +102,18 @@ def get_pos_fbr_status(name: str):
 	status = (getattr(doc, "custom_fbr_invoice_status", None) or "").strip()
 	status_code = (getattr(doc, "custom_fbr_invoice_status_code", None) or "").strip()
 	error = (getattr(doc, "custom_fbr_invoice_error", None) or "").strip()
+	if not error:
+		from fbr_integration.fbr_api import fbr_error_from_stored_response
+
+		error, stored_code = fbr_error_from_stored_response(
+			getattr(doc, "custom_fbr_digital_invoice_response", None)
+		)
+		if not error:
+			error, stored_code = fbr_error_from_stored_response(
+				getattr(doc, "custom_fbr_invoice_statuses", None)
+			)
+		if stored_code and not status_code:
+			status_code = stored_code
 
 	qr_data_url = ""
 	barcode_data_url = ""
