@@ -2,9 +2,23 @@
  {
   "docstatus": 0,
   "doctype": "Sale Type",
-  "modified": "2025-07-09 16:56:37.343349",
-  "name": "Toll Manufacturing",
-  "sale_type": "Toll Manufacturing"
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "3rd Schedule Goods",
+  "sale_type": "3rd Schedule Goods"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Cement /Concrete Block",
+  "sale_type": "Cement /Concrete Block"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "CNG Sales",
+  "sale_type": "CNG Sales"
  },
  {
   "docstatus": 0,
@@ -16,9 +30,23 @@
  {
   "docstatus": 0,
   "doctype": "Sale Type",
-  "modified": "2025-07-09 16:57:21.388004",
-  "name": "Potassium Chlorate",
-  "sale_type": "Potassium Chlorate"
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "DTRE goods",
+  "sale_type": "DTRE goods"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Electric Vehicle",
+  "sale_type": "Electric Vehicle"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Electricity Supply to Retailers",
+  "sale_type": "Electricity Supply to Retailers"
  },
  {
   "docstatus": 0,
@@ -30,16 +58,44 @@
  {
   "docstatus": 0,
   "doctype": "Sale Type",
-  "modified": "2025-07-09 16:57:53.098335",
-  "name": "Services",
-  "sale_type": "Services"
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Gas to CNG stations",
+  "sale_type": "Gas to CNG stations"
  },
  {
   "docstatus": 0,
   "doctype": "Sale Type",
-  "modified": "2025-07-09 16:58:16.066764",
-  "name": "Processing/Conversion of Goods",
-  "sale_type": "Processing/Conversion of Goods"
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Goods (FED in ST Mode)",
+  "sale_type": "Goods (FED in ST Mode)"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Goods as per SRO.297(I)/2023",
+  "sale_type": "Goods as per SRO.297(I)/2023"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-05-14 10:55:43.724267",
+  "name": "Goods at Reduced Rate",
+  "sale_type": "Goods at Reduced Rate"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2025-07-09 16:59:21.069780",
+  "name": "Goods at standard rate (default)",
+  "sale_type": "Goods at standard rate (default)"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Goods at Zero-Rate",
+  "sale_type": "Goods at Zero-Rate"
  },
  {
   "docstatus": 0,
@@ -51,9 +107,86 @@
  {
   "docstatus": 0,
   "doctype": "Sale Type",
-  "modified": "2025-07-09 16:58:49.535651",
-  "name": "Goods at zero-rate",
-  "sale_type": "Goods at zero-rate"
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Non-Adjustable Supplies",
+  "sale_type": "Non-Adjustable Supplies"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Petroleum Products",
+  "sale_type": "Petroleum Products"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2025-07-09 16:57:21.388004",
+  "name": "Potassium Chlorate",
+  "sale_type": "Potassium Chlorate"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2025-07-09 16:58:16.066764",
+  "name": "Processing/Conversion of Goods",
+  "sale_type": "Processing/Conversion of Goods"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Rerollable scrap by ship breakers",
+  "sale_type": "Rerollable scrap by ship breakers"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2025-07-09 16:57:53.098335",
+  "name": "Services",
+  "sale_type": "Services"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Services (FED in ST Mode)",
+  "sale_type": "Services (FED in ST Mode)"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Ship breaking",
+  "sale_type": "Ship breaking"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "SIM",
+  "sale_type": "SIM"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Steel melting and re-rolling",
+  "sale_type": "Steel melting and re-rolling"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2026-08-15 00:00:00.000000",
+  "name": "Telecommunication services",
+  "sale_type": "Telecommunication services"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Sale Type",
+  "modified": "2025-07-09 16:56:37.343349",
+  "name": "Toll Manufacturing",
+  "sale_type": "Toll Manufacturing"
  },
  {
   "docstatus": 0,
@@ -61,13 +194,6 @@
   "modified": "2026-05-14 10:55:43.707044",
   "name": "Goods at Standard Rate",
   "sale_type": "Goods at Standard Rate"
- },
- {
-  "docstatus": 0,
-  "doctype": "Sale Type",
-  "modified": "2026-05-14 10:55:43.724267",
-  "name": "Goods at Reduced Rate",
-  "sale_type": "Goods at Reduced Rate"
  },
  {
   "docstatus": 0,
@@ -103,19 +229,5 @@
   "modified": "2026-05-14 10:55:43.801095",
   "name": "Further Tax",
   "sale_type": "Further Tax"
- },
- {
-  "docstatus": 0,
-  "doctype": "Sale Type",
-  "modified": "2026-05-12 10:24:38.236840",
-  "name": "Goods as per SRO.297(|)/2023",
-  "sale_type": "Goods as per SRO.297(|)/2023"
- },
- {
-  "docstatus": 0,
-  "doctype": "Sale Type",
-  "modified": "2025-07-09 16:59:21.069780",
-  "name": "Goods at standard rate (default)",
-  "sale_type": "Goods at standard rate (default)"
  }
 ]

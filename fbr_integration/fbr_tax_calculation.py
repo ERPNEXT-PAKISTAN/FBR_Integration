@@ -287,11 +287,12 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 			or {}
 		)
 
-		if not getattr(doc, "custom_tax_payer_type", None):
-			doc.custom_tax_payer_type = customer_defaults.get("custom_tax_payer_type")
-
-		if not getattr(doc, "custom_buyer_province", None):
-			doc.custom_buyer_province = customer_defaults.get("custom_buyer_province")
+		customer_type = (customer_defaults.get("custom_tax_payer_type") or "").strip()
+		customer_province = (customer_defaults.get("custom_buyer_province") or "").strip()
+		if customer_type and not (getattr(doc, "custom_tax_payer_type", None) or "").strip():
+			doc.custom_tax_payer_type = customer_type
+		if customer_province and not (getattr(doc, "custom_buyer_province", None) or "").strip():
+			doc.custom_buyer_province = customer_province
 
 	for item in doc.get("items") or []:
 		if not item.item_code:
@@ -307,11 +308,17 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 			or {}
 		)
 
-		if not getattr(item, "custom_hs_code", None):
-			item.custom_hs_code = item_defaults.get("custom_hs_code")
+		item_hs = (item_defaults.get("custom_hs_code") or "").strip()
+		item_uom = (item_defaults.get("custom_fbr_uom") or "").strip()
+		current_hs = (getattr(item, "custom_hs_code", None) or "").strip()
+		current_uom = (getattr(item, "custom_fbr_uom", None) or "").strip()
 
-		if not getattr(item, "custom_fbr_uom", None):
-			item.custom_fbr_uom = item_defaults.get("custom_fbr_uom")
+		# Field defaults (3005.1010 / KG) used to block fetch_from / empty-only sync.
+		if item_hs and (not current_hs or current_hs == "3005.1010"):
+			item.custom_hs_code = item_hs
+
+		if item_uom and (not current_uom or current_uom == "KG"):
+			item.custom_fbr_uom = item_uom
 
 
 def sync_return_source_invoice_no(doc, method=None):

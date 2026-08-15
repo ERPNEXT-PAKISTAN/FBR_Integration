@@ -57,6 +57,7 @@ def get_pos_invoice_fbr_custom_fields() -> dict:
 				"insert_after": "custom_scenario_id",
 				"fetch_from": "customer.custom_tax_payer_type",
 				"fetch_if_empty": 1,
+				"ignore_user_permissions": 1,
 			},
 			{
 				"fieldname": "custom_buyer_province",
@@ -66,6 +67,7 @@ def get_pos_invoice_fbr_custom_fields() -> dict:
 				"insert_after": "custom_tax_payer_type",
 				"fetch_from": "customer.custom_buyer_province",
 				"fetch_if_empty": 1,
+				"ignore_user_permissions": 1,
 			},
 			{
 				"fieldname": "custom_fbr_source_invoice_no",
@@ -202,6 +204,7 @@ def get_pos_invoice_fbr_custom_fields() -> dict:
 				"insert_after": "custom_scenario_detail",
 				"fetch_from": "item_code.custom_hs_code",
 				"fetch_if_empty": 1,
+				"ignore_user_permissions": 1,
 			},
 			{
 				"fieldname": "custom_fbr_uom",
@@ -211,6 +214,7 @@ def get_pos_invoice_fbr_custom_fields() -> dict:
 				"insert_after": "custom_hs_code",
 				"fetch_from": "item_code.custom_fbr_uom",
 				"fetch_if_empty": 1,
+				"ignore_user_permissions": 1,
 			},
 			{
 				"fieldname": "custom_sro_schedule_no",

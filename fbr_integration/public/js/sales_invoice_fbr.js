@@ -672,61 +672,134 @@ async function render_selected_scenario_detail_fields(frm) {
 }
 
 function bind_item_scenario_detail_preview(frm) {
-    if (frm.__fbr_item_scenario_preview_bound) return;
-    frm.__fbr_item_scenario_preview_bound = true;
+    if (frappe.ui.form.__fbr_item_scenario_preview_bound) return;
+    frappe.ui.form.__fbr_item_scenario_preview_bound = true;
 
-    // Frappe emits form_render after a child row form is opened, which is the
-    // first point where the HTML field control exists.
-    frappe.ui.form.on("Sales Invoice Item", {
-        form_render(parentFrm, cdt, cdn) {
-            if (
-                parentFrm &&
-                parentFrm.doc &&
-                parentFrm.doc.name !== frm.doc.name
-            ) {
-                return;
-            }
-            render_item_scenario_detail_fields(frm, cdn);
-        },
+    ["Sales Invoice Item", "POS Invoice Item"].forEach(function (doctype) {
+        frappe.ui.form.on(doctype, {
+            form_render(parentFrm, cdt, cdn) {
+                render_item_scenario_detail_fields(parentFrm || frm, cdn);
+            },
+        });
     });
 }
 
 function set_html_control_content(control, html) {
     if (!control) return;
+    if (control.df) {
+        control.df.options = html || "";
+    }
     if (typeof control.html === "function") {
-        control.html(html);
+        control.html(html || "");
         return;
     }
-    if (control.$wrapper) {
-        control.$wrapper.html(html || "");
+    const target =
+        control.$wrapper && control.$wrapper.find(".html-value").length
+            ? control.$wrapper.find(".html-value")
+            : control.$wrapper;
+    if (target) {
+        target.html(html || "");
     }
 }
 
-async function render_item_scenario_detail_fields(frm, cdn) {
-    const row = locals["Sales Invoice Item"]?.[cdn];
-    if (!row) return;
+function get_item_row(frm, cdn) {
+    return (
+        locals["Sales Invoice Item"]?.[cdn] ||
+        locals["POS Invoice Item"]?.[cdn] ||
+        (frm.doc.items || []).find((d) => d.name === cdn) ||
+        null
+    );
+}
 
+function get_item_html_control(frm, cdn) {
     const grid_row =
         frm.fields_dict.items &&
         frm.fields_dict.items.grid &&
         frm.fields_dict.items.grid.grid_rows_by_docname
             ? frm.fields_dict.items.grid.grid_rows_by_docname[cdn]
             : null;
-    const item_html_field = scenario_detail_html_field(
-        (grid_row && grid_row.grid_form) || {
-            fields_dict:
-                (grid_row && grid_row.on_grid_fields_dict) || {},
+    if (!grid_row) return { grid_row: null, control: null, fieldname: "" };
+
+    const form_fields =
+        (grid_row.grid_form && grid_row.grid_form.fields_dict) || {};
+    const grid_fields = grid_row.on_grid_fields_dict || {};
+    const fieldname = scenario_detail_html_field({
+        fields_dict: Object.assign({}, grid_fields, form_fields),
+    });
+    const control = form_fields[fieldname] || grid_fields[fieldname] || null;
+    return { grid_row, control, fieldname };
+}
+
+function copy_customer_fbr_links(frm, options) {
+    options = options || {};
+    if (!frm || !frm.doc || !frm.doc.customer) return;
+
+    frappe.db.get_value(
+        "Customer",
+        frm.doc.customer,
+        ["custom_buyer_province", "custom_tax_payer_type"],
+        function (r) {
+            if (!r) return;
+            if (
+                r.custom_buyer_province &&
+                (!options.ifEmpty || !(frm.doc.custom_buyer_province || "").toString().trim())
+            ) {
+                frm.set_value("custom_buyer_province", r.custom_buyer_province);
+            }
+            if (
+                r.custom_tax_payer_type &&
+                (!options.ifEmpty || !(frm.doc.custom_tax_payer_type || "").toString().trim())
+            ) {
+                frm.set_value("custom_tax_payer_type", r.custom_tax_payer_type);
+            }
         }
     );
-    const control =
-        (grid_row && grid_row.on_grid_fields_dict
-            ? grid_row.on_grid_fields_dict[item_html_field]
-            : null) ||
-        (grid_row && grid_row.grid_form && grid_row.grid_form.fields_dict
-            ? grid_row.grid_form.fields_dict[item_html_field]
-            : null);
+}
 
-    if (!control) return;
+function copy_item_fbr_links(frm, cdt, cdn) {
+    const row = locals[cdt]?.[cdn] || get_item_row(frm, cdn);
+    if (!row || !row.item_code) return;
+
+    frappe.db.get_value(
+        "Item",
+        row.item_code,
+        ["custom_hs_code", "custom_fbr_uom"],
+        function (r) {
+            if (!r) return;
+            if (r.custom_hs_code) {
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "custom_hs_code",
+                    r.custom_hs_code
+                );
+            }
+            if (r.custom_fbr_uom) {
+                frappe.model.set_value(
+                    cdt,
+                    cdn,
+                    "custom_fbr_uom",
+                    r.custom_fbr_uom
+                );
+            }
+        }
+    );
+}
+
+async function render_item_scenario_detail_fields(frm, cdn, attempt) {
+    attempt = attempt || 0;
+    const row = get_item_row(frm, cdn);
+    if (!row) return;
+
+    const { grid_row, control } = get_item_html_control(frm, cdn);
+    if (!control) {
+        if (attempt < 8) {
+            setTimeout(function () {
+                render_item_scenario_detail_fields(frm, cdn, attempt + 1);
+            }, 80);
+        }
+        return;
+    }
 
     const rowDetail = (row.custom_scenario_detail || "").toString().trim();
     const parentDetail = (frm.doc.custom_scenario_detail || "")
@@ -748,19 +821,12 @@ async function render_item_scenario_detail_fields(frm, cdn) {
 
     try {
         const data = await fetch_scenario_doc(sid);
-        if (
-            (locals["Sales Invoice Item"]?.[cdn] || {}).custom_scenario_detail
-        ) {
-            const currentSid = (
-                locals["Sales Invoice Item"][cdn].custom_scenario_detail || ""
-            )
-                .toString()
-                .trim()
-                .toUpperCase();
-            if (currentSid && currentSid !== sid) return;
-        }
+        const liveRow = get_item_row(frm, cdn) || row;
+        const currentSid = extract_fbr_scenario_id(
+            liveRow.custom_scenario_detail
+        );
+        if (currentSid && currentSid !== sid) return;
 
-        // Keep the item row preview aligned with the selected scenario detail.
         set_html_control_content(
             control,
             render_scenario_detail_field_html(data, sid)
@@ -1427,6 +1493,7 @@ frappe.ui.form.on(doctype, {
     },
 
     customer(frm) {
+        copy_customer_fbr_links(frm);
         if (!frm.fields_dict.apply_tds) return;
         setTimeout(() => sync_item_apply_tds_from_parent(frm), 400);
     },
@@ -1521,6 +1588,7 @@ frappe.ui.form.on(doctype, {
 
     refresh(frm) {
         if (frm.doc.docstatus === 0) {
+            copy_customer_fbr_links(frm, { ifEmpty: true });
             ensure_sale_invoice_fbr_defaults(frm).then(function () {
                 apply_invoice_scenario_to_all_items(frm, { forceApply: false });
             });
@@ -1649,6 +1717,7 @@ frappe.ui.form.on(doctype, {
     },
 
     item_code(frm, cdt, cdn) {
+        copy_item_fbr_links(frm, cdt, cdn);
         apply_fbr_item_tax_template(frm, cdt, cdn, {
             notify: false,
             forceApply: true,
