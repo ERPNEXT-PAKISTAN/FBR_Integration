@@ -23,6 +23,7 @@ _frappe.get_single = lambda *a, **k: types.SimpleNamespace()
 
 
 from fbr_integration.fbr_tax_calculation import (  # noqa: E402
+	_allocate_invoice_withholding_to_items,
 	_default_st_withheld_rate,
 	_invoice_considers_tax_withholding,
 	_item_considers_tax_withholding,
@@ -57,6 +58,28 @@ class TestWithholdingHelpers(unittest.TestCase):
 		item.custom_sales_tax_withheld_rate = 5
 		self.assertEqual(_default_st_withheld_rate(doc_off, item), 0)
 		self.assertEqual(_default_st_withheld_rate(doc_on, item), 5)
+
+	def test_allocate_overwrites_stale_withheld_rate(self):
+		item = types.SimpleNamespace(
+			amount=30000,
+			apply_tds=1,
+			custom_sales_tax_withheld_rate=5,
+			custom_sales_tax_withheld_at_source=1500,
+		)
+		doc = types.SimpleNamespace(
+			apply_tds=1,
+			tax_withholding_entries=[
+				types.SimpleNamespace(
+					withholding_amount=600,
+					tax_withholding_category="ST Withheld - 2% (FBR)",
+				)
+			],
+			items=[item],
+		)
+		doc.get = lambda key, default=None, _doc=doc: getattr(_doc, key, default)
+		_allocate_invoice_withholding_to_items(doc)
+		self.assertEqual(item.custom_sales_tax_withheld_at_source, 600)
+		self.assertAlmostEqual(item.custom_sales_tax_withheld_rate, 2.0)
 
 	def test_ensure_pos_flag_from_profile(self):
 		doc = types.SimpleNamespace(

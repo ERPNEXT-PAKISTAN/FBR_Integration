@@ -613,14 +613,16 @@ def _default_st_withheld_rate(doc, item) -> float:
 	if not _item_considers_tax_withholding(doc, item):
 		return 0
 
-	existing = float(getattr(item, "custom_sales_tax_withheld_rate", None) or 0)
-	if existing:
-		return existing
-
+	# Category on the item row is the source of truth (e.g. ST Withheld - 2%).
+	# A leftover sales-tax % in custom_sales_tax_withheld_rate must not win.
 	item_cat = getattr(item, "tax_withholding_category", None) or ""
 	rate = _rate_from_withholding_category(item_cat)
 	if rate:
 		return rate
+
+	existing = float(getattr(item, "custom_sales_tax_withheld_rate", None) or 0)
+	if existing:
+		return existing
 
 	if doc.customer:
 		cust = (
@@ -678,10 +680,8 @@ def _allocate_invoice_withholding_to_items(doc):
 			share = round(wh_total * (abs(float(item.amount or 0)) / base), 2)
 			allocated += share
 		item.custom_sales_tax_withheld_at_source = share
-		# Keep rate informative when derived from invoice entries
-		if not float(getattr(item, "custom_sales_tax_withheld_rate", None) or 0):
-			amt = abs(float(item.amount or 0))
-			item.custom_sales_tax_withheld_rate = round((share / amt) * 100, 6) if amt else 0
+		amt = abs(float(item.amount or 0))
+		item.custom_sales_tax_withheld_rate = round((share / amt) * 100, 6) if amt else 0
 
 
 
