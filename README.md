@@ -1,8 +1,10 @@
 ### FBR Integration
 
+![FBR Pakistan — Digital Invoicing for ERPNext v15 and v16](docs/fbr-pakistan.png)
+
 FBR Integration for ERPNext — integrates with FBR's Digital Invoicing (DI) system to submit sales invoices directly to FBR.
 
-Works on **Frappe / ERPNext v15 and v16** with one install command. On v16, migrate also creates the Desktop Icon and Workspace Sidebar.
+Works on **Frappe / ERPNext v15 and v16** with one install command. Sales Invoice, ERPNext POS, and XPOS. On v16, migrate also creates the Desktop Icon and Workspace Sidebar.
 
 ### Requirements
 
