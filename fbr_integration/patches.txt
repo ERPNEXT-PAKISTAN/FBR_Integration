@@ -28,3 +28,4 @@ fbr_integration.patches.sync_sale_types_and_item_fbr_links
 fbr_integration.patches.rename_zero_rate_sale_type
 fbr_integration.patches.restore_goods_at_zero_rate
 fbr_integration.patches.sync_customer_buyer_province_fetch
+fbr_integration.patches.remove_unused_item_tax_fields
