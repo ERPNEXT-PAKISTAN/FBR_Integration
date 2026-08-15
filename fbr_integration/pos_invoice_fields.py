@@ -301,6 +301,7 @@ def get_pos_invoice_fbr_custom_fields() -> dict:
 def sync_pos_invoice_fbr_fields():
 	create_custom_fields(get_pos_invoice_fbr_custom_fields(), ignore_validate=True, update=True)
 	create_custom_fields(get_apply_wht_custom_fields(), ignore_validate=True, update=True)
+	create_custom_fields(get_clear_fbr_error_button_fields(), ignore_validate=True, update=True)
 	frappe.clear_cache(doctype="POS Invoice")
 	frappe.clear_cache(doctype="POS Invoice Item")
 	frappe.clear_cache(doctype="Sales Invoice")
@@ -317,4 +318,17 @@ def get_apply_wht_custom_fields() -> dict:
 	return {
 		"Sales Invoice": [{**field, "insert_after": "apply_tds"}],
 		"POS Invoice": [{**field, "insert_after": "pos_profile"}],
+	}
+
+
+def get_clear_fbr_error_button_fields() -> dict:
+	field = {
+		"fieldname": "custom_clear_fbr_error",
+		"label": "Clear FBR Error",
+		"fieldtype": "Button",
+		"description": "Clear FBR error and response fields after you fix the invoice.",
+	}
+	return {
+		"Sales Invoice": [{**field, "insert_after": "custom_fbr_response"}],
+		"POS Invoice": [{**field, "insert_after": "custom_fbr_di_section"}],
 	}

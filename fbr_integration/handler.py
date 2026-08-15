@@ -23,6 +23,72 @@ def send_to_fbr_si(name: str):
 	return _send(name)
 
 
+FBR_ERROR_RESPONSE_FIELDS = (
+	"custom_fbr_digital_invoice_response",
+	"custom_fbr_responsed",
+	"custom_fbr_invoice_status",
+	"custom_fbr_invoice_status_code",
+	"custom_fbr_invoice_error",
+	"custom_fbr_invoice_error_code",
+	"custom_fbr_submission_time",
+	"custom_fbr_invoice_statuses",
+	"custom_fbr_invoice_item_no",
+	"custom_fbr_status",
+	"custom_fbr_datetime",
+)
+
+FBR_NUMBER_FIELDS = (
+	"custom_fbr_invoice_no",
+	"custom_fbr_qr_code",
+	"custom_qr_code",
+	"custom_fbr_invoice_number",
+	"fbr_invoice_number",
+	"fbr_posted_on",
+)
+
+
+@frappe.whitelist()
+def clear_fbr_error_fields(name: str, doctype: str | None = None):
+	"""Clear FBR error/response fields after the user fixes the invoice."""
+	doc = get_fbr_invoice_doc(name)
+	if doctype and doc.doctype != doctype and frappe.db.exists(doctype, name):
+		doc = frappe.get_doc(doctype, name)
+
+	if frappe.session.user != "Administrator" and not frappe.has_permission(
+		doc.doctype, "write", doc=doc
+	):
+		frappe.throw(
+			f"You do not have permission to update this {doc.doctype}.",
+			frappe.PermissionError,
+			title="Not Permitted",
+		)
+
+	fbr_no = (
+		(getattr(doc, "custom_fbr_invoice_no", None) or "").strip()
+		or (getattr(doc, "fbr_invoice_number", None) or "").strip()
+	)
+	status_code = (getattr(doc, "custom_fbr_invoice_status_code", None) or "").strip()
+	responded = (getattr(doc, "custom_fbr_responsed", None) or "").strip()
+	if fbr_no and status_code == "00" and responded.lower() == "success":
+		frappe.throw("This invoice was already accepted by FBR. Error fields were not cleared.")
+
+	updates = {}
+	for fieldname in FBR_ERROR_RESPONSE_FIELDS:
+		if hasattr(doc, fieldname):
+			updates[fieldname] = None if fieldname in ("custom_fbr_datetime", "fbr_posted_on") else ""
+
+	if status_code != "00" or responded.lower() != "success" or not fbr_no:
+		for fieldname in FBR_NUMBER_FIELDS:
+			if hasattr(doc, fieldname):
+				updates[fieldname] = None if fieldname in ("custom_fbr_datetime", "fbr_posted_on") else ""
+
+	if updates:
+		frappe.db.set_value(doc.doctype, doc.name, updates, update_modified=False)
+		frappe.clear_document_cache(doc.doctype, doc.name)
+
+	return {"ok": True, "message": "FBR error fields cleared."}
+
+
 @frappe.whitelist()
 def get_pos_fbr_status(name: str):
 	"""POS summary payload: FBR number, status, QR/barcode after each POS submit."""

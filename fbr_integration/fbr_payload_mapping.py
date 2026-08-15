@@ -126,6 +126,17 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 	},
 	{
 		"payload_section": "Header",
+		"payload_field": "sourceInvoiceNo",
+		"source_doctype": "Sales Invoice",
+		"source_field": "name",
+		"transform": "Text",
+		"description": (
+			"Same ERPNext voucher number as referencedInvoiceNo. "
+			"Older FBR / DI gateways expect this field."
+		),
+	},
+	{
+		"payload_section": "Header",
 		"payload_field": "invoiceRefNo",
 		"source_doctype": "Sales Invoice",
 		"source_field": "custom_fbr_source_invoice_no",

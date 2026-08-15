@@ -908,26 +908,76 @@ async function ensure_return_credit_note(frm, options = {}) {
     }
 }
 
+const FBR_ERROR_RESPONSE_FIELDS = [
+    "custom_fbr_digital_invoice_response",
+    "custom_fbr_invoice_no",
+    "custom_fbr_responsed",
+    "custom_fbr_qr_code",
+    "custom_qr_code",
+    "custom_fbr_invoice_status",
+    "custom_fbr_invoice_status_code",
+    "custom_fbr_invoice_error",
+    "custom_fbr_invoice_error_code",
+    "custom_fbr_submission_time",
+    "custom_fbr_invoice_statuses",
+    "custom_fbr_invoice_item_no",
+    "custom_fbr_status",
+    "custom_fbr_invoice_number",
+    "custom_fbr_datetime",
+];
+
+function invoice_has_fbr_error(frm) {
+    if (!frm || !frm.doc) return false;
+    const responded = (frm.doc.custom_fbr_responsed || "").toString().trim();
+    const statusCode = (frm.doc.custom_fbr_invoice_status_code || "")
+        .toString()
+        .trim();
+    const response = (
+        frm.doc.custom_fbr_digital_invoice_response || ""
+    )
+        .toString()
+        .trim();
+    const error = (frm.doc.custom_fbr_invoice_error || "").toString().trim();
+    if (responded.toLowerCase() === "error") return true;
+    if (statusCode && statusCode !== "00") return true;
+    if (error) return true;
+    if (response && responded.toLowerCase() !== "success") return true;
+    return false;
+}
+
 async function clear_fbr_response_fields(frm) {
     if (!frm || !frm.doc) return;
 
-    // Clear FBR response fields for fresh return submission
-    const fieldsToClean = [
-        "custom_fbr_digital_invoice_response",
-        "custom_fbr_invoice_no",
-        "custom_fbr_responsed",
-        "custom_fbr_qr_code",
-        "custom_fbr_invoice_status",
-        "custom_fbr_invoice_status_code",
-        "custom_fbr_submission_time",
-        "custom_fbr_invoice_statuses",
-    ];
-
-    for (const field of fieldsToClean) {
+    for (const field of FBR_ERROR_RESPONSE_FIELDS) {
         if (field in frm.doc && frm.doc[field]) {
             await frm.set_value(field, "");
         }
     }
+}
+
+function clear_fbr_error_on_form(frm) {
+    if (!frm || !frm.doc || !frm.doc.name) return;
+
+    frappe.confirm(
+        __("Clear all FBR error and response fields on this invoice?"),
+        function () {
+            frappe.call({
+                method: "fbr_integration.handler.clear_fbr_error_fields",
+                args: { name: frm.doc.name, doctype: frm.doc.doctype },
+                freeze: true,
+                freeze_message: __("Clearing FBR error fields..."),
+                callback: function (r) {
+                    const msg = (r && r.message) || {};
+                    frm.reload_doc().then(function () {
+                        frappe.show_alert({
+                            message: msg.message || __("FBR error fields cleared."),
+                            indicator: "green",
+                        });
+                    });
+                },
+            });
+        }
+    );
 }
 
 async function sync_return_source_invoice_no(frm) {
@@ -1492,6 +1542,10 @@ frappe.ui.form.on(doctype, {
         }
     },
 
+    custom_clear_fbr_error(frm) {
+        clear_fbr_error_on_form(frm);
+    },
+
     customer(frm) {
         copy_customer_fbr_links(frm);
         if (!frm.fields_dict.apply_tds) return;
@@ -1607,6 +1661,22 @@ frappe.ui.form.on(doctype, {
         frm.add_custom_button(__("Scenario Index"), function () {
             show_scenario_browser(frm);
         });
+
+        if (invoice_has_fbr_error(frm)) {
+            const clearBtn = frm.add_custom_button(
+                __("Clear FBR Error"),
+                function () {
+                    clear_fbr_error_on_form(frm);
+                }
+            );
+            try {
+                clearBtn
+                    .removeClass("btn-default btn-primary btn-success btn-purple")
+                    .addClass("btn-danger");
+            } catch (e) {
+                // ignore style application errors
+            }
+        }
 
         // Determine if invoice is already submitted to FBR
         const is_sent_to_fbr = (frm.doc.custom_fbr_invoice_no || "").trim();
