@@ -17,18 +17,22 @@ from fbr_integration.xpos_bridge import sync_xpos_print_formats
 from fbr_integration.workspace_pos import ensure_pos_workspace_links
 
 # Bump when fixture/sync logic changes and a full resync is required.
-FBR_SYNC_VERSION = "2026.08.03"
+FBR_SYNC_VERSION = "2026.08.16"
 
 
 def run_after_migrate():
 	"""Always refresh desk nav; run heavy syncs only when version changes or empty."""
 	from fbr_integration.pos_invoice_fields import sync_pos_invoice_fbr_fields
+	from fbr_integration.taxation.fields import sync_fbr_taxation_fields
+	from fbr_integration.taxation.seed import sync_fbr_taxation_masters
 
 	ensure_desk_navigation()
 	sync_print_formats()
 	sync_xpos_print_formats()
 	ensure_pos_workspace_links()
 	sync_pos_invoice_fbr_fields()
+	sync_fbr_taxation_fields()
+	sync_fbr_taxation_masters()
 	ensure_desk_navigation()
 
 	current = frappe.db.get_default("fbr_integration_sync_version")

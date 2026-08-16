@@ -391,4 +391,19 @@ If any fails:
 
 ---
 
+## Universal FBR Taxation (all industries)
+
+Tax is configured **per item** via **FBR Tax Profile**. One invoice can mix standard, Third Schedule (MRP), zero-rated, exempt, reduced-rate, and notified-value goods.
+
+1. Open **FBR Tax Profile** (FBR Pakistan → Tax Masters).
+2. For Third Schedule items, add **Item Price** on price list **FBR Retail Price**, then set the item's **FBR Tax Profile** to `3rd Schedule Goods`.
+3. Selling **Rate** stays the dealer/customer price. GST for Third Schedule is `MRP × qty × %`.
+4. POS uses the same engine. Do not replace the POS selling price with MRP.
+5. Print Third Schedule invoices with **FBR Sales Invoice 3rd Schedule** or **FBR Letterhead-2 3rd Schedule** (MRP columns). Other FBR prints stay for standard invoices.
+6. All FBR invoice prints show Bank Account for Payment on one line: Account Name **ML 88**, IBAN **1010122255555**, Bank **Meezan Bank**.
+
+Existing companies with no tax profiles keep working as before.
+
+---
+
 **Happy invoicing! 🚀**

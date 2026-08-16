@@ -139,9 +139,15 @@ class TestPosWithholdingGate(unittest.TestCase):
 	def test_pos_checked_skips_when_rate_missing(self):
 		messages = []
 		import frappe as frappe_mod
+		from fbr_integration import fbr_tax_calculation as tax_mod
 
-		frappe_mod.msgprint = lambda *a, **k: messages.append(a[0] if a else "")
+		def _msg(*a, **k):
+			messages.append(a[0] if a else "")
+
+		frappe_mod.msgprint = _msg
+		tax_mod.frappe.msgprint = _msg
 		frappe_mod.db.exists = lambda *a, **k: False
+		tax_mod.frappe.db.exists = lambda *a, **k: False
 		doc = self._pos_doc(custom_apply_tax_withholding=1, apply_tds=0)
 		gate_pos_tax_withholding(doc)
 		self.assertEqual(doc.apply_tds, 0)
@@ -149,8 +155,10 @@ class TestPosWithholdingGate(unittest.TestCase):
 
 	def test_pos_checked_keeps_apply_tds_when_rate_exists(self):
 		import frappe as frappe_mod
+		from fbr_integration import fbr_tax_calculation as tax_mod
 
 		frappe_mod.db.exists = lambda *a, **k: True
+		tax_mod.frappe.db.exists = lambda *a, **k: True
 		cat = types.SimpleNamespace(
 			rates=[
 				types.SimpleNamespace(
@@ -162,6 +170,7 @@ class TestPosWithholdingGate(unittest.TestCase):
 		)
 		cat.get = lambda key, default=None, _cat=cat: getattr(_cat, key, default)
 		frappe_mod.get_cached_doc = lambda *a, **k: cat
+		tax_mod.frappe.get_cached_doc = lambda *a, **k: cat
 		doc = self._pos_doc(custom_apply_tax_withholding=1, apply_tds=0)
 		gate_pos_tax_withholding(doc)
 		self.assertEqual(doc.apply_tds, 1)

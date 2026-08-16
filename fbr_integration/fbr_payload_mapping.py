@@ -240,10 +240,14 @@ DEFAULT_PAYLOAD_FIELD_MAPPINGS = [
 	{
 		"payload_section": "Item",
 		"payload_field": "fixedNotifiedValueOrRetailPrice",
-		"source_doctype": "Sales Invoice Item",
-		"source_field": "rate",
+		"source_doctype": "",
+		"source_field": "",
 		"transform": "Absolute Float",
-		"description": "Current: Sales Invoice Item → Rate (rate), absolute for returns.",
+		"description": (
+			"Computed by the FBR tax engine: line MRP or notified value (unit × qty) so FBR "
+			"0102 tax = field × rate. 0 for Sales Value profiles. Legacy rows without a tax "
+			"basis still send Rate."
+		),
 	},
 	{
 		"payload_section": "Item",

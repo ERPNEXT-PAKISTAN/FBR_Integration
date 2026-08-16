@@ -27,11 +27,15 @@ mod = importlib.reload(mod)
 
 
 def _bind_db_get_value(value="1953701DI1KLDKA962915"):
-	frappe_mod = sys.modules["frappe"]
-	frappe_mod.db = types.SimpleNamespace(
-		exists=lambda *a, **k: False,
+	db = types.SimpleNamespace(
+		exists=lambda *a, **k: True,
+		has_column=lambda *a, **k: True,
 		get_value=lambda *a, **k: value,
 	)
+	sys.modules["frappe"].db = db
+	tax_mod = sys.modules.get("fbr_integration.fbr_tax_calculation")
+	if tax_mod is not None:
+		tax_mod.frappe.db = db
 
 
 class TestReturnInvoiceRef(unittest.TestCase):

@@ -760,30 +760,50 @@ function copy_item_fbr_links(frm, cdt, cdn) {
     const row = locals[cdt]?.[cdn] || get_item_row(frm, cdn);
     if (!row || !row.item_code) return;
 
-    frappe.db.get_value(
-        "Item",
-        row.item_code,
-        ["custom_hs_code", "custom_fbr_uom"],
-        function (r) {
-            if (!r) return;
-            if (r.custom_hs_code) {
-                frappe.model.set_value(
-                    cdt,
-                    cdn,
-                    "custom_hs_code",
-                    r.custom_hs_code
-                );
-            }
-            if (r.custom_fbr_uom) {
-                frappe.model.set_value(
-                    cdt,
-                    cdn,
-                    "custom_fbr_uom",
-                    r.custom_fbr_uom
-                );
-            }
-        }
-    );
+    frappe.call({
+        method: "fbr_integration.api.get_item_fbr_tax_defaults",
+        args: {
+            item_code: row.item_code,
+            posting_date: frm.doc.posting_date,
+            uom: row.uom,
+            company: frm.doc.company,
+            currency: frm.doc.currency,
+            qty: row.qty,
+            rate: row.rate,
+            amount: row.amount,
+        },
+        callback: function (r) {
+            const data = (r && r.message) || {};
+            const fields = [
+                "custom_hs_code",
+                "custom_fbr_uom",
+                "custom_fbr_tax_profile",
+                "custom_fbr_tax_calculation_basis",
+                "custom_fbr_retail_price",
+                "custom_fbr_fixed_notified_value",
+                "custom_fbr_taxable_value",
+                "custom_sale_type",
+                "custom_sro_schedule_no",
+                "custom_sro_item_sno",
+            ];
+            fields.forEach(function (field) {
+                if (data[field] === undefined || data[field] === null || data[field] === "") {
+                    return;
+                }
+                if (field === "custom_sale_type" && (row.custom_sale_type || "").toString().trim()) {
+                    return;
+                }
+                if (
+                    (field === "custom_sro_schedule_no" || field === "custom_sro_item_sno") &&
+                    (row[field] || "").toString().trim()
+                ) {
+                    return;
+                }
+                frappe.model.set_value(cdt, cdn, field, data[field]);
+            });
+            recalc_fbr_item_row(frm, cdt, cdn);
+        },
+    });
 }
 
 async function render_item_scenario_detail_fields(frm, cdn, attempt) {
@@ -1196,6 +1216,26 @@ function sum_st_withheld(frm) {
     }
 }
 
+function get_fbr_taxable_value(row) {
+    const qty = parseFloat(row.qty) || 0;
+    const rate = parseFloat(row.rate) || 0;
+    const amount =
+        parseFloat(row.amount) || qty * rate;
+    const basis = (row.custom_fbr_tax_calculation_basis || "").toString().trim();
+    if (basis === "Retail Price / MRP") {
+        const mrp = parseFloat(row.custom_fbr_retail_price) || 0;
+        return mrp > 0 ? mrp * qty : amount;
+    }
+    if (basis === "Fixed / Notified Value") {
+        const notified = parseFloat(row.custom_fbr_fixed_notified_value) || 0;
+        return notified > 0 ? notified * qty : amount;
+    }
+    if (basis === "Manual Taxable Value") {
+        return parseFloat(row.custom_fbr_taxable_value) || amount;
+    }
+    return amount;
+}
+
 function apply_st_withheld_amount(frm, cdt, cdn, amount) {
     const row = locals[cdt][cdn];
     const withheldRate = parseFloat(row.custom_sales_tax_withheld_rate) || 0;
@@ -1209,8 +1249,13 @@ function recalc_fbr_item_row(frm, cdt, cdn) {
     const qty = parseFloat(row.qty) || 0;
     const rate = parseFloat(row.rate) || 0;
     const amount = qty * rate;
+    const taxable = get_fbr_taxable_value(row);
 
+    // Keep commercial amount on qty * rate for live preview; server remains authoritative.
     setv(cdt, cdn, "amount", amount);
+    if ("custom_fbr_taxable_value" in row || row.custom_fbr_tax_calculation_basis) {
+        setv(cdt, cdn, "custom_fbr_taxable_value", taxable);
+    }
 
     setv(cdt, cdn, "custom_sales_tax_rate", 0);
     setv(cdt, cdn, "custom_further_tax_rate", 0);
@@ -1264,13 +1309,19 @@ function recalc_fbr_item_row(frm, cdt, cdn) {
             if (res.length === 1 && salesRate === 0)
                 salesRate = res[0].tax_rate || 0;
 
-            const sales = (amount * salesRate) / 100;
-            const further = (amount * furtherRate) / 100;
-            const extra = (amount * extraRate) / 100;
+            const liveRow = locals[cdt][cdn] || row;
+            const liveTaxable = get_fbr_taxable_value(liveRow);
+            const liveAmount =
+                parseFloat(liveRow.amount) ||
+                (parseFloat(liveRow.qty) || 0) * (parseFloat(liveRow.rate) || 0);
+            const sales = (liveTaxable * salesRate) / 100;
+            const further = (liveAmount * furtherRate) / 100;
+            const extra = (liveAmount * extraRate) / 100;
 
             setv(cdt, cdn, "custom_sales_tax_rate", salesRate);
             setv(cdt, cdn, "custom_further_tax_rate", furtherRate);
             setv(cdt, cdn, "custom_extra_tax_rate", extraRate);
+            setv(cdt, cdn, "custom_fbr_taxable_value", liveTaxable);
 
             setv(cdt, cdn, "custom_sales_tax", sales);
             setv(cdt, cdn, "custom_further_tax", further);
@@ -1278,8 +1329,8 @@ function recalc_fbr_item_row(frm, cdt, cdn) {
 
             const totalTax = sales + further + extra;
             setv(cdt, cdn, "custom_total_tax_amount", totalTax);
-            setv(cdt, cdn, "custom_tax_inclusive_amount", amount + totalTax);
-            apply_st_withheld_amount(frm, cdt, cdn, amount);
+            setv(cdt, cdn, "custom_tax_inclusive_amount", liveAmount + totalTax);
+            apply_st_withheld_amount(frm, cdt, cdn, liveAmount);
 
             frm.refresh_field("items");
         },
@@ -1784,6 +1835,30 @@ frappe.ui.form.on(doctype, {
     item_tax_template(frm, cdt, cdn) {
         if (frm.__fbr_bulk_updating) return;
         recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    custom_fbr_tax_profile(frm, cdt, cdn) {
+        if (frm.__fbr_bulk_updating) return;
+        copy_item_fbr_links(frm, cdt, cdn);
+    },
+
+    custom_fbr_tax_calculation_basis(frm, cdt, cdn) {
+        recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    custom_fbr_retail_price(frm, cdt, cdn) {
+        recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    custom_fbr_fixed_notified_value(frm, cdt, cdn) {
+        recalc_fbr_item_row(frm, cdt, cdn);
+    },
+
+    custom_fbr_taxable_value(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if ((row.custom_fbr_tax_calculation_basis || "") === "Manual Taxable Value") {
+            recalc_fbr_item_row(frm, cdt, cdn);
+        }
     },
 
     item_code(frm, cdt, cdn) {

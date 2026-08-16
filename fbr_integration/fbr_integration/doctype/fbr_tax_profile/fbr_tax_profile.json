@@ -1,0 +1,275 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:profile_name",
+ "creation": "2026-08-16 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "profile_name",
+  "enabled",
+  "column_break_header",
+  "sale_type",
+  "tax_calculation_basis",
+  "section_break_rates",
+  "default_sales_tax_rate",
+  "default_further_tax_rate",
+  "column_break_rates",
+  "default_extra_tax_rate",
+  "default_fed_rate",
+  "section_break_component_basis",
+  "further_tax_calculation_basis",
+  "extra_tax_calculation_basis",
+  "column_break_component_basis",
+  "fed_calculation_basis",
+  "section_break_requirements",
+  "requires_retail_price",
+  "requires_fixed_notified_value",
+  "requires_sro_fields",
+  "section_break_sro",
+  "sro_schedule_no",
+  "column_break_sro",
+  "sro_item_serial_no",
+  "section_break_notes",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "profile_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Profile Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "FBR saleType label. Independent from Tax Calculation Basis.",
+   "fieldname": "sale_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sale Type",
+   "options": "Sale Type"
+  },
+  {
+   "default": "Sales Value",
+   "description": "How sales tax valuation is computed. Do not infer this from the Sale Type name.",
+   "fieldname": "tax_calculation_basis",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Tax Calculation Basis",
+   "options": "Sales Value\nRetail Price / MRP\nFixed / Notified Value\nManual Taxable Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_rates",
+   "fieldtype": "Section Break",
+   "label": "Default Rates"
+  },
+  {
+   "fieldname": "default_sales_tax_rate",
+   "fieldtype": "Percent",
+   "label": "Default Sales Tax Rate"
+  },
+  {
+   "fieldname": "default_further_tax_rate",
+   "fieldtype": "Percent",
+   "label": "Default Further Tax Rate"
+  },
+  {
+   "fieldname": "column_break_rates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_extra_tax_rate",
+   "fieldtype": "Percent",
+   "label": "Default Extra Tax Rate"
+  },
+  {
+   "fieldname": "default_fed_rate",
+   "fieldtype": "Percent",
+   "label": "Default FED Rate"
+  },
+  {
+   "fieldname": "section_break_component_basis",
+   "fieldtype": "Section Break",
+   "label": "Other Tax Bases"
+  },
+  {
+   "default": "Sales Value",
+   "description": "Further Tax is not automatically MRP-based unless this is set to Retail Price / MRP.",
+   "fieldname": "further_tax_calculation_basis",
+   "fieldtype": "Select",
+   "label": "Further Tax Calculation Basis",
+   "options": "Sales Value\nRetail Price / MRP\nFixed / Notified Value\nManual Taxable Value"
+  },
+  {
+   "default": "Sales Value",
+   "fieldname": "extra_tax_calculation_basis",
+   "fieldtype": "Select",
+   "label": "Extra Tax Calculation Basis",
+   "options": "Sales Value\nRetail Price / MRP\nFixed / Notified Value\nManual Taxable Value"
+  },
+  {
+   "fieldname": "column_break_component_basis",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Sales Value",
+   "fieldname": "fed_calculation_basis",
+   "fieldtype": "Select",
+   "label": "FED Calculation Basis",
+   "options": "Sales Value\nRetail Price / MRP\nFixed / Notified Value\nManual Taxable Value"
+  },
+  {
+   "fieldname": "section_break_requirements",
+   "fieldtype": "Section Break",
+   "label": "Requirements"
+  },
+  {
+   "default": "0",
+   "fieldname": "requires_retail_price",
+   "fieldtype": "Check",
+   "label": "Requires Retail Price / MRP"
+  },
+  {
+   "default": "0",
+   "fieldname": "requires_fixed_notified_value",
+   "fieldtype": "Check",
+   "label": "Requires Fixed / Notified Value"
+  },
+  {
+   "default": "0",
+   "fieldname": "requires_sro_fields",
+   "fieldtype": "Check",
+   "label": "Requires SRO Fields"
+  },
+  {
+   "fieldname": "section_break_sro",
+   "fieldtype": "Section Break",
+   "label": "SRO"
+  },
+  {
+   "fieldname": "sro_schedule_no",
+   "fieldtype": "Link",
+   "label": "SRO Schedule No",
+   "options": "SRO Schedule No"
+  },
+  {
+   "fieldname": "column_break_sro",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sro_item_serial_no",
+   "fieldtype": "Link",
+   "label": "SRO Item Serial No",
+   "options": "SRO Item SNo"
+  },
+  {
+   "fieldname": "section_break_notes",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FBR Integration",
+ "name": "FBR Tax Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "write": 1,
+   "create": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "write": 1,
+   "create": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager"
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User"
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "search_fields": "sale_type,tax_calculation_basis",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "profile_name",
+ "track_changes": 1
+}

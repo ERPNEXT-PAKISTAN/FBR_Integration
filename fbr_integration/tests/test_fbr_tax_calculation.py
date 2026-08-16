@@ -22,7 +22,7 @@ for pkg in ("requests", "urllib3"):
 		sys.modules[pkg] = mod
 
 
-from fbr_integration.fbr_api import format_extra_tax_for_payload  # noqa: E402
+from fbr_integration.fbr_api import format_extra_tax_for_payload, format_fbr_rate_percent  # noqa: E402
 from fbr_integration.fbr_tax_calculation import (  # noqa: E402
 	DEFAULT_INVOICE_TYPE,
 	DEFAULT_ITEM_TAX_TEMPLATE_TITLE,
@@ -185,6 +185,11 @@ class TestFbrTaxCalculation(unittest.TestCase):
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN009"), "")
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN028"), "")
 		self.assertEqual(format_extra_tax_for_payload(12.5, "SN004"), 12.5)
+
+	def test_format_fbr_rate_percent_matches_di_catalog(self):
+		self.assertEqual(format_fbr_rate_percent(18), "18%")
+		self.assertEqual(format_fbr_rate_percent(18.00), "18%")
+		self.assertEqual(format_fbr_rate_percent(17.5), "17.5%")
 
 	def test_item_tax_template_seed_data_ships_expected_scenarios(self):
 		specs = get_item_tax_template_specs()

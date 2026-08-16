@@ -47,6 +47,9 @@ doc_events = {
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",
 		],
+		"before_submit": [
+			"fbr_integration.taxation.validation.validate_fbr_invoice_for_submission",
+		],
 		"on_submit": "fbr_integration.fbr_api.after_submit_invoice",
 	},
 	"POS Invoice": {
@@ -72,6 +75,9 @@ doc_events = {
 			"fbr_integration.fbr_tax_calculation.sync_item_apply_tds_with_parent",
 			"fbr_integration.fbr_tax_calculation.calculate_fbr_tax",
 			"fbr_integration.fbr_api.enforce_return_invoice_type",
+		],
+		"before_submit": [
+			"fbr_integration.taxation.validation.validate_fbr_invoice_for_submission",
 		],
 		"on_submit": "fbr_integration.fbr_api.after_submit_invoice",
 	},

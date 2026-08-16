@@ -12,6 +12,7 @@ from fbr_integration.fbr_payload_mapping import (
 	apply_extra_payload_mappings,
 	resolve_payload_value,
 )
+from fbr_integration.taxation.payload import get_fixed_notified_or_retail_price
 
 # InsecureRequestWarning is disabled only when SSL Applied is off (verify=False).
 
@@ -43,6 +44,15 @@ def rounded_float(val, precision):
 def fbr_money(val):
 	"""FBR allows money/rate numeric fields up to 2 decimal places."""
 	return rounded_float(val, 2)
+
+
+def format_fbr_rate_percent(rate):
+	"""FBR DI rate strings match the catalog, e.g. ``18%`` not ``18.00%``."""
+	n = safe_float(rate)
+	if n == int(n):
+		return f"{int(n)}%"
+	text = f"{n:.4f}".rstrip("0").rstrip(".")
+	return f"{text}%"
 
 
 def fbr_quantity(val):
@@ -290,6 +300,7 @@ def merge_fbr_items(items):
 		"quantity",
 		"totalValues",
 		"valueSalesExcludingST",
+		"fixedNotifiedValueOrRetailPrice",
 		"salesTaxApplicable",
 		"salesTaxWithheldAtSource",
 		"extraTax",
@@ -319,12 +330,6 @@ def merge_fbr_items(items):
 				target[field] = ""
 				continue
 			target[field] = safe_float(target.get(field)) + safe_float(item.get(field))
-
-		# Keep the unit retail/notified value from the first line.
-		if not target.get("fixedNotifiedValueOrRetailPrice"):
-			target["fixedNotifiedValueOrRetailPrice"] = safe_float(
-				item.get("fixedNotifiedValueOrRetailPrice")
-			)
 
 	return list(merged.values())
 
@@ -628,6 +633,10 @@ def send_invoice_to_fbr(doc, method=None):
 	apply_default_invoice_type_and_scenario(doc)
 	persist_fbr_header_defaults(doc)
 
+	from fbr_integration.taxation.validation import validate_fbr_invoice_for_submission
+
+	validate_fbr_invoice_for_submission(doc, force=True)
+
 	settings = frappe.get_single("FBR Invoice Settings")
 
 	if not settings.enabled:
@@ -721,7 +730,7 @@ def send_invoice_to_fbr(doc, method=None):
 			extra_tax = 0
 			total_values = num(item.amount)
 		else:
-			rate_val = f"{num(item.custom_sales_tax_rate):.2f}%"
+			rate_val = format_fbr_rate_percent(num(item.custom_sales_tax_rate))
 			sale_type_val = normalize_sale_type_for_scenario(scenario_id, item.custom_sale_type)
 			sales_tax_applicable = num(item.custom_sales_tax)
 			further_tax = num(item.custom_further_tax)
@@ -773,7 +782,7 @@ def send_invoice_to_fbr(doc, method=None):
 			),
 			"fixedNotifiedValueOrRetailPrice": resolve_payload_value(
 				"fixedNotifiedValueOrRetailPrice",
-				num(item.rate),
+				get_fixed_notified_or_retail_price(item, absolute=is_return_invoice),
 				doc,
 				item=item,
 				section="Item",

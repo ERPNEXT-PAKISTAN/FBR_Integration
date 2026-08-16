@@ -17,6 +17,13 @@
   "auto_send_on_submit",
   "section_break_pos_wht",
   "apply_tax_withholding_on_pos",
+  "section_break_taxation",
+  "default_fbr_tax_profile",
+  "fbr_retail_price_list",
+  "column_break_taxation",
+  "auto_fetch_fbr_retail_price",
+  "allow_item_level_tax_profile",
+  "validate_fbr_tax_profile_before_submission",
   "section_break_pos_credentials",
   "pos_credentials",
   "import_pos_credentials_html",
@@ -88,6 +95,49 @@
    "fieldname": "apply_tax_withholding_on_pos",
    "fieldtype": "Check",
    "label": "Apply Tax Withholding on POS"
+  },
+  {
+   "fieldname": "section_break_taxation",
+   "fieldtype": "Section Break",
+   "label": "Universal Taxation",
+   "description": "Per-item tax profiles. Do not mark the whole company as Third Schedule."
+  },
+  {
+   "fieldname": "default_fbr_tax_profile",
+   "fieldtype": "Link",
+   "label": "Default FBR Tax Profile",
+   "options": "FBR Tax Profile",
+   "description": "Used only when the item has no FBR Tax Profile. Leave blank to keep current behavior."
+  },
+  {
+   "default": "FBR Retail Price",
+   "fieldname": "fbr_retail_price_list",
+   "fieldtype": "Link",
+   "label": "FBR Retail Price List",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "column_break_taxation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_fetch_fbr_retail_price",
+   "fieldtype": "Check",
+   "label": "Auto Fetch FBR Retail Price"
+  },
+  {
+   "default": "1",
+   "fieldname": "allow_item_level_tax_profile",
+   "fieldtype": "Check",
+   "label": "Allow Item-Level Tax Profile"
+  },
+  {
+   "default": "0",
+   "description": "When checked, invoices with tax profiles must have MRP / notified value / SRO as required. Sending to FBR always validates those rows.",
+   "fieldname": "validate_fbr_tax_profile_before_submission",
+   "fieldtype": "Check",
+   "label": "Validate FBR Tax Profile Before Submission"
   },
   {
    "fieldname": "section_break_xdzu",

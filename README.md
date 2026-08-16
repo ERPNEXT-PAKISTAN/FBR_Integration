@@ -63,6 +63,84 @@ CI runs a matrix against Frappe/ERPNext **version-15** and **version-16**.
 
 Public verification: `/fbr_verify?invoice=<FBR Invoice No>` looks up Sales Invoice by `custom_fbr_invoice_no`.
 
+### Universal FBR Taxation
+
+Tax treatment is **per item**, not per company. One business can sell standard goods, Third Schedule (MRP) goods, zero-rated, exempt, reduced-rate, and fixed/notified-value goods on the **same invoice** (Sales Invoice or POS).
+
+Do **not** mark the whole company as Third Schedule. Assign an **FBR Tax Profile** on the Item (or override it on the invoice row).
+
+FBR **Sale Type** and **Tax Calculation Basis** are separate. Example: Sale Type `3rd Schedule Goods` with Tax Calculation Basis `Retail Price / MRP`.
+
+#### Standard Business
+
+No MRP configuration required.
+
+- Tax basis: **Sales Value** (`item.amount`)
+- Selling rate stays the commercial rate
+- FBR `fixedNotifiedValueOrRetailPrice` is `0` when a Sales Value profile is used; existing installs with **no** profile keep previous behavior (`item.rate`)
+
+#### Third Schedule Business
+
+1. Create Item Prices on the selling Price List **FBR Retail Price** (do not replace the normal selling price list).
+2. Assign **FBR Tax Profile** = `3rd Schedule Goods` on the Item.
+3. Optionally set **Default FBR Retail Price / MRP** on the Item as a fallback.
+
+Example:
+
+| | |
+| --- | --- |
+| Selling Rate | 800 |
+| Qty | 10 |
+| Actual amount | 8,000 |
+| MRP | 1,000 |
+| GST | 18% |
+| FBR taxable base | 10,000 |
+| GST | 1,800 |
+
+Accounting revenue stays **8,000**. GST is `MRP × qty × rate`. Commercial discounts do not reduce the MRP tax base.
+
+FBR sandbox error **0102** computes GST as `fixedNotifiedValueOrRetailPrice × rate` (quantity is not multiplied again). The JSON field is therefore the **line** MRP (`unit MRP × qty`), while ERPNext `rate` / `amount` stay the commercial sale.
+
+#### Mixed Business
+
+Different items on one invoice can use different Tax Profiles. Each row calculates independently.
+
+#### POS
+
+Desk POS and X POS use the **same server-side tax engine** as Sales Invoice (no separate Third Schedule formula). The cashier still sees the commercial selling price (e.g. Rs. 800). MRP is stored on the invoice row snapshot and used only for FBR valuation.
+
+Returns copy the original row snapshot (including the MRP used on that sale). They do not look up today's MRP.
+
+#### Print formats
+
+| Format | Use |
+| --- | --- |
+| **FBR Sales Invoice** | Standard / mixed invoices (tax on selling value unless the row is Third Schedule) |
+| **FBR Letterhead-2** | Same layout with company letterhead |
+| **FBR Sales Invoice 3rd Schedule** | Third Schedule invoices — extra **MRP** and **Taxable (MRP)** columns |
+| **FBR Letterhead-2 3rd Schedule** | Letterhead variant of the Third Schedule print |
+
+All FBR invoice prints (including Sales Invoice Tax, Sales Tax, Sales Tax Invoice, Warrenty, and FBR Letterhead) show payment details on one line per field:
+
+```
+Bank Account for Payment.
+Account Name: ML 88
+IBAN Number: 1010122255555
+Bank Name: Meezan Bank
+```
+
+#### Settings
+
+**FBR Invoice Settings → Universal Taxation**:
+
+- Default FBR Tax Profile (optional fallback)
+- FBR Retail Price List (default `FBR Retail Price`)
+- Auto Fetch FBR Retail Price
+- Allow Item-Level Tax Profile
+- Validate FBR Tax Profile Before Submission
+
+Leave these blank/default to keep current behavior for existing users.
+
 ### Old app ``fbr_e_invoicing`` (removed)
 
 This site previously used **`fbr_e_invoicing`**. That app is **uninstalled and not on disk**.

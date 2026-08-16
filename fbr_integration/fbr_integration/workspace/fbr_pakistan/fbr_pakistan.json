@@ -386,7 +386,7 @@
    "icon": null,
    "is_query_report": 0,
    "label": "Tax Masters",
-   "link_count": 6,
+   "link_count": 7,
    "link_to": null,
    "link_type": "DocType",
    "onboard": 0,
@@ -396,6 +396,24 @@
    "parenttype": "Workspace",
    "report_ref_doctype": null,
    "type": "Card Break"
+  },
+  {
+   "dependencies": null,
+   "description": null,
+   "hidden": 0,
+   "icon": null,
+   "is_query_report": 0,
+   "label": "FBR Tax Profile",
+   "link_count": 0,
+   "link_to": "FBR Tax Profile",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "parent": "FBR Pakistan",
+   "parentfield": "links",
+   "parenttype": "Workspace",
+   "report_ref_doctype": null,
+   "type": "Link"
   },
   {
    "dependencies": null,

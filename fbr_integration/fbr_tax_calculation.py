@@ -298,11 +298,18 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 		if not item.item_code:
 			continue
 
+		fields = ["custom_hs_code", "custom_fbr_uom"]
+		try:
+			if frappe.db.has_column("Item", "custom_fbr_tax_profile"):
+				fields.append("custom_fbr_tax_profile")
+		except Exception:
+			pass
+
 		item_defaults = (
 			frappe.db.get_value(
 				"Item",
 				item.item_code,
-				["custom_hs_code", "custom_fbr_uom"],
+				fields,
 				as_dict=True,
 			)
 			or {}
@@ -310,6 +317,7 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 
 		item_hs = (item_defaults.get("custom_hs_code") or "").strip()
 		item_uom = (item_defaults.get("custom_fbr_uom") or "").strip()
+		item_profile = (item_defaults.get("custom_fbr_tax_profile") or "").strip()
 		current_hs = (getattr(item, "custom_hs_code", None) or "").strip()
 		current_uom = (getattr(item, "custom_fbr_uom", None) or "").strip()
 
@@ -319,6 +327,13 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 
 		if item_uom and (not current_uom or current_uom == "KG"):
 			item.custom_fbr_uom = item_uom
+
+		if (
+			item_profile
+			and hasattr(item, "custom_fbr_tax_profile")
+			and not (getattr(item, "custom_fbr_tax_profile", None) or "").strip()
+		):
+			item.custom_fbr_tax_profile = item_profile
 
 
 def sync_return_source_invoice_no(doc, method=None):
@@ -704,7 +719,11 @@ def calculate_fbr_tax(doc, method=None):
 	if not is_fbr_invoice_doctype(doc):
 		return
 
+	from fbr_integration.taxation.engine import apply_item_tax_amounts
+	from fbr_integration.taxation.snapshot import apply_tax_snapshots
+
 	sync_item_apply_tds_with_parent(doc)
+	apply_tax_snapshots(doc)
 	invoice_withheld = 0.0
 
 	for item in doc.items:
@@ -725,20 +744,9 @@ def calculate_fbr_tax(doc, method=None):
 
 		amount = float(item.amount or 0)
 
-		# Reset tax amounts (keep withheld rate if user/customer set it)
-		item.custom_sales_tax_rate = 0
-		item.custom_further_tax_rate = 0
-		item.custom_extra_tax_rate = 0
-
-		item.custom_sales_tax = 0
-		item.custom_further_tax = 0
-		item.custom_extra_tax = 0
-
-		item.custom_total_tax_amount = 0
-		item.custom_tax_inclusive_amount = amount
-
 		withheld_rate = _default_st_withheld_rate(doc, item)
 		# If Consider for Tax Withholding is off (invoice or row), clear FBR withheld fields.
+		# Withholding stays on commercial sales value, not MRP.
 		if not _item_considers_tax_withholding(doc, item):
 			item.custom_sales_tax_withheld_rate = 0
 			item.custom_sales_tax_withheld_at_source = 0
@@ -748,49 +756,16 @@ def calculate_fbr_tax(doc, method=None):
 				(amount * withheld_rate) / 100 if withheld_rate else 0
 			)
 
-		if not item.item_tax_template:
-			invoice_withheld += float(item.custom_sales_tax_withheld_at_source or 0)
-			continue
+		tax_rows = []
+		if item.item_tax_template:
+			tax_rows = _get_item_tax_template_rows(item.item_tax_template)
+			if not tax_rows:
+				frappe.log_error(
+					title="FBR Tax Calc: No tax rows found",
+					message=f"Template: {item.item_tax_template} | Item: {item.item_code} | SI: {doc.name}",
+				)
 
-		tax_rows = _get_item_tax_template_rows(item.item_tax_template)
-
-		if not tax_rows:
-			# Helpful debug (you can remove later)
-			frappe.log_error(
-				title="FBR Tax Calc: No tax rows found",
-				message=f"Template: {item.item_tax_template} | Item: {item.item_code} | SI: {doc.name}",
-			)
-			invoice_withheld += float(item.custom_sales_tax_withheld_at_source or 0)
-			continue
-
-		# Determine rates
-		for tr in tax_rows:
-			tax_type = tr.get("tax_type") or ""
-			tax_rate = float(tr.get("tax_rate") or 0)
-
-			if _matches(tax_type, SALES_TAX_KEYS):
-				item.custom_sales_tax_rate = tax_rate
-			elif _matches(tax_type, FURTHER_TAX_KEYS):
-				item.custom_further_tax_rate = tax_rate
-			elif _matches(tax_type, EXTRA_TAX_KEYS):
-				item.custom_extra_tax_rate = tax_rate
-
-		# fallback: only one row
-		if len(tax_rows) == 1 and float(item.custom_sales_tax_rate or 0) == 0:
-			item.custom_sales_tax_rate = float(tax_rows[0].get("tax_rate") or 0)
-
-		# Calculate amounts
-		item.custom_sales_tax = (amount * float(item.custom_sales_tax_rate or 0)) / 100
-		item.custom_further_tax = (amount * float(item.custom_further_tax_rate or 0)) / 100
-		item.custom_extra_tax = (amount * float(item.custom_extra_tax_rate or 0)) / 100
-
-		item.custom_total_tax_amount = (
-			float(item.custom_sales_tax or 0)
-			+ float(item.custom_further_tax or 0)
-			+ float(item.custom_extra_tax or 0)
-		)
-
-		item.custom_tax_inclusive_amount = amount + float(item.custom_total_tax_amount or 0)
+		apply_item_tax_amounts(doc, item, tax_rows=tax_rows)
 		invoice_withheld += float(item.custom_sales_tax_withheld_at_source or 0)
 
 	_allocate_invoice_withholding_to_items(doc)
