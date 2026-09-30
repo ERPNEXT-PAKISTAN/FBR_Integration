@@ -14,8 +14,6 @@ from fbr_integration.taxation.constants import (
 	TAX_BASIS_SALES_VALUE,
 )
 
-DEFAULT_SRO_SCHEDULE = "EIGHTH SCHEDULE Table 1"
-DEFAULT_SRO_ITEM = "81"
 from fbr_integration.taxation.profile import get_taxation_settings, profile_to_dict, resolve_tax_profile
 from fbr_integration.taxation.retail_price import resolve_fixed_notified_value, resolve_retail_price
 
@@ -69,19 +67,17 @@ def apply_item_snapshot(doc, item, settings=None, profile=None):
 		if not current_sale_type or current_sale_type == SALE_TYPE_STANDARD:
 			item.custom_sale_type = data["sale_type"]
 
+	# Fill SRO only when the row is empty. Never wipe a value the user selected.
+	# A previous pass treated the field default "EIGHTH SCHEDULE Table 1" as a
+	# placeholder and cleared it on every save, so reduced-rate rows (rate != 18%)
+	# reached FBR with a blank sroScheduleNo (error 0077).
 	if data.get("sro_schedule_no") and hasattr(item, "custom_sro_schedule_no"):
 		if not cstr(getattr(item, "custom_sro_schedule_no", None)).strip():
 			item.custom_sro_schedule_no = data["sro_schedule_no"]
-	elif hasattr(item, "custom_sro_schedule_no") and not data.get("requires_sro_fields"):
-		if cstr(getattr(item, "custom_sro_schedule_no", None)).strip() == DEFAULT_SRO_SCHEDULE:
-			item.custom_sro_schedule_no = ""
 
 	if data.get("sro_item_serial_no") and hasattr(item, "custom_sro_item_sno"):
 		if not cstr(getattr(item, "custom_sro_item_sno", None)).strip():
 			item.custom_sro_item_sno = data["sro_item_serial_no"]
-	elif hasattr(item, "custom_sro_item_sno") and not data.get("requires_sro_fields"):
-		if cstr(getattr(item, "custom_sro_item_sno", None)).strip() == DEFAULT_SRO_ITEM:
-			item.custom_sro_item_sno = ""
 
 	basis = cstr(getattr(item, "custom_fbr_tax_calculation_basis", None)).strip() or TAX_BASIS_SALES_VALUE
 	auto_fetch = cint(settings.get("auto_fetch_fbr_retail_price", 1))

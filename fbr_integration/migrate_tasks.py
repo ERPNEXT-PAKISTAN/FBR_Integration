@@ -33,6 +33,13 @@ def run_after_migrate():
 	sync_pos_invoice_fbr_fields()
 	sync_fbr_taxation_fields()
 	sync_fbr_taxation_masters()
+	from fbr_integration.patches.sync_sale_types_and_item_fbr_links import (
+		_ensure_item_link_fields,
+		_ensure_read_permissions,
+	)
+
+	_ensure_item_link_fields()
+	_ensure_read_permissions()
 	ensure_desk_navigation()
 
 	current = frappe.db.get_default("fbr_integration_sync_version")

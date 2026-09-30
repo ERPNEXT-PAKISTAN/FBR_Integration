@@ -47,17 +47,19 @@ def get_item_fbr_tax_defaults(
 		return {}
 
 	item_fields = ["custom_hs_code", "custom_fbr_uom"]
-	try:
-		if frappe.db.has_column("Item", "custom_fbr_tax_profile"):
-			item_fields.extend(
-				[
-					"custom_fbr_tax_profile",
-					"custom_fbr_default_retail_price",
-					"custom_fbr_default_fixed_notified_value",
-				]
-			)
-	except Exception:
-		pass
+	for optional in (
+		"custom_fbr_tax_profile",
+		"custom_fbr_default_retail_price",
+		"custom_fbr_default_fixed_notified_value",
+		"custom_sale_type",
+		"custom_sro_schedule_no",
+		"custom_sro_item_sno",
+	):
+		try:
+			if frappe.db.has_column("Item", optional) and optional not in item_fields:
+				item_fields.append(optional)
+		except Exception:
+			pass
 
 	item_master = frappe.db.get_value("Item", item_code, item_fields, as_dict=True) or {}
 	row = frappe._dict(
@@ -110,9 +112,9 @@ def get_item_fbr_tax_defaults(
 		"custom_fbr_default_retail_price": item_master.get("custom_fbr_default_retail_price") or 0,
 		"custom_fbr_fixed_notified_value": fixed,
 		"custom_fbr_taxable_value": taxable,
-		"custom_sale_type": data.get("sale_type") or "",
-		"custom_sro_schedule_no": data.get("sro_schedule_no") or "",
-		"custom_sro_item_sno": data.get("sro_item_serial_no") or "",
+		"custom_sale_type": data.get("sale_type") or item_master.get("custom_sale_type") or "",
+		"custom_sro_schedule_no": data.get("sro_schedule_no") or item_master.get("custom_sro_schedule_no") or "",
+		"custom_sro_item_sno": data.get("sro_item_serial_no") or item_master.get("custom_sro_item_sno") or "",
 		"custom_sales_tax_rate": data.get("default_sales_tax_rate") or 0,
 		"custom_further_tax_rate": data.get("default_further_tax_rate") or 0,
 		"custom_extra_tax_rate": data.get("default_extra_tax_rate") or 0,

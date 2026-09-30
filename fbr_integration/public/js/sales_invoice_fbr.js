@@ -790,7 +790,12 @@ function copy_item_fbr_links(frm, cdt, cdn) {
                 if (data[field] === undefined || data[field] === null || data[field] === "") {
                     return;
                 }
-                if (field === "custom_sale_type" && (row.custom_sale_type || "").toString().trim()) {
+                if (
+                    field === "custom_sale_type" &&
+                    (row.custom_sale_type || "").toString().trim() &&
+                    (row.custom_sale_type || "").toString().trim() !==
+                        "Goods at standard rate (default)"
+                ) {
                     return;
                 }
                 if (

@@ -18,7 +18,7 @@ READ_ROLES = (
 	"Stock Manager",
 	"Stock User",
 )
-LINK_DOCTYPES = ("Sale Type", "HS Code", "FBR UOM")
+LINK_DOCTYPES = ("Sale Type", "HS Code", "FBR UOM", "SRO Schedule No", "SRO Item SNo")
 
 
 def _sale_type_fixture_rows():
@@ -104,6 +104,32 @@ def _ensure_item_link_fields():
 					"insert_after": "custom_hs_code",
 					"ignore_user_permissions": 1,
 				},
+				{
+					"fieldname": "custom_sale_type",
+					"label": "Sale Type",
+					"fieldtype": "Link",
+					"options": "Sale Type",
+					"insert_after": "custom_fbr_uom",
+					"ignore_user_permissions": 1,
+					"description": "Optional default. Copied to the invoice row when that row has no sale type.",
+				},
+				{
+					"fieldname": "custom_sro_schedule_no",
+					"label": "SRO Schedule No",
+					"fieldtype": "Link",
+					"options": "SRO Schedule No",
+					"insert_after": "custom_sale_type",
+					"ignore_user_permissions": 1,
+					"description": "Optional default. Copied to the invoice row when that row has no SRO schedule.",
+				},
+				{
+					"fieldname": "custom_sro_item_sno",
+					"label": "SRO Item SNo",
+					"fieldtype": "Link",
+					"options": "SRO Item SNo",
+					"insert_after": "custom_sro_schedule_no",
+					"ignore_user_permissions": 1,
+				},
 			]
 		},
 		ignore_validate=True,
@@ -143,9 +169,68 @@ def _ensure_item_link_fields():
 			"default": "",
 			"ignore_user_permissions": 1,
 		},
+		"Item-custom_sale_type": {
+			"fieldtype": "Link",
+			"options": "Sale Type",
+			"hidden": 0,
+			"fetch_from": None,
+			"fetch_if_empty": 0,
+			"ignore_user_permissions": 1,
+		},
+		"Item-custom_sro_schedule_no": {
+			"fieldtype": "Link",
+			"options": "SRO Schedule No",
+			"ignore_user_permissions": 1,
+		},
+		"Item-custom_sro_item_sno": {
+			"fieldtype": "Link",
+			"options": "SRO Item SNo",
+			"ignore_user_permissions": 1,
+		},
 		"Sales Invoice Item-custom_sale_type": {
 			"fieldtype": "Link",
 			"options": "Sale Type",
+			"fetch_from": "item_code.custom_sale_type",
+			"fetch_if_empty": 1,
+			"ignore_user_permissions": 1,
+		},
+		"Sales Invoice Item-custom_sro_schedule_no": {
+			"fieldtype": "Link",
+			"options": "SRO Schedule No",
+			"fetch_from": "item_code.custom_sro_schedule_no",
+			"fetch_if_empty": 1,
+			"default": "",
+			"ignore_user_permissions": 1,
+		},
+		"Sales Invoice Item-custom_sro_item_sno": {
+			"fieldtype": "Link",
+			"options": "SRO Item SNo",
+			"fetch_from": "item_code.custom_sro_item_sno",
+			"fetch_if_empty": 1,
+			"default": "",
+			"ignore_user_permissions": 1,
+		},
+		"POS Invoice Item-custom_sale_type": {
+			"fieldtype": "Link",
+			"options": "Sale Type",
+			"fetch_from": "item_code.custom_sale_type",
+			"fetch_if_empty": 1,
+			"ignore_user_permissions": 1,
+		},
+		"POS Invoice Item-custom_sro_schedule_no": {
+			"fieldtype": "Link",
+			"options": "SRO Schedule No",
+			"fetch_from": "item_code.custom_sro_schedule_no",
+			"fetch_if_empty": 1,
+			"default": "",
+			"ignore_user_permissions": 1,
+		},
+		"POS Invoice Item-custom_sro_item_sno": {
+			"fieldtype": "Link",
+			"options": "SRO Item SNo",
+			"fetch_from": "item_code.custom_sro_item_sno",
+			"fetch_if_empty": 1,
+			"default": "",
 			"ignore_user_permissions": 1,
 		},
 		"POS Invoice Item-custom_hs_code": {

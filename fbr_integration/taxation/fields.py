@@ -87,6 +87,8 @@ def get_fbr_taxation_custom_fields() -> dict:
 				"fieldtype": "Link",
 				"options": "Sale Type",
 				"insert_after": "custom_fbr_uom",
+				"fetch_from": "item_code.custom_sale_type",
+				"fetch_if_empty": 1,
 				"ignore_user_permissions": 1,
 			},
 			*_item_snapshot_fields("custom_sale_type"),

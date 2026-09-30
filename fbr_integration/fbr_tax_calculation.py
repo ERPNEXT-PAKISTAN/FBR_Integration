@@ -299,11 +299,17 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 			continue
 
 		fields = ["custom_hs_code", "custom_fbr_uom"]
-		try:
-			if frappe.db.has_column("Item", "custom_fbr_tax_profile"):
-				fields.append("custom_fbr_tax_profile")
-		except Exception:
-			pass
+		for optional in (
+			"custom_fbr_tax_profile",
+			"custom_sale_type",
+			"custom_sro_schedule_no",
+			"custom_sro_item_sno",
+		):
+			try:
+				if frappe.db.has_column("Item", optional):
+					fields.append(optional)
+			except Exception:
+				pass
 
 		item_defaults = (
 			frappe.db.get_value(
@@ -318,8 +324,14 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 		item_hs = (item_defaults.get("custom_hs_code") or "").strip()
 		item_uom = (item_defaults.get("custom_fbr_uom") or "").strip()
 		item_profile = (item_defaults.get("custom_fbr_tax_profile") or "").strip()
+		item_sale_type = (item_defaults.get("custom_sale_type") or "").strip()
+		item_sro = (item_defaults.get("custom_sro_schedule_no") or "").strip()
+		item_sro_item = (item_defaults.get("custom_sro_item_sno") or "").strip()
 		current_hs = (getattr(item, "custom_hs_code", None) or "").strip()
 		current_uom = (getattr(item, "custom_fbr_uom", None) or "").strip()
+		current_sale_type = (getattr(item, "custom_sale_type", None) or "").strip()
+		current_sro = (getattr(item, "custom_sro_schedule_no", None) or "").strip()
+		current_sro_item = (getattr(item, "custom_sro_item_sno", None) or "").strip()
 
 		# Field defaults (3005.1010 / KG) used to block fetch_from / empty-only sync.
 		if item_hs and (not current_hs or current_hs == "3005.1010"):
@@ -334,6 +346,17 @@ def sync_sales_invoice_master_defaults(doc, method=None):
 			and not (getattr(item, "custom_fbr_tax_profile", None) or "").strip()
 		):
 			item.custom_fbr_tax_profile = item_profile
+
+		# Invoice sale-type default is the standard rate. Replace that placeholder
+		# with the Item master sale type when the row was not chosen explicitly.
+		if item_sale_type and hasattr(item, "custom_sale_type"):
+			if not current_sale_type or current_sale_type == "Goods at standard rate (default)":
+				item.custom_sale_type = item_sale_type
+
+		if item_sro and hasattr(item, "custom_sro_schedule_no") and not current_sro:
+			item.custom_sro_schedule_no = item_sro
+		if item_sro_item and hasattr(item, "custom_sro_item_sno") and not current_sro_item:
+			item.custom_sro_item_sno = item_sro_item
 
 
 def sync_return_source_invoice_no(doc, method=None):

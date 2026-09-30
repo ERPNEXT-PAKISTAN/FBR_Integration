@@ -15,6 +15,14 @@ from fbr_integration.taxation.profile import get_taxation_settings, profile_to_d
 FBR_INVOICE_DOCTYPES = ("Sales Invoice", "POS Invoice")
 
 
+def _rate_requires_sro(item) -> bool:
+	"""FBR rejects a blank SRO schedule whenever the item rate is not 18%."""
+	raw = getattr(item, "custom_sales_tax_rate", None)
+	if raw in (None, ""):
+		return False
+	return abs(flt(raw) - 18) > 0.001
+
+
 def _item_label(item) -> str:
 	idx = getattr(item, "idx", None) or "?"
 	code = getattr(item, "item_code", None) or getattr(item, "item_name", None) or "Unknown"
@@ -52,6 +60,12 @@ def validate_fbr_tax_row(item, doc=None, profile=None, *, require_profile=False,
 				errors.append("SRO Schedule No is required by the FBR Tax Profile.")
 			if not cstr(getattr(item, "custom_sro_item_sno", None)).strip():
 				errors.append("SRO Item Serial No is required by the FBR Tax Profile.")
+		elif _rate_requires_sro(item) and not cstr(getattr(item, "custom_sro_schedule_no", None)).strip():
+			rate = flt(getattr(item, "custom_sales_tax_rate", None))
+			errors.append(
+				f"SRO Schedule No is required because the sales tax rate is {rate:g}%, not 18%. "
+				"FBR error 0077: Valid SRO/Schedule No. is mandatory where rate is not 18%."
+			)
 
 	if basis == TAX_BASIS_RETAIL_PRICE or data.get("requires_retail_price"):
 		if flt(getattr(item, "custom_fbr_retail_price", None)) <= 0:

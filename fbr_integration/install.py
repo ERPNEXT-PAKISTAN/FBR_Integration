@@ -23,6 +23,14 @@ def after_install():
 
 	sync_pos_invoice_fbr_fields()
 
+	from fbr_integration.patches.sync_sale_types_and_item_fbr_links import (
+		_ensure_item_link_fields,
+		_ensure_read_permissions,
+	)
+
+	_ensure_item_link_fields()
+	_ensure_read_permissions()
+
 	from fbr_integration.tax_withholding_sync import sync_withholding
 
 	sync_withholding()

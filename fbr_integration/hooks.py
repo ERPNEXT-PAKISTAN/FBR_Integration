@@ -168,6 +168,7 @@ fixtures = [
 					"Sales Invoice",
 					"Sales Invoice Item",
 					"Sales Taxes and Charges",
+					"Payment Schedule",
 					"Delivery Note",
 					"Delivery Note Item",
 				],
