@@ -12,12 +12,14 @@ from fbr_integration.fbr_payload_mapping import (
 )
 from fbr_integration.item_tax_templates import sync_item_tax_templates
 from fbr_integration.print_format_sync import sync_print_formats
+from fbr_integration.tax_category_sync import sync_tax_categories
+from fbr_integration.tax_masters import tax_masters_missing
 from fbr_integration.tax_withholding_sync import sync_withholding
 from fbr_integration.xpos_bridge import sync_xpos_print_formats
 from fbr_integration.workspace_pos import ensure_pos_workspace_links
 
 # Bump when fixture/sync logic changes and a full resync is required.
-FBR_SYNC_VERSION = "2026.08.16"
+FBR_SYNC_VERSION = "2026.10.02"
 
 
 def run_after_migrate():
@@ -42,17 +44,22 @@ def run_after_migrate():
 	_ensure_read_permissions()
 	ensure_desk_navigation()
 
+	sync_tax_categories()
+
 	current = frappe.db.get_default("fbr_integration_sync_version")
 	needs_full = current != FBR_SYNC_VERSION
 	needs_seed = _mapping_tables_empty()
+	needs_tax = tax_masters_missing()
 
-	if needs_full or needs_seed:
+	if needs_full or needs_seed or needs_tax:
 		sync_item_tax_templates()
 		sync_withholding()
 		sync_payload_fields()
 		sync_payload_source_fields()
 		sync_payload_field_mappings()
-		frappe.db.set_default("fbr_integration_sync_version", FBR_SYNC_VERSION)
+		# Keep retrying until a company exists and its tax masters are present.
+		if not tax_masters_missing():
+			frappe.db.set_default("fbr_integration_sync_version", FBR_SYNC_VERSION)
 		frappe.db.commit()
 
 

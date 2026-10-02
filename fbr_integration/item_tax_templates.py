@@ -322,8 +322,19 @@ def _sync_template(company, template):
 		doc.save(ignore_permissions=True)
 
 
-def sync_item_tax_templates():
-	company_names = [row.name for row in frappe.get_all("Company", fields=["name"], limit_page_length=0)]
+def sync_item_tax_templates(companies=None):
+	"""Create or update the 28 FBR item tax templates for each company.
+
+	These cannot be static fixtures: each template requires that company's
+	chart of accounts (GST, Further Tax, Extra Tax).
+	"""
+	if companies is None:
+		company_names = [row.name for row in frappe.get_all("Company", fields=["name"], limit_page_length=0)]
+	elif isinstance(companies, str):
+		company_names = [companies]
+	else:
+		company_names = list(companies)
+
 	for company in company_names:
 		for template in ITEM_TAX_TEMPLATE_SPECS:
 			_sync_template(company, template)

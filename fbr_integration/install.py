@@ -17,6 +17,9 @@ def after_install():
 	sync_fixtures("fbr_integration")
 	frappe.clear_cache()
 
+	from fbr_integration.tax_category_sync import sync_tax_categories
+
+	sync_tax_categories()
 	item_tax_templates.sync_item_tax_templates()
 
 	from fbr_integration.pos_invoice_fields import sync_pos_invoice_fbr_fields

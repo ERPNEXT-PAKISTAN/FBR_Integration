@@ -163,15 +163,32 @@ def _ensure_category(
 	doc.insert(ignore_permissions=True)
 
 
-def sync_tax_withholding_masters():
-	"""Idempotent: groups + CoA + categories for all companies."""
+def expected_category_names() -> list[str]:
+	"""The 29 Tax Withholding Category names this app seeds."""
+	names = [f"ST Withheld - {_fmt_rate(rate)}% (FBR)" for rate in ST_WITHHELD_RATES]
+	names.extend(f"WH TAX - {_fmt_rate(rate)}% (Sales)" for rate in WH_SALES_RATES)
+	names.extend(f"Withholding Tax - {_fmt_rate(rate)}% (Purchases)" for rate in WH_PURCHASE_RATES)
+	return names
+
+
+def sync_tax_withholding_masters(companies=None):
+	"""Idempotent: groups + CoA + categories for the given companies.
+
+	Categories cannot be static fixtures: each one requires an account on
+	that company's chart of accounts.
+	"""
 	if not frappe.db.exists("DocType", "Tax Withholding Category"):
 		return
 
 	for group_name in GROUPS:
 		_ensure_group(group_name)
 
-	companies = frappe.get_all("Company", pluck="name")
+	if companies is None:
+		companies = frappe.get_all("Company", pluck="name")
+	elif isinstance(companies, str):
+		companies = [companies]
+	else:
+		companies = list(companies)
 	if not companies:
 		return
 

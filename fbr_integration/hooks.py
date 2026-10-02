@@ -85,6 +85,9 @@ doc_events = {
 		"after_insert": "fbr_integration.territory_sync.on_buyer_province_update",
 		"on_update": "fbr_integration.territory_sync.on_buyer_province_update",
 	},
+	"Company": {
+		"on_update": "fbr_integration.tax_masters.seed_company_tax_masters",
+	},
 }
 
 # Sales Invoice UI: live tax + send button + QR/barcode rendering
@@ -220,4 +223,7 @@ fixtures = [
 	{"dt": "SRO Schedule No", "filters": [["name", "!=", ""]]},
 	{"dt": "SRO Item SNo", "filters": [["name", "!=", ""]]},
 	{"dt": "HS Code", "filters": [["name", "!=", ""]]},
+	# Input Tax and Output Tax only. Item Tax Template and Tax Withholding
+	# Category are company-specific, so they are seeded in tax_masters.py.
+	{"dt": "Tax Category", "filters": [["name", "in", ["Input Tax", "Output Tax"]]]},
 ]
