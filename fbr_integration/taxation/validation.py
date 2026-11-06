@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import frappe
 from frappe.utils import cint, cstr, flt
 
@@ -21,6 +23,22 @@ def _rate_requires_sro(item) -> bool:
 	if raw in (None, ""):
 		return False
 	return abs(flt(raw) - 18) > 0.001
+
+
+def _scenario_id(doc) -> str:
+	"""Resolve the selected FBR scenario from the invoice header."""
+	values = [
+		getattr(doc, "custom_scenario_id", None),
+		getattr(doc, "custom_scenario_detail", None),
+	]
+	for item in getattr(doc, "items", None) or []:
+		values.extend((getattr(item, "custom_scenario_id", None), getattr(item, "custom_scenario_detail", None)))
+	for value in values:
+		text = cstr(value).strip().upper()
+		match = re.match(r"^(SN\d{3})\b", text)
+		if match:
+			return match.group(1)
+	return ""
 
 
 def _item_label(item) -> str:
@@ -49,7 +67,8 @@ def validate_fbr_tax_row(item, doc=None, profile=None, *, require_profile=False,
 		errors.append("FBR Tax Profile is required.")
 
 	if scope == "full":
-		if not cstr(getattr(item, "custom_hs_code", None)).strip():
+		hs_code = cstr(getattr(item, "custom_hs_code", None)).strip()
+		if not hs_code:
 			errors.append("HS Code is required.")
 		if not cstr(getattr(item, "custom_fbr_uom", None)).strip():
 			errors.append("FBR UOM is required.")
@@ -60,7 +79,14 @@ def validate_fbr_tax_row(item, doc=None, profile=None, *, require_profile=False,
 				errors.append("SRO Schedule No is required by the FBR Tax Profile.")
 			if not cstr(getattr(item, "custom_sro_item_sno", None)).strip():
 				errors.append("SRO Item Serial No is required by the FBR Tax Profile.")
-		elif _rate_requires_sro(item) and not cstr(getattr(item, "custom_sro_schedule_no", None)).strip():
+		# SN017/SN018 explicitly define FED-in-sales-tax-mode lines with blank
+		# SRO fields in FBR's scenario catalog. The generic non-18% rule must not
+		# reject those scenario-defined payloads before they reach FBR.
+		elif (
+			_scenario_id(doc) not in {"SN017", "SN018"}
+			and _rate_requires_sro(item)
+			and not cstr(getattr(item, "custom_sro_schedule_no", None)).strip()
+		):
 			rate = flt(getattr(item, "custom_sales_tax_rate", None))
 			errors.append(
 				f"SRO Schedule No is required because the sales tax rate is {rate:g}%, not 18%. "

@@ -331,6 +331,38 @@ class TestRetailPriceLookup(unittest.TestCase):
 
 
 class TestValidationAndPayload(unittest.TestCase):
+	def test_sn017_allows_catalog_blank_sro_for_eight_percent_fed_mode(self):
+		item = _item(
+			custom_hs_code="0101.2100",
+			custom_sales_tax_rate=8,
+			custom_sale_type="Goods (FED in ST Mode)",
+			custom_sro_schedule_no="",
+		)
+		doc = DummyDoc(custom_scenario_id="SN017")
+		validate_fbr_tax_row(item, doc, scope="full")
+
+	def test_sn017_detected_from_invoice_detail_or_item_detail(self):
+		for doc in (
+			DummyDoc(items=[], custom_scenario_detail="SN017 - Goods (FED in ST Mode)"),
+			DummyDoc(items=[], custom_scenario_id=""),
+		):
+			item = _item(
+				custom_sales_tax_rate=8,
+				custom_sale_type="Goods (FED in ST Mode)",
+				custom_sro_schedule_no="",
+				custom_scenario_detail="SN017 - Goods (FED in ST Mode)",
+			)
+			if not doc.items:
+				doc.items = [item]
+			validate_fbr_tax_row(item, doc, scope="full")
+
+	def test_other_reduced_rate_scenario_still_requires_sro(self):
+		item = _item(custom_sales_tax_rate=8, custom_sro_schedule_no="")
+		doc = DummyDoc(custom_scenario_id="SN016")
+		with self.assertRaises(Exception) as ctx:
+			validate_fbr_tax_row(item, doc, scope="full")
+		self.assertIn("SRO Schedule No is required", str(ctx.exception))
+
 	def test_validate_missing_mrp_identifies_row_and_item(self):
 		item = _item(
 			idx=3,
